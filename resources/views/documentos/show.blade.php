@@ -78,7 +78,7 @@
                 </div>
 
                 <div class="flex shrink-0 flex-col gap-2">
-                    <a href="{{ route('documentos.descargar', $documento) }}"
+                    <a href="{{ route('documentos.descargar', $documento) }}" download
                        class="liquid-button-primary rounded-md px-4 py-2 text-center text-sm font-medium">
                         Descargar
                     </a>
@@ -227,7 +227,7 @@
                                     <span class="text-xs">{{ $version->created_at->fechaHora() }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('documentos.versiones.descargar', [$documento, $version]) }}"
+                                    <a href="{{ route('documentos.versiones.descargar', [$documento, $version]) }}" download
                                        class="text-sm text-[var(--primary)] hover:underline">Descargar</a>
                                 </td>
                             </tr>

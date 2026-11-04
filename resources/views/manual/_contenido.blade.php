@@ -278,11 +278,11 @@
     <h3>Marcaciones y reporte</h3>
     <ol class="pasos">
         <li>Ve a <span class="ruta">Turnos → Marcaciones y reporte</span> y filtra por fechas, componente, nodo o cédula.</li>
-        <li>Toca <strong>Descargar reporte (Excel)</strong>.</li>
+        <li>Toca <strong>Descargar reporte (Excel)</strong>. Se lleva los filtros tal como están en pantalla.</li>
     </ol>
     <ul>
-        <li><strong>Pestaña Turnos:</strong> un turno por fila: entrada, salida, tiempo en el sitio, descanso, horas trabajadas, ordinarias, extra y si se aprobaron.</li>
-        <li><strong>Pestaña Resumen mensual:</strong> una fila por persona: días trabajados, horas, extras, y las horas de <strong>cada semana</strong>, en rojo si pasan de 42 h. También aparece quien no marcó en todo el período.</li>
+        <li><strong>Pestaña Turnos:</strong> un turno por fila: entrada, salida, tiempo en el sitio, descanso, horas trabajadas, ordinarias, extra y si se aprobaron. La columna <strong>Turno</strong> dice qué turno de la malla es (N1, N7…) según la hora de entrada. Si ninguno encaja con la hora, dice <strong>Sin reconocer</strong> en rojo: revisa esa entrada.</li>
+        <li><strong>Pestaña Resumen mensual:</strong> una fila por persona: días trabajados, horas, extras, y las horas de <strong>cada semana</strong>, en rojo si pasan de 42 h. También aparece quien no marcó en todo el período. Si filtras por nodo, cada persona sale con todos sus turnos del período, aunque haya cubierto en otro nodo.</li>
     </ul>
 </section>
 
@@ -304,7 +304,7 @@
     <h3>Responder (líderes)</h3>
     <ul>
         <li>Al llegar una derivación, los líderes reciben un aviso por la campana, y otro <strong>cada 30 minutos</strong> mientras siga sin respuesta. Pasadas las <strong>3 horas</strong>, el aviso dice que está <strong>vencida</strong>.</li>
-        <li>En la derivación, <strong>Dar respuesta</strong>: se escribe qué se hizo y <strong>Marcar como solucionada</strong>. Ahí se detiene el tiempo. Si pasó de 3 horas, pide la justificación.</li>
+        <li>En la derivación, <strong>Dar respuesta</strong>: se escribe qué se hizo y <strong>Marcar como solucionada</strong>. Ahí se detiene el tiempo. Si pasó de 3 horas, pide la justificación. Si el caso se atendió antes y apenas lo registras, entra a <strong>Corregir</strong> y pon la <strong>Hora de respuesta</strong> real: el tiempo se recalcula hasta esa hora.</li>
         <li>En la lista, las pendientes van primero, con el tiempo que llevan corriendo (en rojo si ya vencieron).</li>
         <li><strong>Seguimiento:</strong> arriba de la lista se ve cuántas siguen sin respuesta y cuántas vencieron, el cumplimiento, qué nodos tienen casos sin responder y, en «Quién ha respondido», cada líder con sus respuestas a tiempo y su tiempo promedio. Respeta los filtros (fechas, nodo…).</li>
         <li>En <span class="ruta">Notificaciones</span>, la pestaña <strong>Derivaciones</strong> las separa de las de turnos. Cada recordatorio reemplaza al anterior del mismo caso.</li>

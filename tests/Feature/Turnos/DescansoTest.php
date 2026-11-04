@@ -102,7 +102,7 @@ class DescansoTest extends TestCase
         ])), 'Turnos');
 
         // Permanencia 9,77 · descanso 1,00 · trabajadas 8,77 · jornada 8,00 · ordinarias 8,00 · extra 0,77 · aprobadas SI
-        $this->assertEquals([9.77, 1, 8.77, 8, 8, 0.77, 'SI'], array_slice($turnos[1], 7, 7));
+        $this->assertEquals([9.77, 1, 8.77, 8, 8, 0.77, 'SI'], array_slice($turnos[1], 8, 7));
     }
 
     public function test_el_descuento_va_por_tramos_de_permanencia(): void
