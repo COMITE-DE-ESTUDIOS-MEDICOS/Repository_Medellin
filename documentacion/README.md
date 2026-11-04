@@ -69,5 +69,5 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Registrar solo en turno · avisos de supervisión | DOC-13 | [Aprobada](specs/registro-en-turno-y-avisos-supervision/spec.md) | Construida |
 | Salida mínima: reintentos que no son salida | DOC-17 | [Aprobada](specs/salida-minima/spec.md) | Construida |
 | Anular una marca o cambiarle el tipo | DOC-18 | [Aprobada](specs/anular-y-cambiar-tipo-de-marca/spec.md) | Construida |
-
+| Reporte con el turno reconocido y sin ceros por nodo | DOC-19 | [Aprobada](specs/reporte-turno-reconocido-y-nodo/spec.md) | Construida |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

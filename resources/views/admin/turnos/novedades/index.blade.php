@@ -28,7 +28,7 @@
             @endforeach
         </select>
     </form>
-    <a href="{{ route('admin.turnos.novedades.exportar', request()->query()) }}"
+    <a href="{{ route('admin.turnos.novedades.exportar', request()->query()) }}" download
        class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Descargar Excel</a>
 </div>
 

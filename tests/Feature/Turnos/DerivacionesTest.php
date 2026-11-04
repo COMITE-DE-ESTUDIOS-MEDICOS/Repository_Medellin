@@ -256,7 +256,14 @@ class DerivacionesTest extends TestCase
 
         $this->actingAs($this->lider)->delete(route('admin.turnos.derivaciones.destroy', $d))->assertForbidden();
 
+        // Coordinación corrige la hora de respuesta igual que Edición.
         $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia);
+        $this->actingAs($coordinador)->get(route('admin.turnos.derivaciones.edit', $d))->assertOk()->assertSee('Hora de respuesta');
+        $this->actingAs($coordinador)->put(route('admin.turnos.derivaciones.update', $d), [
+            'nodo_id' => $this->nodo->id, 'fecha_requerimiento' => now()->toDateString(), 'hora_requerimiento' => '10:00',
+            'entidad' => 'ICBF', 'descripcion' => 'Corregida', 'ubicacion' => 'Castilla', 'hora_respuesta' => '10:45', 'respuesta' => 'Atendido.',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(45, $d->fresh()->tiempo_respuesta_min);
         $this->actingAs($coordinador)->delete(route('admin.turnos.derivaciones.destroy', $d))->assertRedirect();
         $this->assertSoftDeleted($d);
     }
