@@ -65,7 +65,10 @@ class MarcacionController extends Controller
         $this->authorize('viewAny', Marcacion::class);
 
         [$desde, $hasta] = $this->rango($request);
-        $turnos = $jornadas->entre($desde, $hasta, fn (Builder $q) => $this->filtrar($q, $request));
+        // El nodo no recorta los turnos de una persona: quien cubrió en otro
+        // nodo los tiene todos en el resumen. La pestaña «Turnos» sí se queda
+        // con los marcados en ese nodo.
+        $turnos = $jornadas->entre($desde, $hasta, fn (Builder $q) => $this->filtrar($q, $request, nodo: false));
 
         // Las novedades de duración de cada turno (las de su salida), sin las
         // ya corregidas: esas quedaron reemplazadas por la nueva evaluación.
@@ -77,10 +80,13 @@ class MarcacionController extends Controller
             ->keyBy('marcacion_id');
 
         $filas = $turnos->map(fn (array $turno) => $this->calcular($turno, $novedades));
+        $delNodo = $request->filled('nodo')
+            ? $filas->filter(fn (array $f) => $f['entrada']->nodo_id === $request->integer('nodo'))->values()
+            : $filas;
 
         $ruta = Xlsx::libro(tempnam(sys_get_temp_dir(), 'turnos'), [
-            'Turnos' => [self::ENCABEZADOS_TURNOS, $filas->map(fn (array $f) => $this->filaTurno($f))],
-            'Resumen mensual' => $this->resumen($request, $filas, $desde, $hasta),
+            'Turnos' => [self::ENCABEZADOS_TURNOS, $delNodo->map(fn (array $f) => $this->filaTurno($f))],
+            'Resumen mensual' => $this->resumen($request, $filas, $delNodo, $desde, $hasta),
         ]);
 
         return response()
@@ -89,7 +95,7 @@ class MarcacionController extends Controller
     }
 
     protected const ENCABEZADOS_TURNOS = [
-        'Cédula', 'Nombre', 'Cargo', 'Componente', 'Nodo', 'Entrada', 'Salida',
+        'Cédula', 'Nombre', 'Cargo', 'Componente', 'Nodo', 'Turno', 'Entrada', 'Salida',
         'Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas',
         'Novedad', 'Cómo cerró', 'EPP',
     ];
@@ -124,6 +130,9 @@ class MarcacionController extends Controller
             $c->cargo,
             $f['entrada']->componente->nombre,
             $f['entrada']->nodo?->nombre,
+            // El turno por la hora de entrada (Programacion::reconocer). Sin
+            // uno que encaje va en rojo: hay que mirar esa entrada.
+            $f['turno']['tipo']?->codigo ?? ['alerta' => 'Sin reconocer'],
             $f['entrada']->marcada_at->format('d/m/Y H:i'),
             $salida?->marcada_at->format('d/m/Y H:i') ?? 'Sin salida',
             self::horas($f['permanencia']),
@@ -157,7 +166,7 @@ class MarcacionController extends Controller
      *
      * @return array{0: array, 1: array}
      */
-    protected function resumen(Request $request, $filas, Carbon $desde, Carbon $hasta): array
+    protected function resumen(Request $request, $filas, $delNodo, Carbon $desde, Carbon $hasta): array
     {
         // Semanas de lunes a domingo que tocan el período.
         $semanas = [];
@@ -178,8 +187,9 @@ class MarcacionController extends Controller
             ->get()
             ->keyBy('id');
 
-        // Quien marcó pero ya no está activo también sale: marcó en el período.
-        $porPersona->each(function ($turnos, $id) use ($personas) {
+        // Quien marcó en el nodo (o en cualquiera, sin filtro) también sale,
+        // aunque ya no esté activo o su nodo habitual sea otro.
+        $delNodo->groupBy(fn (array $f) => $f['entrada']->colaborador_id)->each(function ($turnos, $id) use ($personas) {
             $personas->put($id, $turnos->first()['entrada']->colaborador);
         });
 
@@ -333,11 +343,11 @@ class MarcacionController extends Controller
         return [$desde, $hasta];
     }
 
-    protected function filtrar(Builder $q, Request $request): void
+    protected function filtrar(Builder $q, Request $request, bool $nodo = true): void
     {
         $q->when($request->filled('cedula'), fn ($q) => $q->whereHas('colaborador', fn ($c) => $c
                 ->where('documento', 'like', User::normalizarDocumento($request->input('cedula')).'%')))
             ->when($request->filled('componente'), fn ($q) => $q->where('componente_id', $request->integer('componente')))
-            ->when($request->filled('nodo'), fn ($q) => $q->where('nodo_id', $request->integer('nodo')));
+            ->when($nodo && $request->filled('nodo'), fn ($q) => $q->where('nodo_id', $request->integer('nodo')));
     }
 }

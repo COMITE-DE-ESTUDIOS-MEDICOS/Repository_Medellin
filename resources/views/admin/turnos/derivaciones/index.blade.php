@@ -13,9 +13,9 @@
         </p>
     </div>
     <div class="ml-auto flex flex-wrap gap-2">
-        <a href="{{ route('admin.turnos.derivaciones.exportar', request()->query()) }}"
+        <a href="{{ route('admin.turnos.derivaciones.exportar', request()->query()) }}" download
            class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Descargar Excel</a>
-        <a href="{{ route('admin.turnos.derivaciones.fotos', request()->query()) }}"
+        <a href="{{ route('admin.turnos.derivaciones.fotos', request()->query()) }}" download
            class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
             Excel + fotos (ZIP)
         </a>

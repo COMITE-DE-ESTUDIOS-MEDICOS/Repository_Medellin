@@ -94,6 +94,38 @@ class TurnosAutomaticosTest extends TestCase
         $this->assertNull($reconocer('2026-10-20 02:00'), 'A las 2 a. m. no empieza ningún turno.');
     }
 
+    /**
+     * DOC-19 CA-01: el reporte y la ficha dicen qué turno es cada entrada por
+     * su hora, también en las manuales (que no lo guardan); sin uno que
+     * encaje, «Sin reconocer».
+     */
+    public function test_doc19_ca01_el_reporte_y_la_ficha_traen_el_turno_reconocido_por_la_hora(): void
+    {
+        $persona = $this->persona('N1');
+        $this->marcar($persona, '2026-10-20 05:05');
+        $this->marcar($persona, '2026-10-20 12:40');
+        Marcacion::factory()->de($persona)->create(['marcada_at' => Carbon::parse('2026-10-21 20:50'), 'origen' => \App\Enums\OrigenMarcacion::Manual]);
+        Marcacion::factory()->de($persona)->salida()->create(['marcada_at' => Carbon::parse('2026-10-22 04:30')]);
+        Marcacion::factory()->de($persona)->create(['marcada_at' => Carbon::parse('2026-10-23 02:00')]);
+        $this->travelTo(Carbon::parse('2026-10-24 10:00'));
+        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->inclusion);
+
+        $turnos = $this->hojaXlsx(
+            $this->actingAs($coordinador)->get(route('admin.turnos.marcaciones.exportar', ['desde' => '2026-10-20', 'hasta' => '2026-10-23']))->assertOk(),
+            'Turnos',
+        );
+
+        $this->assertSame(['Nodo', 'Turno', 'Entrada'], array_slice($turnos[0], 4, 3));
+        $this->assertSame('N1', $turnos[1][5]);
+        $this->assertSame('N7', $turnos[2][5], 'La manual no guardó turno: se reconoce por la hora.');
+        $this->assertSame('Sin reconocer', $turnos[3][5]);
+
+        $this->actingAs($coordinador)
+            ->get(route('admin.turnos.colaboradores.show', $persona).'?q=2026-10-20')
+            ->assertOk()
+            ->assertSeeTextInOrder(['21/10', 'N7', '8:50 p. m.']);
+    }
+
     public function test_al_marcar_queda_el_turno_el_punto_y_la_tardanza(): void
     {
         $habitual = PuntoCritico::where('nombre', 'Terminal del Norte')->sole();

@@ -206,6 +206,10 @@
                         @php($raro = $turno['novedades']->contains('estado', \App\Enums\EstadoNovedad::Pendiente))
                         <li class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 {{ $raro ? 'border-l-2 border-[var(--warning)]' : '' }}">
                             <span class="w-20 text-[var(--muted)]">{{ ucfirst($entrada->marcada_at->locale('es')->isoFormat('ddd DD/MM')) }}</span>
+                            {{-- El turno de la malla que corresponde a la hora de entrada (el mismo del reporte). --}}
+                            @if($turno['tipo'])
+                                <span class="rounded bg-[var(--card-soft)] px-1.5 py-0.5 text-xs font-semibold text-[var(--text)]" title="{{ $turno['tipo']->nombre }} · {{ $turno['tipo']->horario() }}">{{ $turno['tipo']->codigo }}</span>
+                            @endif
                             <span class="flex flex-wrap items-center gap-1.5">
                                 @include('admin.turnos.colaboradores._hora', ['marca' => $entrada])
                                 <span class="text-[var(--muted)]">→</span>

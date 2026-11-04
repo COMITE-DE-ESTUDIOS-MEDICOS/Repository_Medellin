@@ -205,8 +205,8 @@ class CorreccionYTurnoCerradoTest extends TestCase
 
         $turnos = $this->hojaXlsx($this->actingAs($this->editor)->get(route('admin.turnos.marcaciones.exportar')), 'Turnos');
 
-        $this->assertSame(['Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas'], array_slice($turnos[0], 7, 7));
-        $this->assertEquals([10, 0, 10, 8, 8, 2, 'SI'], array_slice($turnos[1], 7, 7));
+        $this->assertSame(['Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas'], array_slice($turnos[0], 8, 7));
+        $this->assertEquals([10, 0, 10, 8, 8, 2, 'SI'], array_slice($turnos[1], 8, 7));
     }
 
     public function test_un_turno_dentro_de_la_tolerancia_no_da_horas_extra(): void
@@ -215,7 +215,7 @@ class CorreccionYTurnoCerradoTest extends TestCase
 
         $turnos = $this->hojaXlsx($this->actingAs($this->editor)->get(route('admin.turnos.marcaciones.exportar')), 'Turnos');
 
-        $this->assertEquals([8.17, 0, 8.17, 8, 8.17, 0, null], array_slice($turnos[1], 7, 7));
+        $this->assertEquals([8.17, 0, 8.17, 8, 8.17, 0, null], array_slice($turnos[1], 8, 7));
     }
 
     /**

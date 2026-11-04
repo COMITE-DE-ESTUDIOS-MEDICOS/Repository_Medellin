@@ -13,7 +13,7 @@
         </p>
     </div>
     <div class="ml-auto flex flex-wrap gap-2">
-        <a href="{{ route('admin.turnos.supervisiones.exportar', request()->query()) }}"
+        <a href="{{ route('admin.turnos.supervisiones.exportar', request()->query()) }}" download
            class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Descargar Excel</a>
         @can('create', App\Models\EnlaceTurno::class)
             <a href="{{ route('admin.turnos.enlaces.create', ['tipo' => 'supervision']) }}"

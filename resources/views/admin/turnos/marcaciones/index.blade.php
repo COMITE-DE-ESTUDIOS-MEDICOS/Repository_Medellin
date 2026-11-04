@@ -15,14 +15,15 @@
         </p>
     </div>
 
-    {{-- El reporte lleva los mismos filtros que la pantalla. --}}
-    <a href="{{ route('admin.turnos.marcaciones.exportar', request()->query()) }}"
-       class="liquid-button-primary ml-auto rounded-md px-3 py-1.5 text-sm font-medium">
+    {{-- Envía el formulario de filtros tal como está en pantalla, sin tener que pulsar «Filtrar» antes.
+         data-descarga: el overlay de carga no se muestra, porque una descarga no cambia de página. --}}
+    <button type="submit" form="filtros" formaction="{{ route('admin.turnos.marcaciones.exportar') }}" data-descarga
+            class="liquid-button-primary ml-auto rounded-md px-3 py-1.5 text-sm font-medium">
         Descargar reporte (Excel)
-    </a>
+    </button>
 </div>
 
-<form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
+<form id="filtros" method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
     <div>
         <label for="cedula" class="block text-xs font-medium text-[var(--muted)]">Cédula</label>
         <input id="cedula" name="cedula" type="search" inputmode="numeric" value="{{ request('cedula') }}" class="{{ $campo }}">

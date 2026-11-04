@@ -137,7 +137,11 @@ class DerivacionController extends Controller
         return redirect()->route('admin.turnos.derivaciones.show', $derivacion)->with('exito', 'Derivación corregida.');
     }
 
-    /** El líder responde: queda solucionada y el tiempo se detiene ahora. */
+    /**
+     * El líder responde: queda solucionada y el tiempo se detiene ahora. Si la
+     * respuesta real fue antes, la hora se ajusta después en «Corregir»
+     * (update), desde Edición.
+     */
     public function responder(Request $request, Derivacion $derivacion): RedirectResponse
     {
         $this->authorize('update', $derivacion);
