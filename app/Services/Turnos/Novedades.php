@@ -24,6 +24,10 @@ use Illuminate\Support\Facades\Notification;
  */
 class Novedades
 {
+    public function __construct(protected Programacion $programacion)
+    {
+    }
+
     /**
      * @param  bool  $soloDuracion  al volver a juzgar un turno corregido: lo de la
      *                              ubicación ya se anotó cuando se marcó.
@@ -81,6 +85,7 @@ class Novedades
 
         if ($marcacion->tipo === TipoMarcacion::Salida) {
             $nuevas[] = $this->evaluarDuracion($marcacion);
+            $nuevas[] = $this->revisarTardanza($marcacion);
         }
 
         $this->avisar(array_filter($nuevas));
@@ -92,13 +97,7 @@ class Novedades
      */
     protected function evaluarDuracion(Marcacion $salida): ?NovedadTurno
     {
-        $entrada = Marcacion::withoutGlobalScope(DependenciaScope::class)
-            ->vigentes()
-            ->where('colaborador_id', $salida->colaborador_id)
-            ->where('tipo', TipoMarcacion::Entrada->value)
-            ->where('marcada_at', '<', $salida->marcada_at)
-            ->latest('marcada_at')
-            ->first();
+        $entrada = $this->entradaDe($salida);
 
         if ($entrada === null) {
             return null;
@@ -107,8 +106,9 @@ class Novedades
         $permanencia = (int) $entrada->marcada_at->diffInMinutes($salida->marcada_at);
         $componente = $salida->componente;
         $minutos = $componente->minutosTrabajados($permanencia);
-        $esperados = (int) round((float) $componente->regla('jornada_horas') * 60);
         $tolerancia = (int) $componente->regla('tolerancia_min');
+        $toleranciaExtra = (int) $componente->regla('tolerancia_extra_min');
+        $deTurno = '';
         $duro = $this->horas($minutos);
         // «Estuvo 9 h 46 min; con 1 h de descanso, trabajó 8 h 46 min». En un
         // turno corto no hay descuento, y entonces no se menciona.
@@ -120,15 +120,95 @@ class Novedades
             return $this->anotar($salida, TipoNovedad::SinSalida, "No marcó salida. Entró el {$entrada->marcada_at->format('d/m')} a las {$entrada->marcada_at->hora()} y el turno se cerró a las {$this->horas($permanencia)} en el sitio.", $minutos, $entrada);
         }
 
-        if ($minutos < $esperados - $tolerancia) {
-            return $this->anotar($salida, TipoNovedad::TurnoCorto, "{$cuenta} de {$this->horas($esperados)} esperadas.", $minutos, $entrada);
+        // DOC-8: lo esperado es el trabajo de SU turno (el reconocido con la
+        // entrada y la salida): su horario menos el descanso que le toca. Un T4
+        // de 4 h no es «turno corto»; un N1 de 7 h 30 min en el sitio, con
+        // 30 min de descanso, espera 7 h. Sin turno con horario, la jornada del
+        // componente.
+        $turno = $this->programacion->reconocer($componente, $entrada->marcada_at, $entrada->colaborador?->tipoTurno, $salida->marcada_at);
+        $tipo = $turno['tipo'] ?? null;
+        $esperados = $componente->jornadaPara($tipo);
+        if ($tipo?->minutosDeHorario() !== null) {
+            $deTurno = " en su turno {$tipo->codigo}";
         }
 
-        if ($minutos > $esperados + $tolerancia) {
-            return $this->anotar($salida, TipoNovedad::HorasExtra, "{$cuenta}: {$this->horas($minutos - $esperados)} más de las {$this->horas($esperados)} esperadas.", $minutos, $entrada);
+        if ($minutos < $esperados - $tolerancia) {
+            return $this->anotar($salida, TipoNovedad::TurnoCorto, "{$cuenta} de {$this->horas($esperados)} esperadas{$deTurno}.", $minutos, $entrada);
+        }
+
+        // Una tolerancia propia (40 a 60 min): salir un rato después no es hora extra.
+        if ($minutos > $esperados + $toleranciaExtra) {
+            return $this->anotar($salida, TipoNovedad::HorasExtra, "{$cuenta}: {$this->horas($minutos - $esperados)} más de las {$this->horas($esperados)} esperadas{$deTurno}.", $minutos, $entrada);
         }
 
         return null;
+    }
+
+    /**
+     * DOC-21: con la salida real, el turno se reconoce de nuevo con las dos
+     * horas. La entrada no se reescribe (es inmutable); lo que cambia es su
+     * novedad de tardanza pendiente: se cierra si ya no hay tardanza, se
+     * ajusta si cambió, o se anota si ahora sí la hay. Solo en entradas
+     * marcadas por la persona, que son las que tienen tardanza.
+     */
+    protected function revisarTardanza(Marcacion $salida): ?NovedadTurno
+    {
+        if ($salida->origen === OrigenMarcacion::CierreAutomatico) {
+            return null;
+        }
+
+        $entrada = $this->entradaDe($salida);
+
+        if ($entrada === null || $entrada->origen !== OrigenMarcacion::Enlace) {
+            return null;
+        }
+
+        $componente = $entrada->componente;
+        $turno = $this->programacion->reconocer($componente, $entrada->marcada_at, $entrada->colaborador?->tipoTurno, $salida->marcada_at);
+
+        if ($turno === null) {
+            return null;
+        }
+
+        $tipo = $turno['tipo'];
+        $minutos = $turno['minutos_tarde'];
+        $pendiente = NovedadTurno::withoutGlobalScopes()
+            ->where('marcacion_id', $entrada->id)
+            ->where('tipo', TipoNovedad::Tardanza->value)
+            ->where('estado', EstadoNovedad::Pendiente->value)
+            ->first();
+
+        if ($minutos <= (int) $componente->regla('tolerancia_min')) {
+            $pendiente?->update([
+                'estado' => EstadoNovedad::Corregida->value,
+                'comentario' => "Con la salida, el turno es {$tipo->codigo} ({$tipo->horario()}): llegó a tiempo.",
+                'revisada_at' => now(),
+            ]);
+
+            return null;
+        }
+
+        $detalle = "Llegó {$this->horas($minutos)} tarde a su turno {$tipo->codigo} ({$tipo->horario()}).";
+
+        if ($pendiente) {
+            $pendiente->update(['detalle' => $detalle, 'minutos' => $minutos]);
+
+            return null;
+        }
+
+        return $this->anotar($entrada, TipoNovedad::Tardanza, $detalle, $minutos);
+    }
+
+    /** La entrada vigente que abre el turno de esa salida. */
+    protected function entradaDe(Marcacion $salida): ?Marcacion
+    {
+        return Marcacion::withoutGlobalScope(DependenciaScope::class)
+            ->vigentes()
+            ->where('colaborador_id', $salida->colaborador_id)
+            ->where('tipo', TipoMarcacion::Entrada->value)
+            ->where('marcada_at', '<', $salida->marcada_at)
+            ->latest('marcada_at')
+            ->first();
     }
 
     protected function anotar(Marcacion $marcacion, TipoNovedad $tipo, string $detalle, ?int $minutos = null, ?Marcacion $entrada = null): NovedadTurno

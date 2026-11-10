@@ -9,12 +9,16 @@
     <div>
         <h1 class="text-lg font-semibold text-[var(--text)]">Derivaciones y respuesta territorial</h1>
         <p class="text-sm text-[var(--muted)]">
-            Llegan pendientes por el enlace por cédula. Un líder las responde aquí antes de {{ intdiv(\App\Models\Derivacion::META_MINUTOS, 60) }} horas; mientras tanto, el aviso llega cada {{ \App\Models\Derivacion::AVISO_CADA_MIN }} minutos.
+            La oficina crea el caso y la persona de campo lo atiende con su enlace antes de {{ intdiv(\App\Models\Derivacion::META_MINUTOS, 60) }} horas. Si vence sin atención, llega un aviso a la campana.
         </p>
     </div>
     <div class="ml-auto flex flex-wrap gap-2">
+        @can('create', \App\Models\Derivacion::class)
+            <a href="{{ route('admin.turnos.derivaciones.create') }}"
+               class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Nuevo caso</a>
+        @endcan
         <a href="{{ route('admin.turnos.derivaciones.exportar', request()->query()) }}" download
-           class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Descargar Excel</a>
+           class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Descargar Excel</a>
         <a href="{{ route('admin.turnos.derivaciones.fotos', request()->query()) }}" download
            class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
             Excel + fotos (ZIP)
@@ -25,7 +29,7 @@
 <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
     <div>
         <label class="block text-xs font-medium text-[var(--muted)]">Buscar</label>
-        <input type="search" name="q" value="{{ request('q') }}" placeholder="Nombre, CC, entidad…" class="{{ $campo }}">
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="DC-12, nombre, CC, entidad…" class="{{ $campo }}">
     </div>
     <div>
         <label class="block text-xs font-medium text-[var(--muted)]">Nodo</label>
@@ -40,8 +44,8 @@
         <label class="block text-xs font-medium text-[var(--muted)]">Estado</label>
         <select name="estado" class="{{ $campo }}">
             <option value="">Todos</option>
-            <option value="pendiente" @selected(request('estado') === 'pendiente')>Pendientes</option>
-            <option value="solucionada" @selected(request('estado') === 'solucionada')>Solucionadas</option>
+            <option value="pendiente" @selected(request('estado') === 'pendiente')>Abiertos / pendientes</option>
+            <option value="solucionada" @selected(request('estado') === 'solucionada')>Atendidos / solucionadas</option>
         </select>
     </div>
     <div>
@@ -64,16 +68,16 @@
     <a href="{{ route('admin.turnos.derivaciones.index') }}" class="text-sm text-[var(--muted)] hover:text-[var(--text)]">Limpiar</a>
 </form>
 
-{{-- Trazabilidad: quién ha respondido y quién no, con el tiempo desde la solicitud. --}}
+{{-- Trazabilidad: quién ha atendido y quién no, con el tiempo desde la creación. --}}
 @php($tarjeta = 'rounded-lg bg-[var(--card)] p-4 ring-1 ring-[var(--border)]')
 <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <a href="{{ route('admin.turnos.derivaciones.index', ['estado' => 'pendiente'] + request()->except('estado', 'page')) }}" class="{{ $tarjeta }} hover:bg-[var(--card-soft)]">
-        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Sin respuesta</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Sin atender</p>
         <p class="mt-1 text-2xl font-semibold {{ $traza['pendientes'] ? 'text-[var(--warning)]' : 'text-[var(--text)]' }}">{{ $traza['pendientes'] }}</p>
         <p class="text-xs {{ $traza['vencidas'] ? 'font-semibold text-[var(--danger)]' : 'text-[var(--muted)]' }}">{{ $traza['vencidas'] }} {{ $traza['vencidas'] === 1 ? 'vencida' : 'vencidas' }} (más de {{ intdiv(\App\Models\Derivacion::META_MINUTOS, 60) }} h)</p>
     </a>
     <div class="{{ $tarjeta }}">
-        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Respondidas</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Atendidos</p>
         <p class="mt-1 text-2xl font-semibold text-[var(--text)]">{{ $traza['solucionadas'] }}</p>
         <p class="text-xs text-[var(--muted)]">{{ $traza['a_tiempo'] }} a tiempo · {{ $traza['solucionadas'] - $traza['a_tiempo'] }} fuera de tiempo</p>
     </div>
@@ -83,7 +87,7 @@
         <p class="text-xs text-[var(--muted)]">Tiempo promedio: {{ $traza['promedio'] ?? '—' }}</p>
     </div>
     <div class="{{ $tarjeta }}">
-        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Nodos con casos sin respuesta</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Nodos con casos sin atender</p>
         <ul class="mt-1 space-y-0.5 text-sm">
             @forelse($traza['sin_respuesta'] as $nodo => $fila)
                 <li class="flex justify-between gap-2">
@@ -91,87 +95,94 @@
                     <span class="{{ $fila['vencidas'] ? 'font-semibold text-[var(--danger)]' : 'text-[var(--warning)]' }}">{{ $fila['casos'] }} · {{ \App\Models\Derivacion::duracion($fila['mas_antigua']) }}</span>
                 </li>
             @empty
-                <li class="text-[var(--success)]">Ninguno: todo respondido.</li>
+                <li class="text-[var(--success)]">Ninguno: todo atendido.</li>
             @endforelse
         </ul>
     </div>
 </div>
 
-@if($traza['respondedores']->isNotEmpty())
+@if($traza['personas']->isNotEmpty())
     <details class="mb-4 rounded-lg bg-[var(--card)] ring-1 ring-[var(--border)]">
-        <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--text)]">Quién ha respondido ({{ $traza['respondedores']->count() }})</summary>
+        <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-[var(--text)]">Casos atendidos por persona de campo ({{ $traza['personas']->count() }})</summary>
+        <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-[var(--border)] border-t border-[var(--border)] text-sm">
             <thead class="bg-[var(--card-soft)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
                 <tr>
-                    <th class="px-4 py-2 font-medium">Líder</th>
-                    <th class="px-4 py-2 font-medium">Respondidas</th>
+                    <th class="px-4 py-2 font-medium">Persona de campo</th>
+                    <th class="px-4 py-2 font-medium">Atendidos</th>
                     <th class="px-4 py-2 font-medium">A tiempo</th>
                     <th class="px-4 py-2 font-medium">Tiempo promedio</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-[var(--border)]">
-                @foreach($traza['respondedores'] as $r)
+                @foreach($traza['personas'] as $p)
                     <tr>
-                        <td class="px-4 py-2 text-[var(--text)]">{{ $r->nombre }}</td>
-                        <td class="px-4 py-2 text-[var(--text)]">{{ $r->total }}</td>
-                        <td class="px-4 py-2 {{ $r->a_tiempo < $r->total ? 'text-[var(--danger)]' : 'text-[var(--success)]' }}">{{ $r->a_tiempo }} de {{ $r->total }}</td>
-                        <td class="px-4 py-2 text-[var(--muted)]">{{ \App\Models\Derivacion::duracion((int) round($r->promedio)) }}</td>
+                        <td class="px-4 py-2 text-[var(--text)]">{{ $p->nombre ?? 'Sin nombre' }}<span class="block text-xs text-[var(--muted)]">{{ $p->cedula ? 'CC '.$p->cedula : '' }}</span></td>
+                        <td class="px-4 py-2 text-[var(--text)]">{{ $p->total }}</td>
+                        <td class="px-4 py-2 {{ $p->a_tiempo < $p->total ? 'text-[var(--danger)]' : 'text-[var(--success)]' }}">{{ $p->a_tiempo }} de {{ $p->total }}</td>
+                        <td class="px-4 py-2 text-[var(--muted)]">{{ \App\Models\Derivacion::duracion((int) round($p->promedio)) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
+        </div>
     </details>
 @endif
 
 <div class="overflow-x-auto rounded-lg bg-[var(--card)] ring-1 ring-[var(--border)]">
-    <table class="min-w-full divide-y divide-[var(--border)] text-sm">
+    <table class="w-full min-w-[56rem] divide-y divide-[var(--border)] text-sm">
         <thead class="bg-[var(--card-soft)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
             <tr>
-                <th class="px-4 py-3 font-medium">#</th>
-                <th class="px-4 py-3 font-medium">Requerimiento</th>
-                <th class="px-4 py-3 font-medium">Quién escala</th>
+                <th class="px-4 py-3 font-medium">Código</th>
+                <th class="px-4 py-3 font-medium">Inicio</th>
+                <th class="px-4 py-3 font-medium">Quién lo envía</th>
+                <th class="px-4 py-3 font-medium">Persona de campo</th>
                 <th class="px-4 py-3 font-medium">Nodo</th>
-                <th class="px-4 py-3 font-medium">Entidad</th>
-                <th class="px-4 py-3 font-medium">Respuesta</th>
+                <th class="px-4 py-3 font-medium">Estado y tiempo</th>
                 <th class="px-4 py-3"></th>
             </tr>
         </thead>
         <tbody class="divide-y divide-[var(--border)]">
             @forelse($derivaciones as $derivacion)
+                @php($abierto = $derivacion->esCaso() && $derivacion->estaPendiente())
                 <tr>
-                    <td class="px-4 py-3 text-[var(--muted)]">{{ $derivacion->id }}</td>
+                    <td class="whitespace-nowrap px-4 py-3 font-medium text-[var(--text)]">{{ $derivacion->codigo() }}</td>
                     <td class="whitespace-nowrap px-4 py-3 text-[var(--text)]">
-                        {{ $derivacion->fecha_requerimiento->format('d/m/Y') }} · {{ substr($derivacion->hora_requerimiento, 0, 5) }}
+                        {{ $derivacion->requeridaAt()->fechaHora() }}
+                        @if($derivacion->creador)
+                            <span class="block text-xs text-[var(--muted)]">creó {{ $derivacion->creador->name }}</span>
+                        @endif
                     </td>
-                    <td class="px-4 py-3 text-[var(--text)]">
-                        {{ $derivacion->nombre }}
-                        <span class="block text-xs text-[var(--muted)]">CC {{ $derivacion->cedula }}{{ $derivacion->cargo ? ' · '.$derivacion->cargo : '' }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-[var(--muted)]">{{ $derivacion->nodo?->nombre }}</td>
                     <td class="px-4 py-3 text-[var(--muted)]">{{ $derivacion->entidad }}</td>
+                    <td class="px-4 py-3 text-[var(--text)]">
+                        @unless($abierto)
+                            {{ $derivacion->nombre }}
+                            @if($derivacion->cedula)
+                                <span class="block text-xs text-[var(--muted)]">CC {{ $derivacion->cedula }}{{ $derivacion->cargo ? ' · '.$derivacion->cargo : '' }}</span>
+                            @endif
+                        @endunless
+                    </td>
+                    <td class="px-4 py-3 text-[var(--muted)]">{{ $abierto ? '' : $derivacion->nodo?->nombre }}</td>
                     <td class="whitespace-nowrap px-4 py-3">
-                        @include('admin.turnos.derivaciones._estado')
+                        <span class="flex flex-wrap gap-1">@include('admin.turnos.derivaciones._estado')</span>
                         @if($derivacion->estaPendiente())
                             <span class="mt-1 block text-xs text-[var(--muted)]">
                                 lleva <span class="font-semibold" data-contador-desde="{{ $derivacion->requeridaAt()->toIso8601String() }}" data-meta-minutos="{{ \App\Models\Derivacion::META_MINUTOS }}">{{ $derivacion->tiempoLegible() }}</span>
                             </span>
                         @else
                             <span class="mt-1 block text-xs {{ $derivacion->cumplio() ? 'text-[var(--success)]' : 'text-[var(--danger)]' }}">
-                                {{ $derivacion->tiempoLegible() }} · a las {{ substr($derivacion->hora_respuesta, 0, 5) }}
+                                {{ $derivacion->tiempoLegible() }} · a las {{ $derivacion->atendida_at?->hora() ?? \Illuminate\Support\Carbon::parse($derivacion->hora_respuesta)->hora() }}
                             </span>
-                            @if($derivacion->respondedor)
-                                <span class="block text-xs text-[var(--muted)]">por {{ $derivacion->respondedor->name }}</span>
-                            @endif
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('admin.turnos.derivaciones.show', $derivacion) }}" class="text-[var(--primary)] hover:underline">{{ $derivacion->estaPendiente() ? 'Responder' : 'Ver' }}</a>
+                        <a href="{{ route('admin.turnos.derivaciones.show', $derivacion) }}" class="text-[var(--primary)] hover:underline">Ver</a>
                     </td>
                 </tr>
             @empty
                 <tr>
                     <td colspan="7" class="px-4 py-10 text-center text-[var(--muted)]">
-                        No hay derivaciones con este filtro. Se reportan con un enlace por cédula de tipo «Derivaciones».
+                        No hay casos con este filtro. La oficina los crea con «Nuevo caso».
                     </td>
                 </tr>
             @endforelse

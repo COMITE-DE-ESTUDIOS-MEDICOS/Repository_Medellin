@@ -52,8 +52,8 @@
             @forelse($abiertas as $marcacion)
                 @php
                     $minutos = $marcacion->minutosDesde();
-                    // Pasado el máximo del componente, el cierre automático lo dará por «sin salida».
-                    $excedido = $minutos > $marcacion->componente->regla('horas_max_turno') * 60;
+                    // DOC-21: pasado su tope (cargo o turno), el cierre automático lo dará por «sin salida».
+                    $excedido = app(\App\Services\Turnos\Marcador::class)->vencida($marcacion);
                 @endphp
                 <tr>
                     <td class="px-4 py-3">

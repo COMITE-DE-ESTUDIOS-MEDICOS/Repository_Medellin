@@ -2,6 +2,7 @@
 
 namespace App\Services\Turnos;
 
+use App\Enums\OrigenMarcacion;
 use App\Enums\TipoMarcacion;
 use App\Models\Marcacion;
 use App\Models\TipoTurno;
@@ -21,11 +22,12 @@ class Jornadas
 
     /**
      * Los turnos que empezaron en el rango, con los filtros que se pasen.
-     * «tipo» es el turno de la malla (N1, N7…) que corresponde a la hora de
-     * la entrada, reconocido ahora y no el que se guardó al marcar: una hora
-     * corregida o una marca manual también lo tienen.
+     * «tipo» es el turno de la malla (N1, N7…) reconocido ahora con la entrada
+     * y la salida (DOC-21), no el provisional que se guardó al marcar: una
+     * hora corregida o una marca manual también lo tienen. «minutos_tarde»
+     * es la tardanza frente a ese turno.
      *
-     * @return Collection<int, array{entrada: Marcacion, salida: ?Marcacion, minutos: ?int, tipo: ?TipoTurno}>
+     * @return Collection<int, array{entrada: Marcacion, salida: ?Marcacion, minutos: ?int, tipo: ?TipoTurno, minutos_tarde: ?int}>
      */
     public function entre(CarbonInterface $desde, CarbonInterface $hasta, ?callable $filtrar = null): Collection
     {
@@ -73,11 +75,16 @@ class Jornadas
 
     protected function turno(Marcacion $entrada, ?Marcacion $salida): array
     {
+        // La hora de un cierre automático no es real: ahí el turno sale solo de la entrada.
+        $real = $salida && $salida->origen !== OrigenMarcacion::CierreAutomatico ? $salida->marcada_at : null;
+        $turno = $this->programacion->reconocer($entrada->componente, $entrada->marcada_at, $entrada->colaborador->tipoTurno, $real);
+
         return [
             'entrada' => $entrada,
             'salida' => $salida,
             'minutos' => $salida ? (int) $entrada->marcada_at->diffInMinutes($salida->marcada_at) : null,
-            'tipo' => $this->programacion->reconocer($entrada->componente, $entrada->marcada_at, $entrada->colaborador->tipoTurno)['tipo'] ?? null,
+            'tipo' => $turno['tipo'] ?? null,
+            'minutos_tarde' => $turno['minutos_tarde'] ?? null,
         ];
     }
 }

@@ -10,6 +10,23 @@ sola versión. La siguiente sección se abre después de esa fusión.
 
 Cada viñeta, corta y para quien no programa.
 
+## v2.2
+
+- Derivaciones con código de caso: la oficina crea el caso (DC-001, DC-002…) desde el celular en Atención territorial → Derivaciones → **Nuevo caso**, con el mensaje, quién lo envía (Alcaldía, Autoridades locales del sector u Otra), la ubicación y el soporte. Desde ese momento corren las 3 horas.
+- La persona de campo **atiende el caso** desde su enlace de derivaciones: escribe su cédula y el número del caso, ve lo que subió la oficina, elige el nodo, sube las 3 evidencias (foto con sello o del celular) y responde «¿Se cumplió con el requerimiento?». Al enviar se detiene el tiempo. Cada caso se atiende una sola vez.
+- La ficha de cada caso muestra la trazabilidad: quién lo creó y cuándo, quién lo atendió (persona y nodo) y cuándo, el tiempo y si cumplió la meta. Arriba de la lista aparecen los casos atendidos por cada persona de campo, con su tiempo promedio. El Excel trae columnas nuevas al final.
+- Los avisos de derivaciones ya no llegan cada 30 minutos: llega uno solo cuando un caso pasa 3 horas sin atención, y otro a quien lo creó cuando lo atienden.
+- Las horas de los casos y el «¿Se cumplió?» los corrige solo el superadministrador (plan de contingencia), con motivo. Edición y Coordinación corrigen los textos. Las derivaciones anteriores siguen en la lista, marcadas «registro anterior».
+- Turnos: el turno se confirma con la entrada y la salida. El viernes, entrar a las 6:00 y salir a las 10:05 es T4; salir a las 12:35 es N1 con tardanza. Si la salida cambia el turno, la tardanza se corrige sola. El turno habitual ya no se impone: solo desempata.
+- Cada turno se compara con **su** jornada: un T4 espera 4 h y un N1 7 h, descontado el descanso. Un T4 completo ya no sale como «turno corto».
+- Tolerancia de horas extra, aparte de la de tardanza (de 40 a 60 minutos, en el componente): salir un rato después del fin del turno ya no genera horas extra para aprobar.
+- Si alguien no marca la salida, el turno se cierra solo al terminar su turno más esa tolerancia (un N1 a la 1:30 p. m., un C13 a las 7:00 p. m.). Los conductores tienen su propio máximo: se configura en el componente, en «Duración máxima por cargo». En el reporte, ese turno dice «Cierre automático · por corregir» hasta que Coordinación lo revise.
+- Si alguien no marcó la salida y vuelve a marcar al día siguiente, esa marca es su **entrada**, ya no la salida de ayer.
+- La pantalla «En turno» marca como excedido a quien pasó el fin de su turno.
+- El reporte de turnos trae la columna «Turno» (N1, T4, N7…) con el turno reconocido, y el Excel respeta los filtros de la pantalla. Ya no se queda «cargando» al descargar.
+- Al descargar una carpeta en ZIP, los documentos y las carpetas inactivados ya no se incluyen.
+- Al elegir carpeta («Dentro de», «Copiar», «Mover») hay un buscador: se escribe parte del nombre o de la ruta (varias palabras, sin tildes) y aparece una lista corta con el nombre de la carpeta y dónde está.
+
 ## v2.1
 
 - Turnos: las personas de campo marcan entrada y salida con el QR o el link de su componente, solo con su cédula.

@@ -12,6 +12,7 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -90,6 +91,13 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                     ->slideOver()
                     ->modalWidth(Width::ThreeExtraLarge)
                     ->schema(self::formulario())
+                    // El tope por cargo se guarda como mapa; el Repeater lo edita como filas.
+                    ->mutateRecordDataUsing(function (array $data) {
+                        $data['config']['horas_max_por_cargo'] = collect($data['config']['horas_max_por_cargo'] ?? [])
+                            ->map(fn ($horas, $cargo) => ['cargo' => $cargo, 'horas' => $horas])->values()->all();
+
+                        return $data;
+                    })
                     ->mutateDataUsing(fn (array $data, Componente $record) => self::preparar($data, $record))
                     ->after(fn (Componente $record) => app(Auditor::class)->registrar(
                         AccionAuditoria::ComponenteGuardado, $record, "Actualizó el componente {$record->nombre}",
@@ -135,9 +143,28 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                 ->columns(2)
                 ->schema([
                     self::regla('jornada_horas', 'Jornada esperada (horas)', 1, 24, 'Trabajo neto esperado, sin el descanso. Más o menos que esto, pasada la tolerancia, sale como horas extra o turno corto.'),
-                    self::regla('tolerancia_min', 'Tolerancia (minutos)', 0, 240, 'Margen antes de contar un turno como corto, con horas extra o como tardanza.'),
-                    self::regla('horas_max_turno', 'Duración máxima del turno (horas)', 1, 24, 'Una entrada sin salida pasado este tiempo se cierra sola y queda como novedad.')
+                    self::regla('tolerancia_min', 'Tolerancia (minutos)', 0, 240, 'Margen antes de contar un turno como corto o como tardanza.'),
+                    self::regla('tolerancia_extra_min', 'Tolerancia de horas extra (minutos)', 40, 60, 'Salir hasta tanto después del fin del turno no cuenta como hora extra. También es el margen con que se cierra solo un turno sin salida.'),
+                    self::regla('horas_max_turno', 'Duración máxima del turno (horas)', 1, 24, 'Si el sistema no reconoce el turno, una entrada sin salida se cierra a estas horas y queda como novedad. Si lo reconoce, se cierra al fin del turno más la tolerancia de horas extra.')
                         ->gte('config.jornada_horas'),
+                    // DOC-21 (CA-08): se guarda como cargo => horas (preparar()).
+                    Repeater::make('config.horas_max_por_cargo')
+                        ->label('Duración máxima por cargo')
+                        ->helperText('Para estos cargos, el turno sin salida se cierra a estas horas de la entrada en vez de la duración máxima general.')
+                        ->defaultItems(0)
+                        ->addActionLabel('Agregar cargo')
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->schema([
+                            Select::make('cargo')
+                                ->label('Cargo')
+                                // Los cargos del componente, como están ahora en el formulario.
+                                ->options(fn ($get) => collect((array) $get('../../cargos'))->filter()->mapWithKeys(fn ($c) => [$c => $c])->all())
+                                ->required()
+                                ->distinct()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                            TextInput::make('horas')->label('Horas')->integer()->required()->minValue(1)->maxValue(24),
+                        ]),
                     self::regla('turnos_por_dia', 'Turnos por día', 1, 6, 'Cumplidos, el enlace ya no deja marcar ese día.'),
                     self::regla('salida_minima_min', 'Salida mínima (minutos)', 0, 240, 'Volver a marcar antes de esto, después de la entrada, no cuenta como salida: es un reintento. Si alguien se va antes, Coordinación agrega la salida.'),
                 ]),
@@ -230,12 +257,15 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
     protected static function preparar(array $data, ?Componente $record = null): array
     {
         $config = array_replace(Componente::REGLAS, $record?->config ?? [], $data['config'] ?? []);
+        $limpio = fn ($cargo) => trim(preg_replace('/\s+/', ' ', (string) $cargo));
         foreach (['cargos', 'cargos_supervision'] as $lista) {
-            $config[$lista] = array_values(array_unique(array_filter(array_map(
-                fn ($cargo) => trim(preg_replace('/\s+/', ' ', (string) $cargo)),
-                (array) ($config[$lista] ?? []),
-            ))));
+            $config[$lista] = array_values(array_unique(array_filter(array_map($limpio, (array) ($config[$lista] ?? [])))));
         }
+        // Del Repeater llegan filas {cargo, horas}; se guarda cargo => horas.
+        $config['horas_max_por_cargo'] = collect((array) $config['horas_max_por_cargo'])
+            ->mapWithKeys(fn ($v, $k) => is_array($v) ? [$limpio($v['cargo'] ?? '') => (int) ($v['horas'] ?? 0)] : [$k => (int) $v])
+            ->filter(fn ($horas, $cargo) => $cargo !== '' && $horas > 0)
+            ->all();
 
         return [
             ...$data,

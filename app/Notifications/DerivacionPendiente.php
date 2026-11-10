@@ -10,37 +10,34 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Notification as Notificaciones;
 
 /**
- * A los líderes (Edición): al llegar una derivación y cada
- * Derivacion::AVISO_CADA_MIN minutos mientras siga sin respuesta.
+ * DOC-20: un solo aviso a Edición y Coordinación cuando un caso pasa
+ * Derivacion::META_MINUTOS sin atención. Lo retira CasoAtendido al atenderse.
  */
 class DerivacionPendiente extends Notification
 {
-    public function __construct(protected Derivacion $derivacion, protected bool $nueva)
+    public function __construct(protected Derivacion $derivacion)
     {
     }
 
-    /**
-     * Avisa a los líderes de su dependencia y anota cuándo, para el siguiente
-     * recordatorio. El aviso nuevo reemplaza al anterior del mismo caso.
-     */
-    public static function enviar(Derivacion $derivacion, bool $nueva = false): void
+    /** Avisa a Edición y Coordinación de su dependencia y anota que ya se avisó. */
+    public static function enviar(Derivacion $derivacion): void
     {
         self::retirar($derivacion);
 
-        $lideres = Dependencia::find($derivacion->dependencia_id)
+        $destinatarios = Dependencia::find($derivacion->dependencia_id)
             ?->usuarios()
-            ->wherePivot('rol', RolDependencia::Edicion->value)
+            ->wherePivotIn('rol', [RolDependencia::Edicion->value, RolDependencia::Coordinacion->value])
             ->where('activo', true)
             ->get();
 
-        if ($lideres?->isNotEmpty()) {
-            Notificaciones::send($lideres, new self($derivacion, $nueva));
+        if ($destinatarios?->isNotEmpty()) {
+            Notificaciones::send($destinatarios, new self($derivacion));
         }
 
         $derivacion->forceFill(['ultimo_aviso_at' => now()])->saveQuietly();
     }
 
-    /** Los avisos de una derivación, fuera de la campana (al reemplazarlos o al responderla). */
+    /** Los avisos de un caso, fuera de la campana (al atenderlo). */
     public static function retirar(Derivacion $derivacion): void
     {
         DatabaseNotification::where('type', self::class)->where('data->derivacion_id', $derivacion->id)->delete();
@@ -54,17 +51,10 @@ class DerivacionPendiente extends Notification
     public function toArray(object $notifiable): array
     {
         $d = $this->derivacion;
-        $limite = $d->requeridaAt()->addMinutes(Derivacion::META_MINUTOS)->hora();
-
-        $mensaje = match (true) {
-            $this->nueva => "Nueva derivación #{$d->id} de {$d->nombre} ({$d->entidad}): respóndela antes de las {$limite}.",
-            $d->cumplio() => "Derivación #{$d->id} sin respuesta: lleva {$d->tiempoLegible()}. Vence a las {$limite}.",
-            default => "Derivación #{$d->id} VENCIDA: lleva {$d->tiempoLegible()} sin respuesta (meta: ".intdiv(Derivacion::META_MINUTOS, 60).' h).',
-        };
 
         return [
             'derivacion_id' => $d->id,
-            'mensaje' => $mensaje,
+            'mensaje' => "{$d->codigo()} venció sin atención: lleva {$d->tiempoLegible()}.",
             // Relativa: la notificación sirve igual en pruebas y en producción.
             'url' => route('admin.turnos.derivaciones.show', $d, false),
         ];

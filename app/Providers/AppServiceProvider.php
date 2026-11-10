@@ -92,6 +92,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(120)->by('token:'.$peticion->route('token')),
         ]);
 
+        // DOC-20: consultar un caso por su código desde el enlace. Estricto
+        // (10 cada 10 min) por IP y por cédula, para que no se sondeen números.
+        RateLimiter::for('caso-consulta', fn (Request $peticion) => [
+            Limit::perMinutes(10, 10)->by('ip:'.$peticion->ip()),
+            Limit::perMinutes(10, 10)->by('cedula:'.\App\Models\User::normalizarDocumento((string) $peticion->input('cedula'))),
+        ]);
+
         RateLimiter::for('turno-marca', fn (Request $peticion) => [
             Limit::perMinute(10)->by('ip:'.$peticion->ip()),
             Limit::perMinute(120)->by('token:'.$peticion->route('token')),

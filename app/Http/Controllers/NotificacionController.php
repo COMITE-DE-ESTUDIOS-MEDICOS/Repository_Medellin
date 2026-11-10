@@ -12,7 +12,7 @@ class NotificacionController extends Controller
 {
     /** Pestaña => [etiqueta, clases de notificación]. Lo que no esté aquí sale solo en «Todas». */
     public const TIPOS = [
-        'derivaciones' => ['Derivaciones', [\App\Notifications\DerivacionPendiente::class]],
+        'derivaciones' => ['Derivaciones', [\App\Notifications\DerivacionPendiente::class, \App\Notifications\CasoAtendido::class]],
         'supervision' => ['Supervisión', [\App\Notifications\SupervisionImportante::class]],
         'turnos' => ['Turnos', [\App\Notifications\NovedadTurnoDetectada::class]],
         'documentos' => ['Documentos', [\App\Notifications\ComentarioEnDocumento::class, \App\Notifications\RecepcionRecibida::class]],

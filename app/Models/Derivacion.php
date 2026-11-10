@@ -12,9 +12,15 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Derivaciones y respuesta territorial: un caso que una persona de campo
- * escala con sus evidencias. Llega pendiente y el tiempo corre desde el
- * requerimiento hasta que un líder lo responde en Documenta (solucionada).
+ * Derivaciones y respuesta territorial.
+ *
+ * DOC-20 (con numero): la oficina crea el caso DC-NNN, el tiempo corre desde
+ * entonces (fecha/hora_requerimiento = hora del servidor) y se detiene cuando
+ * la persona de campo envía la atención (atendida_at). pendiente = Abierto,
+ * solucionada = Atendido.
+ *
+ * Registro anterior (numero = null): la persona de campo lo escalaba y un
+ * líder lo respondía en Documenta.
  */
 #[ScopedBy([DependenciaScope::class])]
 class Derivacion extends Model
@@ -26,12 +32,19 @@ class Derivacion extends Model
     /** Pasado este tiempo de respuesta hay que justificar. */
     public const META_MINUTOS = 180;
 
-    /** Cada cuánto se les recuerda a los líderes una derivación sin respuesta. */
-    public const AVISO_CADA_MIN = 30;
-
     public const PENDIENTE = 'pendiente';
 
     public const SOLUCIONADA = 'solucionada';
+
+    /** DOC-20: quién envía el caso. «otra» se acompaña del texto en entidad. */
+    public const REMITENTES = [
+        'alcaldia' => 'Alcaldía',
+        'autoridades' => 'Autoridades locales del sector',
+        'otra' => 'Otra',
+    ];
+
+    /** Minutos en que dos casos con la misma ubicación y remitente se avisan como posible duplicado. */
+    public const VENTANA_DUPLICADO_MIN = 30;
 
     protected $fillable = [
         'dependencia_id', 'componente_id', 'enlace_turno_id', 'colaborador_id',
@@ -39,13 +52,17 @@ class Derivacion extends Model
         'fecha_requerimiento', 'hora_requerimiento', 'entidad', 'descripcion',
         'ubicacion', 'estado', 'respuesta', 'hora_respuesta', 'tiempo_respuesta_min', 'justificacion',
         'respondida_at', 'respondida_por', 'ultimo_aviso_at',
+        'numero', 'remitente', 'creado_por', 'clave_formulario', 'atendida_at', 'cumplio_requerimiento', 'observacion',
         'soporte_documento_id', 'evidencia1_documento_id', 'evidencia2_documento_id', 'evidencia3_documento_id',
         'actualizado_por',
     ];
 
     protected function casts(): array
     {
-        return ['fecha_requerimiento' => 'date', 'respondida_at' => 'datetime', 'ultimo_aviso_at' => 'datetime'];
+        return [
+            'fecha_requerimiento' => 'date', 'respondida_at' => 'datetime', 'ultimo_aviso_at' => 'datetime',
+            'atendida_at' => 'datetime', 'cumplio_requerimiento' => 'boolean', 'numero' => 'integer',
+        ];
     }
 
     /**
@@ -115,6 +132,33 @@ class Derivacion extends Model
         return (int) $desde->diffInMinutes($hasta);
     }
 
+    /** DOC-20: un caso creado por la oficina; si no, es un registro anterior. */
+    public function esCaso(): bool
+    {
+        return $this->numero !== null;
+    }
+
+    /** «DC-007», «DC-1250»: al menos 3 dígitos, nunca se reinicia. */
+    public function codigo(): string
+    {
+        return $this->esCaso() ? self::codigoDe($this->numero) : '#'.$this->id;
+    }
+
+    public static function codigoDe(int $numero): string
+    {
+        return 'DC-'.str_pad((string) $numero, 3, '0', STR_PAD_LEFT);
+    }
+
+    /** Lo que se lee en pantalla y en el Excel. */
+    public function estadoLegible(): string
+    {
+        return match (true) {
+            ! $this->esCaso() => $this->estaPendiente() ? 'Pendiente' : 'Solucionada',
+            $this->estaPendiente() => $this->cumplio() ? 'Abierto' : 'Abierto · vencido',
+            default => 'Atendido',
+        };
+    }
+
     public function estaPendiente(): bool
     {
         return $this->estado === self::PENDIENTE;
@@ -151,6 +195,11 @@ class Derivacion extends Model
         $m = $minutos % 60;
 
         return $h ? "{$h} h {$m} min" : "{$m} min";
+    }
+
+    public function creador(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creado_por');
     }
 
     public function respondedor(): BelongsTo
