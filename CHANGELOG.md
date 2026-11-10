@@ -19,6 +19,7 @@ Cada viñeta, corta y para quien no programa.
 - Las horas de los casos y el «¿Se cumplió?» los corrige solo el superadministrador (plan de contingencia), con motivo. Edición y Coordinación corrigen los textos. Las derivaciones anteriores siguen en la lista, marcadas «registro anterior».
 - Turnos: el turno se confirma con la entrada y la salida. El viernes, entrar a las 6:00 y salir a las 10:05 es T4; salir a las 12:35 es N1 con tardanza. Si la salida cambia el turno, la tardanza se corrige sola. El turno habitual ya no se impone: solo desempata.
 - Cada turno se compara con **su** jornada: un T4 espera 4 h y un N1 7 h, descontado el descanso. Un T4 completo ya no sale como «turno corto».
+- El descanso se descuenta según el horario del turno: un T4 nunca tiene descuento, aunque salga un rato después; un N1 descuenta 30 min. En el componente, debajo del descanso, se ve lo que da cada turno con los valores puestos.
 - Tolerancia de horas extra, aparte de la de tardanza (de 40 a 60 minutos, en el componente): salir un rato después del fin del turno ya no genera horas extra para aprobar.
 - Si alguien no marca la salida, el turno se cierra solo al terminar su turno más esa tolerancia (un N1 a la 1:30 p. m., un C13 a las 7:00 p. m.). Los conductores tienen su propio máximo: se configura en el componente, en «Duración máxima por cargo». En el reporte, ese turno dice «Cierre automático · por corregir» hasta que Coordinación lo revise.
 - Si alguien no marcó la salida y vuelve a marcar al día siguiente, esa marca es su **entrada**, ya no la salida de ayer.

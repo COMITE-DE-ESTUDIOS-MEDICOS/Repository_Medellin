@@ -131,7 +131,7 @@ class ColaboradorController extends Controller
             ->groupBy('marcacion_id');
 
         $turnos = $turnos->map(fn (array $t) => $t + [
-            'trabajado' => $t['minutos'] !== null ? $colaborador->componente?->minutosTrabajados($t['minutos']) ?? $t['minutos'] : null,
+            'trabajado' => $t['minutos'] !== null ? $colaborador->componente?->minutosTrabajados($t['minutos'], $t['tipo'] ?? null) ?? $t['minutos'] : null,
             'novedades' => collect([$novedades->get($t['entrada']->id), $novedades->get($t['salida']?->id)])->flatten()->filter(),
         ]);
 

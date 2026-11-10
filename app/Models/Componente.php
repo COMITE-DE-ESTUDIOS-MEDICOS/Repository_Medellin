@@ -100,7 +100,7 @@ class Componente extends Model
         $horario = $tipo?->minutosDeHorario();
 
         return $horario !== null
-            ? $this->minutosTrabajados($horario)
+            ? $this->minutosTrabajados($horario, $tipo)
             : (int) round((float) $this->regla('jornada_horas') * 60);
     }
 
@@ -109,13 +109,32 @@ class Componente extends Model
      * que se compara con la jornada (novedades) y lo que va al reporte: un
      * solo cálculo, para que los dos digan siempre lo mismo.
      */
-    public function minutosTrabajados(int $permanencia): int
+    public function minutosTrabajados(int $permanencia, ?TipoTurno $tipo = null): int
     {
-        return max(0, $permanencia - $this->descansoPara($permanencia));
+        return max(0, $permanencia - $this->descansoPara($permanencia, $tipo));
     }
 
-    /** Cuánto descanso no remunerado le toca a un turno de esa permanencia (ver REGLAS). */
-    public function descansoPara(int $permanencia): int
+    /**
+     * Cuánto descanso no remunerado le toca (ver REGLAS).
+     *
+     * Edwar, 2026-11-10: el descanso va por el TURNO, no por lo que se quedó.
+     * Con un turno con horario, el de su horario (T4 de 4 h → nada; N1 de
+     * 7 h 30 min → 30 min), sin pasar del que daría el tiempo en el sitio: un
+     * T4 que se queda 4 h 05 min no pierde 30 min, y un N1 que se va a las
+     * 3 h no descuenta un descanso que no tomó. Sin turno, por el tiempo en
+     * el sitio, como antes.
+     */
+    public function descansoPara(int $permanencia, ?TipoTurno $tipo = null): int
+    {
+        $horario = $tipo?->minutosDeHorario();
+
+        return $horario === null
+            ? $this->descansoPorTramo($permanencia)
+            : min($this->descansoPorTramo($horario), $this->descansoPorTramo($permanencia));
+    }
+
+    /** El descanso de los tramos del componente para ese tiempo. */
+    protected function descansoPorTramo(int $permanencia): int
     {
         return match (true) {
             $permanencia <= (int) $this->regla('sin_descanso_hasta_h') * 60 => 0,

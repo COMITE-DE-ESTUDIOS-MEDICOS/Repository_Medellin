@@ -18,6 +18,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Enums\Width;
@@ -174,12 +175,17 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                 ->columns(2)
                 ->collapsible()
                 ->schema([
-                    self::regla('sin_descanso_hasta_h', 'Turno corto: hasta (horas)', 0, 12, 'Hasta aquí no se descuenta nada: una pausa corta se paga como trabajo.'),
-                    self::regla('descanso_parcial_min', 'Turno medio: descuento (minutos)', 0, 240, 'Entre el turno corto y el largo (ej. 30 de desayuno).')
-                        ->lte('config.descanso_min'),
+                    self::regla('sin_descanso_hasta_h', 'Turno corto: hasta (horas)', 0, 12, 'Hasta aquí no se descuenta nada: una pausa corta se paga como trabajo.')
+                        ->live(onBlur: true),
+                    self::regla('descanso_parcial_min', 'Turno medio: descuento (minutos)', 0, 240, 'Entre el turno corto y el largo.')
+                        ->lte('config.descanso_min')->live(onBlur: true),
                     self::regla('descanso_completo_desde_h', 'Turno largo: más de (horas)', 1, 24, 'Desde aquí se descuenta el descanso completo.')
-                        ->gte('config.sin_descanso_hasta_h'),
-                    self::regla('descanso_min', 'Turno largo: descuento (minutos)', 0, 240, 'Ej. 30 de desayuno + 30 de almuerzo.'),
+                        ->gte('config.sin_descanso_hasta_h')->live(onBlur: true),
+                    self::regla('descanso_min', 'Turno largo: descuento (minutos)', 0, 240, 'El descanso completo de un turno largo.')
+                        ->live(onBlur: true),
+                    // Lo que da con estos valores, turno por turno: así no hay que hacer la cuenta.
+                    Text::make(fn ($get, ?Componente $record) => self::ejemploDescanso($get, $record))
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Turno automático')
@@ -228,6 +234,29 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
     }
 
     /** Un número de las reglas del componente (config), con su valor por defecto. */
+    /**
+     * «Con estos valores: T4 (4 h en el sitio) → 4 h de trabajo · N1 (7 h 30 min) → 7 h…».
+     * Con los turnos con horario del componente; al crearlo, con 4 h, 7 h 30 min y 12 h.
+     */
+    public static function ejemploDescanso($get, ?Componente $record): string
+    {
+        $prueba = new Componente(['config' => collect(['sin_descanso_hasta_h', 'descanso_parcial_min', 'descanso_completo_desde_h', 'descanso_min'])
+            ->mapWithKeys(fn ($clave) => [$clave => (int) ($get("config.{$clave}") ?? Componente::REGLAS[$clave])])->all()]);
+
+        $turnos = $record
+            ? \App\Models\TipoTurno::where('componente_id', $record->id)->where('activo', true)->orderBy('orden')->get()
+                ->filter(fn ($t) => $t->minutosDeHorario() !== null)
+                ->map(fn ($t) => [$t->codigo, $t->minutosDeHorario()])
+            : collect([['Turno de 4 h', 240], ['Turno de 7 h 30 min', 450], ['Turno de 12 h', 720]]);
+
+        $horas = fn (int $m) => intdiv($m, 60).' h'.($m % 60 ? ' '.($m % 60).' min' : '');
+
+        // Los que duran lo mismo, juntos: «N1, N1., T3, N7 (7 h 30 min en el sitio) → 7 h de trabajo».
+        return 'Con estos valores: '.$turnos->groupBy(fn ($t) => $t[1])->sortKeys()
+            ->map(fn ($grupo, $minutos) => $grupo->pluck(0)->join(', ')." ({$horas($minutos)} en el sitio) → {$horas($prueba->minutosTrabajados($minutos))} de trabajo")
+            ->join(' · ').'.';
+    }
+
     protected static function regla(string $clave, string $etiqueta, int $min, int $max, string $ayuda): TextInput
     {
         return TextInput::make("config.{$clave}")

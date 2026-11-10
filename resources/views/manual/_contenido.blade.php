@@ -357,6 +357,7 @@
         <li><strong>Tolerancia de horas extra (minutos):</strong> salir hasta tanto después del fin del turno no es hora extra; también es el margen con que se cierra solo un turno sin salida. Va de 40 a 60 (en Calle, 60).</li>
         <li><strong>Duración máxima del turno (horas):</strong> solo se usa cuando la hora de entrada no encaja con ningún turno; si encaja, el turno sin salida se cierra al fin de su turno más la tolerancia de horas extra (en Calle, 8).</li>
         <li><strong>Duración máxima por cargo:</strong> los cargos que trabajan jornadas largas y su máximo, contado desde la entrada (en Calle, Conductor camioneta y Conductor microbús, 15 h). Se eligen de la lista de «Cargos».</li>
+        <li><strong>Descanso no remunerado:</strong> se aplica según el <strong>horario del turno</strong>, no según cuánto se quedó: un T4 (4 h) no descuenta nada aunque salga más tarde; un N1 (7 h 30 min) descuenta 30 min. Debajo de los campos se ve lo que da cada turno con los valores puestos.</li>
         <li>La <strong>jornada de cada turno</strong> sale de su horario en <span class="ruta">Tipos de turno</span> (T4 → 4 h; N1 → 7 h, descontado el descanso): por eso cada turno necesita su hora de inicio y de fin.</li>
     </ul>
 

@@ -119,7 +119,7 @@ class MarcacionController extends Controller
         // Lo que cuenta es el trabajo real: la permanencia menos el descanso
         // (Componente::minutosTrabajados, el mismo cálculo de las novedades).
         $permanencia = $turno['minutos'];
-        $trabajado = $permanencia !== null ? $entrada->componente->minutosTrabajados($permanencia) : null;
+        $trabajado = $permanencia !== null ? $entrada->componente->minutosTrabajados($permanencia, $turno['tipo'] ?? null) : null;
 
         // Horas extra solo cuando hay novedad de horas extra (pasó de la
         // tolerancia); lo de dentro de la tolerancia cuenta como jornada.

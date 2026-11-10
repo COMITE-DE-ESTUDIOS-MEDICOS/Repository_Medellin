@@ -187,9 +187,13 @@ No depende del cron: quien marca con una entrada vencida la cierra primero y lo 
 entrada.
 *Origen:* F-04 §4, DOC-21 · *Código:* `Marcador::tope`, `cerrarSinSalida`, `turnos:cerrar-abiertas` (cada hora).
 
-**RN-21. Trabajo real = permanencia − descanso.** El descanso no remunerado va por tramos
-de permanencia, configurables por componente. Valores de fábrica: hasta 4 h, nada; hasta
-6 h, 30 min; más de 6 h, 1 h.
+**RN-21. Trabajo real = permanencia − descanso.** El descanso no remunerado va por tramos,
+configurables por componente. Valores de fábrica: hasta 4 h, nada; hasta 6 h, 30 min; más
+de 6 h, 1 h. En Calle se usan 30 min en los dos tramos. Desde DOC-8, el tramo se toma
+del **horario del turno reconocido**: un T4 (4 h) no descuenta nada aunque se quede de más,
+y un N1 (7 h 30 min) descuenta 30 min. Nunca se descuenta más de lo que daría el tiempo en
+el sitio: un N1 que se va a las 3 h no descuenta. Sin turno con horario, va por el tiempo en
+el sitio.
 *Origen:* F-04 §2, F-05 §5 · *Código:* `Componente::minutosTrabajados`, `descansoPara`.
 Ver PA-01 y PA-02.
 
