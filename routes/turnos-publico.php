@@ -40,9 +40,20 @@ Route::post('d/{token}/cedula', [DerivacionController::class, 'cedula'])
     ->middleware('throttle:cedula-consulta')
     ->name('derivacion.cedula');
 
-Route::post('d/{token}', [DerivacionController::class, 'registrar'])
-    ->middleware('throttle:turno-marca')
-    ->name('derivacion.registrar');
+// DOC-20: ver el caso por su código exacto (POST, límite estricto y auditoría)
+// y su soporte por una URL firmada que vence a los 10 minutos.
+Route::post('d/{token}/caso', [DerivacionController::class, 'caso'])
+    ->middleware('throttle:caso-consulta')
+    ->name('derivacion.caso');
+
+Route::get('d/{token}/soporte/{derivacion}', [DerivacionController::class, 'soporte'])
+    ->middleware(['signed', 'throttle:envio-formulario'])
+    ->name('derivacion.soporte');
+
+// Enviar la atención: comparte el límite de la consulta, porque también dice si un número existe.
+Route::post('d/{token}', [DerivacionController::class, 'atender'])
+    ->middleware(['throttle:turno-marca', 'throttle:caso-consulta'])
+    ->name('derivacion.atender');
 
 // Supervisión territorial (DOC-11): el mismo enlace por cédula, su propio formulario.
 Route::get('s/{token}', [SupervisionController::class, 'mostrar'])

@@ -30,6 +30,9 @@ class Componente extends Model
         'foto_obligatoria' => true,
         'ubicacion_obligatoria' => false,
         'tolerancia_min' => 15,
+        // DOC-8/DOC-21: salir hasta tanto después del fin del turno no es hora extra,
+        // y es el margen con que se cierra un turno sin salida (40 a 60).
+        'tolerancia_extra_min' => 60,
         // Lo que debería durar un turno: más o menos que esto (con la
         // tolerancia) es una novedad de horas extra o de turno corto.
         'jornada_horas' => 8,
@@ -45,6 +48,9 @@ class Componente extends Model
         'sin_descanso_hasta_h' => 4,
         'descanso_completo_desde_h' => 6,
         'horas_max_turno' => 14,
+        // DOC-21: cargo => horas. Para esos cargos, el turno sin salida se
+        // cierra a tantas horas de la entrada en vez de horas_max_turno.
+        'horas_max_por_cargo' => [],
         // DOC-17: una salida a menos de esto de la entrada es un reintento
         // (la entrada llegó y el teléfono no se enteró), no una salida.
         'salida_minima_min' => 30,
@@ -81,6 +87,21 @@ class Componente extends Model
     public function regla(string $clave, mixed $defecto = null): mixed
     {
         return $this->config[$clave] ?? self::REGLAS[$clave] ?? $defecto;
+    }
+
+    /**
+     * DOC-8: el trabajo que se espera de un turno. Con un tipo de turno con
+     * horario, su horario menos el descanso que le toca (T4 de 4 h → 4 h;
+     * N1 de 7 h 30 min → 7 h con 30 min de descanso). Sin él, la jornada
+     * del componente. Lo usan las novedades y el reporte: un solo cálculo.
+     */
+    public function jornadaPara(?TipoTurno $tipo): int
+    {
+        $horario = $tipo?->minutosDeHorario();
+
+        return $horario !== null
+            ? $this->minutosTrabajados($horario)
+            : (int) round((float) $this->regla('jornada_horas') * 60);
     }
 
     /**

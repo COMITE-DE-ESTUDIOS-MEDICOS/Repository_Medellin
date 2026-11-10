@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Turnos;
 
 use App\Enums\EstadoNovedad;
+use App\Enums\OrigenMarcacion;
 use App\Enums\TipoMarcacion;
 use App\Enums\TipoNovedad;
 use App\Http\Controllers\Controller;
@@ -45,6 +46,13 @@ class MarcacionController extends Controller
 
         return view('admin.turnos.marcaciones.index', [
             'marcaciones' => $marcaciones,
+            // DOC-21 (CA-06): los cierres automáticos que nadie ha revisado ni corregido.
+            'porCorregir' => NovedadTurno::query()
+                ->whereIn('marcacion_id', $marcaciones->getCollection()->where('origen', OrigenMarcacion::CierreAutomatico)->pluck('id'))
+                ->where('tipo', TipoNovedad::SinSalida->value)
+                ->where('estado', EstadoNovedad::Pendiente->value)
+                ->pluck('marcacion_id')
+                ->flip(),
             'componentes' => Componente::activos()->with(['nodos' => fn ($q) => $q->activos()])->orderBy('nombre')->get(),
             'desde' => $desde,
             'hasta' => $hasta,
@@ -105,7 +113,8 @@ class MarcacionController extends Controller
     {
         $entrada = $turno['entrada'];
         $novedad = $turno['salida'] ? $novedades->get($turno['salida']->id) : null;
-        $jornada = (int) round((float) $entrada->componente->regla('jornada_horas') * 60);
+        // DOC-8: la jornada de su turno (el reconocido con entrada y salida).
+        $jornada = $entrada->componente->jornadaPara($turno['tipo'] ?? null);
 
         // Lo que cuenta es el trabajo real: la permanencia menos el descanso
         // (Componente::minutosTrabajados, el mismo cálculo de las novedades).
@@ -134,7 +143,10 @@ class MarcacionController extends Controller
             // uno que encaje va en rojo: hay que mirar esa entrada.
             $f['turno']['tipo']?->codigo ?? ['alerta' => 'Sin reconocer'],
             $f['entrada']->marcada_at->format('d/m/Y H:i'),
-            $salida?->marcada_at->format('d/m/Y H:i') ?? 'Sin salida',
+            // DOC-21 (CA-06): cerrado solo y sin revisar, va en rojo hasta que Coordinación lo corrija o lo confirme.
+            $this->porCorregir($salida, $f['novedad'])
+                ? ['alerta' => $salida->marcada_at->format('d/m/Y H:i').' · Cierre automático · por corregir']
+                : ($salida?->marcada_at->format('d/m/Y H:i') ?? 'Sin salida'),
             self::horas($f['permanencia']),
             $f['permanencia'] !== null ? self::horas($f['permanencia'] - $f['trabajado']) : null,
             self::horas($f['trabajado']),
@@ -156,6 +168,14 @@ class MarcacionController extends Controller
                 null => 'Sin dato',
             },
         ];
+    }
+
+    /** Una salida del cierre automático cuya novedad «no marcó salida» sigue pendiente. */
+    protected function porCorregir(?Marcacion $salida, ?NovedadTurno $novedad): bool
+    {
+        return $salida?->origen === OrigenMarcacion::CierreAutomatico
+            && $novedad?->tipo === TipoNovedad::SinSalida
+            && $novedad->estado === EstadoNovedad::Pendiente;
     }
 
     /**

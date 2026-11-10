@@ -59,7 +59,7 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Turnos automáticos y ausencias | DOC-5 | Fase 3 | Construida |
 | Derivaciones y respuesta territorial | DOC-6 | Fase 3 | Construida |
 | Notificaciones, avisos y manual | DOC-7 | Fase 3 | Construida |
-| Jornada esperada por tipo de turno | DOC-8 | Por escribir | Por especificar |
+| Jornada esperada por tipo de turno · tolerancia de horas extra | DOC-8 | [Aprobada](specs/jornada-por-tipo-de-turno/spec.md) | Construida |
 | Planilla mensual con códigos para Nómina | DOC-9 | Por escribir | Por especificar |
 | Recargos nocturno, dominical y festivo (RN, RFD, RFN) | DOC-10 | Por escribir | Por especificar |
 | Registro de supervisión territorial | DOC-11 | [Aprobada](specs/supervision-territorial/spec.md) | Construida |
@@ -70,4 +70,6 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Salida mínima: reintentos que no son salida | DOC-17 | [Aprobada](specs/salida-minima/spec.md) | Construida |
 | Anular una marca o cambiarle el tipo | DOC-18 | [Aprobada](specs/anular-y-cambiar-tipo-de-marca/spec.md) | Construida |
 | Reporte con el turno reconocido y sin ceros por nodo | DOC-19 | [Aprobada](specs/reporte-turno-reconocido-y-nodo/spec.md) | Construida |
+| Casos de derivación creados por la oficina (DC-001) | DOC-20 | [Aprobada](specs/casos-de-derivacion/spec.md) | Construida |
+| Turno por entrada y salida · cierre sin salida por cargo | DOC-21 | [Aprobada](specs/turno-por-entrada-y-salida/spec.md) | Construida |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

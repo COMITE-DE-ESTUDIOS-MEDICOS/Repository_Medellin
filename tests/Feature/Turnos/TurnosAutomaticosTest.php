@@ -89,7 +89,7 @@ class TurnosAutomaticosTest extends TestCase
         $this->assertSame('C13', $reconocer('2026-10-25 06:10')['tipo']->codigo, 'Domingo.');
         $this->assertSame('C13', $reconocer('2026-11-02 06:00')['tipo']->codigo, 'Lunes festivo: C13, no N1.');
 
-        // Su habitual gana si cabe en la ventana: una T3 que llega a las 8:40 no es N1.
+        // A las 8:40, T3 (10:00) empieza más cerca que N1 (5:00, fuera de la ventana).
         $this->assertSame('T3', $reconocer('2026-10-20 08:40', 'T3')['tipo']->codigo);
         $this->assertNull($reconocer('2026-10-20 02:00'), 'A las 2 a. m. no empieza ningún turno.');
     }

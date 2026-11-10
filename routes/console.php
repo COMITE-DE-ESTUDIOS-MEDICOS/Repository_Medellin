@@ -109,7 +109,7 @@ Artisan::command(
 Artisan::command('turnos:cerrar-abiertas', function (\App\Services\Turnos\Marcador $marcador) {
     $cerradas = $marcador->cerrarAbiertas();
     $this->info("Turnos cerrados sin salida: {$cerradas}");
-})->purpose('Cierra las entradas de turno que pasaron de la duración máxima');
+})->purpose('Cierra las entradas de turno que pasaron su tope (por cargo o fin del turno corto); marcar también las cierra');
 
 \Illuminate\Support\Facades\Schedule::command('turnos:cerrar-abiertas')->hourly()->withoutOverlapping();
 
@@ -120,17 +120,18 @@ Artisan::command('turnos:revisar-entradas', function (\App\Services\Turnos\Revis
 
 \Illuminate\Support\Facades\Schedule::command('turnos:revisar-entradas')->everyFifteenMinutes()->withoutOverlapping();
 
-// Derivaciones sin respuesta: se les recuerda a los líderes cada 30 minutos.
+// DOC-20: un solo aviso cuando un caso pasa la meta sin atención (ultimo_aviso_at = ya se avisó).
 Artisan::command('derivaciones:recordar', function () {
-    $pendientes = \App\Models\Derivacion::withoutGlobalScopes()
+    $vencidas = \App\Models\Derivacion::withoutGlobalScopes()
+        ->whereNull('deleted_at')
         ->where('estado', \App\Models\Derivacion::PENDIENTE)
-        ->where(fn ($q) => $q->whereNull('ultimo_aviso_at')
-            ->orWhere('ultimo_aviso_at', '<=', now()->subMinutes(\App\Models\Derivacion::AVISO_CADA_MIN)))
-        ->get();
+        ->whereNull('ultimo_aviso_at')
+        ->get()
+        ->reject->cumplio();
 
-    $pendientes->each(fn ($d) => \App\Notifications\DerivacionPendiente::enviar($d));
-    $this->info("Derivaciones recordadas: {$pendientes->count()}");
-})->purpose('Recuerda a los líderes las derivaciones sin respuesta');
+    $vencidas->each(fn ($d) => \App\Notifications\DerivacionPendiente::enviar($d));
+    $this->info("Avisos de casos vencidos: {$vencidas->count()}");
+})->purpose('Avisa una vez a Edición y Coordinación los casos que vencieron sin atención');
 
 \Illuminate\Support\Facades\Schedule::command('derivaciones:recordar')->everyMinute()->withoutOverlapping();
 

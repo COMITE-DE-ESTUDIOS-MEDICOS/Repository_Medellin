@@ -89,6 +89,9 @@
                             <span class="mt-0.5 block text-xs text-[var(--muted)]"
                                   title="{{ $marcacion->motivo }}">{{ $marcacion->origen->etiqueta() }}{{ $marcacion->registrador ? ' · '.$marcacion->registrador->name : '' }}</span>
                         @endif
+                        @if(isset($porCorregir[$marcacion->id]) && ! $marcacion->estaAnulada())
+                            <span class="mt-0.5 inline-block rounded bg-warning-soft px-1.5 py-0.5 text-xs text-[var(--warning)]" title="{{ $marcacion->motivo }}">Cierre automático · por corregir</span>
+                        @endif
                     </td>
                     <td class="px-4 py-3 text-[var(--muted)]">
                         {{ $marcacion->componente->nombre }}{{ $marcacion->nodo ? ' · '.$marcacion->nodo->nombre : '' }}

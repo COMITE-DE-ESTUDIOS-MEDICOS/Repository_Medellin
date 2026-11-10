@@ -45,6 +45,19 @@ class TipoTurno extends Model
             : '';
     }
 
+    /** Minutos de su horario (cruza la medianoche si el fin es antes del inicio), o null sin horario. */
+    public function minutosDeHorario(): ?int
+    {
+        if (! $this->hora_inicio || ! $this->hora_fin) {
+            return null;
+        }
+
+        $inicio = \Illuminate\Support\Carbon::parse('2000-01-01 '.$this->hora_inicio);
+        $fin = \Illuminate\Support\Carbon::parse('2000-01-01 '.$this->hora_fin);
+
+        return (int) $inicio->diffInMinutes($fin->lte($inicio) ? $fin->addDay() : $fin);
+    }
+
     /** «Lun–Sáb», «Vie», «Dom y festivos»… para leerlo de un vistazo. */
     public function diasLegibles(): string
     {

@@ -215,6 +215,11 @@
                                 <span class="text-[var(--muted)]">→</span>
                                 @if($salida)
                                     @include('admin.turnos.colaboradores._hora', ['marca' => $salida, 'delDia' => $entrada->marcada_at])
+                                    {{-- DOC-21 (CA-06): hasta que Coordinación corrija la salida o revise la novedad. --}}
+                                    @if($salida->origen === \App\Enums\OrigenMarcacion::CierreAutomatico
+                                        && $turno['novedades']->contains(fn ($n) => $n->tipo === \App\Enums\TipoNovedad::SinSalida && $n->estado === \App\Enums\EstadoNovedad::Pendiente))
+                                        <span class="rounded bg-warning-soft px-1.5 py-0.5 text-xs font-medium text-[var(--warning)]" title="{{ $salida->motivo }}">Cierre automático · por corregir</span>
+                                    @endif
                                 @elseif($entrada->id === $ultimaId)
                                     <span class="font-medium text-[var(--success)]">en turno</span>
                                 @else

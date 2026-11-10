@@ -48,7 +48,7 @@
         <li><strong>Documentos:</strong> organizar archivos en carpetas, buscarlos, verlos, descargarlos, copiarlos y moverlos.</li>
         <li><strong>Enlaces de carga:</strong> pedir a personas externas que envíen archivos y fotos a una carpeta, sin que necesiten cuenta.</li>
         <li><strong>Turnos:</strong> el personal de campo marca entrada y salida con un QR y su cédula; el sistema reconoce el turno, avisa las ausencias y genera el reporte para nómina.</li>
-        <li><strong>Atención territorial:</strong> registrar derivaciones con sus evidencias y el tiempo de respuesta.</li>
+        <li><strong>Atención territorial:</strong> crear casos (DC-001), atenderlos desde el enlace con evidencias y medir el tiempo de atención.</li>
         <li><strong>Administración:</strong> usuarios, estructura, custodia de carpetas y auditoría de todo lo que pasa.</li>
     </ul>
 
@@ -151,7 +151,7 @@
     <ul>
         <li><strong>Nueva carpeta</strong> <span class="rol si">Edición</span>: dentro de la carpeta actual o en la raíz.</li>
         <li><strong>Editar</strong> (menú <span class="tecla">⋮</span> de la carpeta): cambiar el nombre, moverla dentro de otra o copiarla con todo su contenido.</li>
-        <li><strong>Descargar carpeta:</strong> la carpeta entera en un ZIP, con sus subcarpetas.</li>
+        <li><strong>Descargar carpeta:</strong> la carpeta entera en un ZIP, con sus subcarpetas. Los documentos y las carpetas inactivados no se incluyen.</li>
     </ul>
 
     <h3>Inactivar <span class="rol si">Edición</span></h3>
@@ -207,10 +207,10 @@
     </ol>
     <p><strong>Si el teléfono da una ubicación aproximada</strong> (frecuente en iPhone con «Ubicación exacta» apagada), el enlace lo avisa y dice cómo activarla; se puede registrar de todos modos y queda la novedad <strong>Ubicación imprecisa</strong> en lugar de un «fuera de zona» falso. En iPhone: <span class="ruta">Ajustes → Privacidad y seguridad → Localización → Sitios web de Safari → «Al usar la app» y «Ubicación exacta»</span>.</p>
     <ul>
-        <li>Al marcar la entrada, el sistema <strong>reconoce el turno por la hora</strong> (por ejemplo, 4:55 → N1; 20:50 → N7; domingo o festivo 6:05 → C13) y anota si llegó tarde.</li>
+        <li>Al marcar la entrada, el sistema <strong>reconoce el turno por la hora</strong> (por ejemplo, 4:55 → N1; 20:50 → N7; domingo o festivo 6:05 → C13) y anota si llegó tarde. <strong>Con la salida lo confirma</strong>: el viernes, entrar a las 6:00 y salir a las 10:05 es T4; salir a las 12:35 es N1 con tardanza. Si la salida cambia el turno, la tardanza se corrige sola.</li>
         <li>Cuando completa su turno del día, el enlace ya no le deja volver a marcar.</li>
         <li>Si vuelve a marcar antes de 30 minutos de su última marca (porque creyó que no se registró), no cuenta: ve «Tu marca ya quedó registrada». Si de verdad se fue antes, Coordinación agrega la salida. Los 30 minutos se cambian en Componentes y nodos («Salida mínima»).</li>
-        <li>Si olvida la salida, el turno se cierra solo al pasar el máximo de horas y queda como novedad «Sin salida».</li>
+        <li>Si olvida la salida, el turno se cierra solo al <strong>terminar su turno más la tolerancia de horas extra</strong> (60 min: un N1 a la 1:30 p. m., un C13 a las 7:00 p. m.). Los cargos con un máximo propio (los conductores, 15 h) se cierran a esas horas de la entrada. Queda la novedad «Sin salida» y en el reporte dice <strong>Cierre automático · por corregir</strong> hasta que Coordinación lo revise. Si vuelve a marcar al día siguiente, esa marca es su <strong>entrada</strong>, nunca la salida de ayer.</li>
     </ul>
 </section>
 
@@ -267,7 +267,7 @@
         <tbody>
             <tr><td><strong>No registró entrada</strong></td><td>Tenía turno y 30 minutos después del inicio no ha marcado.</td><td>Llamar a la persona. Si estaba en D, VAC, I…, <strong>Justificar</strong>. Si sí vino, agregar la entrada. Si marca después, el aviso se cierra solo.</td></tr>
             <tr><td><strong>Tardanza</strong></td><td>Entró después de la hora de su turno, pasada la tolerancia.</td><td>Aprobar o rechazar con comentario.</td></tr>
-            <tr><td><strong>Horas extra / Turno corto</strong></td><td>Trabajó más o menos de la jornada (descontado el descanso).</td><td>Aprobar o rechazar; o corregir la hora si fue un error.</td></tr>
+            <tr><td><strong>Horas extra / Turno corto</strong></td><td>Trabajó más o menos que la jornada de <strong>su turno</strong> (T4: 4 h; N1: 7 h, descontado el descanso). Salir hasta 60 min después (la tolerancia de horas extra) no es hora extra.</td><td>Aprobar o rechazar; o corregir la hora si fue un error.</td></tr>
             <tr><td><strong>Sin salida</strong></td><td>No marcó salida y el turno se cerró solo.</td><td>Corregir la hora de salida real.</td></tr>
             <tr><td><strong>Sin ubicación / Fuera de zona</strong></td><td>Marcó sin GPS o lejos de su nodo.</td><td>Revisar y decidir.</td></tr>
             <tr><td><strong>Ubicación imprecisa</strong></td><td>El teléfono dio una ubicación aproximada (iPhone con «Ubicación exacta» apagada).</td><td>Pedirle que la active; aprobar si estaba en su punto.</td></tr>
@@ -281,7 +281,7 @@
         <li>Toca <strong>Descargar reporte (Excel)</strong>. Se lleva los filtros tal como están en pantalla.</li>
     </ol>
     <ul>
-        <li><strong>Pestaña Turnos:</strong> un turno por fila: entrada, salida, tiempo en el sitio, descanso, horas trabajadas, ordinarias, extra y si se aprobaron. La columna <strong>Turno</strong> dice qué turno de la malla es (N1, N7…) según la hora de entrada. Si ninguno encaja con la hora, dice <strong>Sin reconocer</strong> en rojo: revisa esa entrada.</li>
+        <li><strong>Pestaña Turnos:</strong> un turno por fila: entrada, salida, tiempo en el sitio, descanso, horas trabajadas, ordinarias, extra y si se aprobaron. La columna <strong>Turno</strong> dice qué turno de la malla es (N1, N7…) según la entrada y la salida, y la <strong>Jornada</strong> es la de ese turno. Si ninguno encaja con la hora, dice <strong>Sin reconocer</strong> en rojo: revisa esa entrada.</li>
         <li><strong>Pestaña Resumen mensual:</strong> una fila por persona: días trabajados, horas, extras, y las horas de <strong>cada semana</strong>, en rojo si pasan de 42 h. También aparece quien no marcó en todo el período. Si filtras por nodo, cada persona sale con todos sus turnos del período, aunque haya cubierto en otro nodo.</li>
     </ul>
 </section>
@@ -290,32 +290,38 @@
 <section class="capitulo" id="derivaciones">
     {!! $cap('derivaciones') !!}
     <div class="roles">{!! $roles('Edición', 'Coordinación', 'Administración') !!}</div>
-    <p class="entrada">Registro de los casos que el personal de campo escala y atiende, con evidencias y tiempo de respuesta.</p>
+    <p class="entrada">La oficina crea el caso con su código (DC-001) y la persona de campo lo atiende desde su enlace. El tiempo corre solo: desde que se crea hasta que se envía la atención. Meta: 3 horas.</p>
 
-    <h3>El formulario (para el personal de campo)</h3>
-    <p>Se comparte con un enlace por cédula de tipo <strong>Derivaciones</strong>. Va por pasos, con barra de progreso:</p>
+    <h3>1. Crear el caso (oficina)</h3>
     <ol class="pasos">
-        <li><strong>Quién reporta:</strong> la cédula (tiene que estar registrada y <strong>en turno</strong>, con su entrada marcada).</li>
-        <li><strong>Requerimiento:</strong> nodo, fecha y hora, entidad que solicita, soporte (PDF o foto), descripción y ubicación.</li>
-        <li><strong>Evidencias:</strong> tres fotos obligatorias, con sello de hora y lugar.</li>
+        <li><span class="ruta">Atención territorial → Derivaciones → Nuevo caso</span> (funciona bien desde el celular).</li>
+        <li>Escribe el <strong>mensaje para la atención</strong>, elige <strong>quién lo envía</strong> (Alcaldía, Autoridades locales del sector u Otra, y cuál), la <strong>ubicación</strong> y sube el <strong>soporte</strong>: una foto con la cámara, o una imagen o un PDF.</li>
+        <li><strong>Crear caso.</strong> Aparece el código en grande: díctaselo a la persona de campo. Desde ese momento corre el tiempo.</li>
     </ol>
-    <p>Al enviarla, la derivación queda <strong>pendiente</strong> y el tiempo empieza a correr desde la hora del requerimiento.</p>
+    <p>Si ya hay un caso abierto con la misma ubicación y el mismo «quién lo envía» de los últimos 30 minutos, Documenta avisa para no crearlo dos veces. Si es otro caso, marca <strong>Crear de todas formas</strong>. Tocar dos veces el botón no crea dos casos.</p>
 
-    <h3>Responder (líderes)</h3>
-    <ul>
-        <li>Al llegar una derivación, los líderes reciben un aviso por la campana, y otro <strong>cada 30 minutos</strong> mientras siga sin respuesta. Pasadas las <strong>3 horas</strong>, el aviso dice que está <strong>vencida</strong>.</li>
-        <li>En la derivación, <strong>Dar respuesta</strong>: se escribe qué se hizo y <strong>Marcar como solucionada</strong>. Ahí se detiene el tiempo. Si pasó de 3 horas, pide la justificación. Si el caso se atendió antes y apenas lo registras, entra a <strong>Corregir</strong> y pon la <strong>Hora de respuesta</strong> real: el tiempo se recalcula hasta esa hora.</li>
-        <li>En la lista, las pendientes van primero, con el tiempo que llevan corriendo (en rojo si ya vencieron).</li>
-        <li><strong>Seguimiento:</strong> arriba de la lista se ve cuántas siguen sin respuesta y cuántas vencieron, el cumplimiento, qué nodos tienen casos sin responder y, en «Quién ha respondido», cada líder con sus respuestas a tiempo y su tiempo promedio. Respeta los filtros (fechas, nodo…).</li>
-        <li>En <span class="ruta">Notificaciones</span>, la pestaña <strong>Derivaciones</strong> las separa de las de turnos. Cada recordatorio reemplaza al anterior del mismo caso.</li>
-    </ul>
+    <h3>2. Atender el caso (persona de campo)</h3>
+    <p>Con el enlace por cédula de tipo <strong>Derivaciones</strong>, en <strong>Atender caso</strong>:</p>
+    <ol class="pasos">
+        <li>La cédula: tiene que estar registrada y <strong>en turno</strong>, con su entrada marcada.</li>
+        <li>El <strong>número del caso</strong>: solo los dígitos, porque el «DC-» ya está puesto. Aparece lo que subió la oficina: mensaje, quién lo envía, ubicación y soporte.</li>
+        <li>El <strong>nodo que atiende</strong> (sale su nodo habitual), <strong>¿Se cumplió con el requerimiento?</strong> Sí o No (con No, la observación es obligatoria) y, si pasaron más de 3 horas, la justificación.</li>
+        <li>Las <strong>tres evidencias</strong>: una foto con la cámara, que lleva el sello de hora y lugar, o una imagen del celular.</li>
+        <li><strong>Enviar atención.</strong> Ahí se detiene el tiempo.</li>
+    </ol>
+    <p>Un caso se atiende <strong>una sola vez</strong>; si hay que volver, la oficina crea uno nuevo. Si el número no existe o ya se atendió, sale «No hay un caso abierto con ese número». Por seguridad se permiten pocas consultas seguidas y cada una queda registrada.</p>
 
-    <h3>Seguimiento</h3>
+    <h3>3. Seguimiento (oficina)</h3>
     <ul>
-        <li><span class="ruta">Atención territorial → Derivaciones</span>: lista con filtros por estado (pendiente o solucionada), fechas, nodo, cumplimiento y búsqueda.</li>
-        <li>Abrir, <strong>corregir</strong> (el tiempo se recalcula) o <strong>eliminar</strong> (solo Coordinación; las fotos se conservan).</li>
-        <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días.</li>
+        <li><span class="ruta">Atención territorial → Derivaciones</span>: lista con filtros por estado, fechas, nodo, cumplimiento y búsqueda (también por código: «DC-12» o «12»). Los abiertos van primero, con el tiempo que llevan corriendo.</li>
+        <li>En la ficha de cada caso se ve la <strong>trazabilidad</strong>: quién lo creó y cuándo, quién lo atendió (persona y nodo) y cuándo, el tiempo, si cumplió la meta, el «¿Se cumplió?», las observaciones, el soporte y las evidencias.</li>
+        <li>Arriba de la lista: abiertos y vencidos, cumplimiento, nodos con casos sin atender y los <strong>casos atendidos por cada persona de campo</strong>, con su tiempo promedio.</li>
+        <li><strong>Avisos:</strong> si un caso pasa 3 horas sin atención, Edición y Coordinación reciben un solo aviso de vencido. Cuando lo atienden, quien lo creó recibe el suyo y el de vencido desaparece.</li>
+        <li><strong>Corregir:</strong> Edición y Coordinación corrigen solo los textos. Las horas, el «¿Se cumplió?» y el <strong>cierre a mano</strong> de un caso que se atendió y no se pudo enviar (plan de contingencia) los hace solo el superadministrador, con un motivo que queda en la auditoría.</li>
+        <li><strong>Eliminar:</strong> solo Coordinación; las fotos se conservan.</li>
+        <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días. Al final van el código, quién lo creó, las horas de creación y de atención, el «¿Se cumplió?» y la observación.</li>
         <li><strong>Excel + fotos (ZIP):</strong> el Excel y una carpeta por caso con las fotos en tamaño original.</li>
+        <li>Las derivaciones anteriores a este cambio siguen en la lista y en el Excel, marcadas «registro anterior».</li>
     </ul>
 
     <h3>Supervisión territorial</h3>
@@ -331,7 +337,7 @@
         <li><span class="ruta">Atención territorial → Supervisión</span>: lista con filtros (cédula del dinamizador, quién supervisó, nodo, punto, fechas), detalle con las calificaciones y <strong>Descargar Excel</strong> con las fotos dentro.</li>
         <li><strong>Analítica</strong> (arriba de la lista, con los filtros aplicados): total, promedios, incidencias, el promedio de cada criterio, los dinamizadores con promedio más bajo (tocando uno se ven solo sus supervisiones) y tablas por dinamizador, supervisor y nodo. El Excel trae esas mismas hojas.</li>
         <li>Quién puede supervisar se define en <span class="ruta">Componentes y nodos → Cargos que supervisan</span>.</li>
-        <li><strong>Hay que estar en turno:</strong> quien supervisa y los dinamizadores tienen que haber marcado entrada. Lo mismo para reportar una derivación o enviar evidencias con la cédula.</li>
+        <li><strong>Hay que estar en turno:</strong> quien supervisa y los dinamizadores tienen que haber marcado entrada. Lo mismo para atender un caso de derivación o enviar evidencias con la cédula.</li>
         <li>Las supervisiones con incidencia relevante o crítica, casos escalados o calificación global de 1 o 2 llegan por la campana (pestaña <strong>Supervisión</strong>) a líderes y Coordinación.</li>
     </ul>
 </section>
@@ -342,11 +348,16 @@
     <div class="roles">{!! $roles('Coordinación', 'Administración') !!}</div>
 
     <h3>Componentes y nodos</h3>
-    <p>Crear componentes (Calle, Básica…), sus nodos y la lista de cargos, y ajustar sus reglas: jornada, tolerancia, descanso, foto u ubicación obligatoria, autorregistro, turnos por día y cuándo reconocer el turno o avisar «no registró entrada». Todo en un panel lateral: <strong>Nuevo componente</strong> o <strong>Editar</strong> en su fila. Los nodos se agregan, se ordenan arrastrando y se desactivan ahí mismo (no se borran).</p>
+    <p>Crear componentes (Calle, Básica…), sus nodos y la lista de cargos, y ajustar sus reglas: jornada, tolerancia, tolerancia de horas extra (40 a 60 min), duración máxima por cargo, descanso, foto u ubicación obligatoria, autorregistro, turnos por día y cuándo reconocer el turno o avisar «no registró entrada». Todo en un panel lateral: <strong>Nuevo componente</strong> o <strong>Editar</strong> en su fila. Los nodos se agregan, se ordenan arrastrando y se desactivan ahí mismo (no se borran).</p>
     <ul>
         <li><strong>Cargos que supervisan:</strong> los cargos que pueden registrar supervisiones (en Calle, «Apoyo al control territorial»). Tiene que estar escrito igual que en «Cargos».</li>
         <li><strong>Salida mínima (minutos):</strong> volver a marcar antes de esto, después de la última marca, es un reintento: no cambia de entrada a salida ni al revés (30 de fábrica).</li>
         <li><strong>Precisión mínima (m):</strong> una ubicación con más error que esto (500 m de fábrica) se toma como imprecisa: no cuenta como «fuera de zona» y queda la novedad «Ubicación imprecisa».</li>
+        <li><strong>Tolerancia (minutos):</strong> el margen para la tardanza y el turno corto (en Calle, 20).</li>
+        <li><strong>Tolerancia de horas extra (minutos):</strong> salir hasta tanto después del fin del turno no es hora extra; también es el margen con que se cierra solo un turno sin salida. Va de 40 a 60 (en Calle, 60).</li>
+        <li><strong>Duración máxima del turno (horas):</strong> solo se usa cuando la hora de entrada no encaja con ningún turno; si encaja, el turno sin salida se cierra al fin de su turno más la tolerancia de horas extra (en Calle, 8).</li>
+        <li><strong>Duración máxima por cargo:</strong> los cargos que trabajan jornadas largas y su máximo, contado desde la entrada (en Calle, Conductor camioneta y Conductor microbús, 15 h). Se eligen de la lista de «Cargos».</li>
+        <li>La <strong>jornada de cada turno</strong> sale de su horario en <span class="ruta">Tipos de turno</span> (T4 → 4 h; N1 → 7 h, descontado el descanso): por eso cada turno necesita su hora de inicio y de fin.</li>
     </ul>
 
     <h3>Usuarios</h3>
@@ -384,7 +395,7 @@
         <li>Alguien comentó un archivo tuyo, o respondió donde comentaste.</li>
         <li>Llegaron archivos por un enlace de carga que creaste.</li>
         <li>Novedades de turno, incluida «No registró entrada» (líderes y Coordinación; las demás, a quien las aprueba).</li>
-        <li>Derivaciones: al llegar y cada 30 minutos mientras sigan sin respuesta (líderes). Cada recordatorio reemplaza al anterior y desaparecen al responderla.</li>
+        <li>Derivaciones: un solo aviso cuando un caso pasa 3 horas sin atención (Edición y Coordinación) y otro a quien lo creó cuando lo atienden, que retira el de vencido.</li>
         <li>Supervisiones con incidencia relevante o crítica, casos escalados o calificación global de 1 o 2 (líderes y Coordinación).</li>
         <li>Avisos de Administración y las novedades de cada nueva versión.</li>
     </ul>

@@ -15,11 +15,13 @@ use App\Models\NovedadTurno;
 use App\Enums\EstadoNovedad;
 use App\Models\Nodo;
 use App\Models\Scopes\DependenciaScope;
+use App\Models\TipoTurno;
 use App\Models\User;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
 use Carbon\CarbonInterface;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -68,6 +70,9 @@ class Marcador
      * 'cerrado' si ya hizo los turnos que permite el día (regla
      * turnos_por_dia). Cerrado, lo que haya que corregir lo corrige
      * Coordinación o Edición, no la persona marcando otra vez.
+     *
+     * DOC-21 (CA-07): una entrada abierta que ya pasó su tope no pide salida;
+     * marcar() la cierra y lo nuevo es una entrada. Aquí no se escribe nada.
      */
     public function estadoParaMarcar(Colaborador $colaborador, Componente $componente): string
     {
@@ -76,7 +81,7 @@ class Marcador
             return 'reciente';
         }
 
-        if ($this->estadoDe($colaborador)) {
+        if (($abierta = $this->estadoDe($colaborador)) && ! $this->vencida($abierta->setRelation('colaborador', $colaborador))) {
             return TipoMarcacion::Salida->value;
         }
 
@@ -91,11 +96,13 @@ class Marcador
         return $turnosHoy >= (int) $componente->regla('turnos_por_dia') ? 'cerrado' : TipoMarcacion::Entrada->value;
     }
 
+    /** La última marca que hizo la persona: un cierre automático no es un toque suyo. */
     protected function ultimaDe(Colaborador $colaborador): ?Marcacion
     {
         return Marcacion::withoutGlobalScope(DependenciaScope::class)
             ->vigentes()
             ->where('colaborador_id', $colaborador->id)
+            ->where('origen', '!=', OrigenMarcacion::CierreAutomatico->value)
             ->latest('marcada_at')
             ->first();
     }
@@ -136,8 +143,15 @@ class Marcador
                     return $ultima;
                 }
 
+                // DOC-21 (CA-07): sin esperar al cron, la entrada que ya pasó su
+                // tope se cierra; lo que marca ahora es una entrada, no esa salida.
+                if (($abierta = $this->estadoDe($colaborador)) && $this->vencida($abierta->setRelation('colaborador', $colaborador))) {
+                    $this->cerrarSinSalida($abierta);
+                }
+
+                // Sin lanzar aquí: el cierre de arriba se guarda aunque hoy ya no pueda marcar.
                 if ($this->estadoParaMarcar($colaborador, $componente) === 'cerrado') {
-                    throw new TurnoCerrado('Ya registraste tu turno de hoy. Si hay un error en la hora, avísale a Coordinación para que lo corrija.');
+                    return null;
                 }
 
                 $nodo = $this->nodoDe($componente, $datos['nodo_id'] ?? null, $enlace, $colaborador);
@@ -196,6 +210,10 @@ class Marcador
             }
 
             throw $e;
+        }
+
+        if ($marcacion === null) {
+            throw new TurnoCerrado('Ya registraste tu turno de hoy. Si hay un error en la hora, avísale a Coordinación para que lo corrija.');
         }
 
         if ($marcacion->wasRecentlyCreated) {
@@ -403,9 +421,10 @@ class Marcador
     }
 
     /**
-     * Cierra las entradas que pasaron de la duración máxima de su componente:
-     * una salida «sin salida» a la hora máxima, que queda como novedad. La
-     * corre la tarea programada cada hora. Devuelve cuántas cerró.
+     * Cierra las entradas que pasaron su tope (tope()): una salida «sin
+     * salida» a la hora del tope, que queda como novedad. La corre la tarea
+     * programada cada hora; marcar() también cierra la de quien marca, así que
+     * el cron no es la única defensa. Devuelve cuántas cerró.
      */
     public function cerrarAbiertas(): int
     {
@@ -417,38 +436,134 @@ class Marcador
             ->get();
 
         foreach ($abiertas as $entrada) {
-            $tope = $entrada->marcada_at->copy()->addHours((int) $entrada->componente->regla('horas_max_turno'));
-
-            if ($tope->isFuture()) {
-                continue;
+            if ($this->vencida($entrada)) {
+                $this->cerrarSinSalida($entrada);
+                $cerradas++;
             }
-
-            // En consola no hay sesión: la auditoría va a la dependencia del turno.
-            app(\App\Services\ContextoDependencia::class)->establecer($entrada->dependencia);
-
-            $salida = Marcacion::create([
-                'dependencia_id' => $entrada->dependencia_id,
-                'colaborador_id' => $entrada->colaborador_id,
-                'componente_id' => $entrada->componente_id,
-                'nodo_id' => $entrada->nodo_id,
-                'tipo' => TipoMarcacion::Salida,
-                'marcada_at' => $tope,
-                'origen' => OrigenMarcacion::CierreAutomatico,
-                'motivo' => 'No marcó salida: se cerró al cumplir la duración máxima del turno.',
-                'sin_ubicacion' => true,
-            ]);
-
-            $this->auditor->registrar(
-                AccionAuditoria::TurnoCierreAutomatico,
-                $salida,
-                "Cerró el turno de {$entrada->colaborador->nombre} sin salida (entró el {$entrada->marcada_at->fechaHora()})",
-            );
-
-            $this->novedades->evaluar($salida);
-            $cerradas++;
         }
 
         return $cerradas;
+    }
+
+    /**
+     * DOC-21: hasta cuándo puede seguir abierta una entrada:
+     *  - si su cargo tiene máximo propio (horas_max_por_cargo), la entrada más esas horas;
+     *  - si no, el fin del turno más largo que podría ser más el margen de horas extra (porTurno());
+     *  - si ningún turno encaja, la entrada más la duración máxima del componente (horas_max_turno).
+     */
+    public function tope(Marcacion $entrada): Carbon
+    {
+        return $this->topeYTurnoCorto($entrada)[0];
+    }
+
+    public function vencida(Marcacion $entrada): bool
+    {
+        return ! $this->tope($entrada)->isFuture();
+    }
+
+    /** @return array{0: Carbon, 1: ?TipoTurno} el tope y el turno corto, si fue el que lo puso */
+    protected function topeYTurnoCorto(Marcacion $entrada): array
+    {
+        $componente = $entrada->componente;
+        $marcada = Carbon::parse($entrada->marcada_at);
+        $delCargo = ((array) $componente->regla('horas_max_por_cargo', []))[trim((string) $entrada->colaborador?->cargo)] ?? null;
+
+        // Un cargo con su propio máximo (conductores) se cierra a esas horas de la entrada.
+        if ($delCargo !== null) {
+            return [$marcada->copy()->addHours((int) $delCargo), null];
+        }
+
+        // Si no, al fin del turno más largo que podría ser, más el margen de horas
+        // extra; sin turno reconocible, a la duración máxima del componente.
+        return $this->porTurno($componente, $marcada)
+            ?? [$marcada->copy()->addHours((int) $componente->regla('horas_max_turno')), null];
+    }
+
+    /**
+     * DOC-21 v0.4 (Edwar, 2026-11-10): el turno sin salida se cierra al fin
+     * del turno MÁS LARGO que esa entrada podría ser —todos los de la ventana
+     * de reconocimiento—, más el margen de horas extra (tolerancia_extra_min).
+     * Una entrada del viernes a las 6:00 puede ser T4 o un N1 que llegó tarde:
+     * se cierra a las 13:30; un C13 del domingo, a las 19:00. Así a nadie que
+     * esté trabajando se le corta el turno, y quien olvida la salida queda con
+     * horas casi exactas. Null si ningún turno encaja o alguno no tiene hora de
+     * fin (con duda, manda la duración máxima del componente).
+     *
+     * @return array{0: Carbon, 1: TipoTurno}|null el tope y el turno que lo puso
+     */
+    protected function porTurno(Componente $componente, Carbon $entrada): ?array
+    {
+        $antes = (int) $componente->regla('reconocer_antes_min');
+        $despues = (int) $componente->regla('reconocer_despues_min');
+        $mas = null;
+
+        foreach (TipoTurno::where('componente_id', $componente->id)->where('activo', true)->where('es_turno', true)->get() as $t) {
+            // Un día antes y uno después, por los turnos que cruzan la medianoche.
+            foreach ([-1, 0, 1] as $d) {
+                $dia = $entrada->copy()->addDays($d);
+                if (! $t->hora_inicio || ! $this->programacion->aplica($t, $dia)) {
+                    continue;
+                }
+
+                $inicio = $this->programacion->inicio($t, $dia);
+                $diferencia = (int) $inicio->diffInMinutes($entrada, false);
+                if ($diferencia < -$antes || $diferencia > $despues) {
+                    continue;
+                }
+
+                if (! $t->hora_fin) {
+                    return null;
+                }
+
+                $fin = $this->fin($t, $inicio);
+                if ($mas === null || $fin->gt($mas[0])) {
+                    $mas = [$fin, $t];
+                }
+            }
+        }
+
+        return $mas ? [$mas[0]->addMinutes((int) $componente->regla('tolerancia_extra_min')), $mas[1]] : null;
+    }
+
+    /** El fin de un turno que empezó en $inicio (al día siguiente si cruza la medianoche). */
+    protected function fin(TipoTurno $tipo, CarbonInterface $inicio): Carbon
+    {
+        $fin = Carbon::parse($inicio->toDateString().' '.$tipo->hora_fin);
+
+        return $fin->lte($inicio) ? $fin->addDay() : $fin;
+    }
+
+    /** Cierra una entrada sin salida a la hora de su tope: auditoría y novedad «no marcó salida». */
+    public function cerrarSinSalida(Marcacion $entrada): Marcacion
+    {
+        [$tope, $corto] = $this->topeYTurnoCorto($entrada);
+
+        // En consola no hay sesión: la auditoría va a la dependencia del turno.
+        app(\App\Services\ContextoDependencia::class)->establecer($entrada->dependencia);
+
+        $salida = Marcacion::create([
+            'dependencia_id' => $entrada->dependencia_id,
+            'colaborador_id' => $entrada->colaborador_id,
+            'componente_id' => $entrada->componente_id,
+            'nodo_id' => $entrada->nodo_id,
+            'tipo' => TipoMarcacion::Salida,
+            'marcada_at' => $tope,
+            'origen' => OrigenMarcacion::CierreAutomatico,
+            'motivo' => $corto
+                ? "No marcó salida: se cerró al terminar su turno ({$corto->codigo}) y el margen de horas extra."
+                : 'No marcó salida: se cerró al cumplir la duración máxima del turno.',
+            'sin_ubicacion' => true,
+        ]);
+
+        $this->auditor->registrar(
+            AccionAuditoria::TurnoCierreAutomatico,
+            $salida,
+            "Cerró el turno de {$entrada->colaborador->nombre} sin salida (entró el {$entrada->marcada_at->fechaHora()})",
+        );
+
+        $this->novedades->evaluar($salida);
+
+        return $salida;
     }
 
     /** El nodo: el elegido al marcar, el fijo del QR, o el habitual de la persona. */

@@ -47,6 +47,10 @@ enum AccionAuditoria: string
     case DerivacionRespondida = 'derivacion.respondida';
     case SupervisionRegistrada = 'supervision.registrada';
     case DerivacionEliminada = 'derivacion.eliminada';
+    case CasoCreado = 'caso.creado';
+    case CasoConsultado = 'caso.consultado';
+    case CasoAtendido = 'caso.atendido';
+    case CasoCorregidoContingencia = 'caso.contingencia';
     case ComponenteGuardado = 'componente.guardado';
     case NodoGuardado = 'nodo.guardado';
     case NovedadRevisada = 'turno.novedad_revisada';
@@ -99,6 +103,10 @@ enum AccionAuditoria: string
             self::DerivacionRespondida => 'Respondió una derivación',
             self::SupervisionRegistrada => 'Registró una supervisión territorial',
             self::DerivacionEliminada => 'Eliminó una derivación',
+            self::CasoCreado => 'Creó un caso de derivación',
+            self::CasoConsultado => 'Consultó un caso desde el enlace',
+            self::CasoAtendido => 'Atendió un caso de derivación',
+            self::CasoCorregidoContingencia => 'Corrigió horas o cierre de un caso (contingencia)',
             self::ComponenteGuardado => 'Creó o cambió un componente',
             self::NodoGuardado => 'Creó o cambió un nodo',
             self::NovedadRevisada => 'Aprobó o rechazó una novedad de turno',
