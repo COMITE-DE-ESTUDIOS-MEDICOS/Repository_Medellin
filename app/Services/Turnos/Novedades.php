@@ -105,7 +105,11 @@ class Novedades
 
         $permanencia = (int) $entrada->marcada_at->diffInMinutes($salida->marcada_at);
         $componente = $salida->componente;
-        $minutos = $componente->minutosTrabajados($permanencia);
+        $cierre = $salida->origen === OrigenMarcacion::CierreAutomatico;
+        // El turno con la entrada y la salida (un cierre automático no es una salida real).
+        $turno = $this->programacion->reconocer($componente, $entrada->marcada_at, $entrada->colaborador?->tipoTurno, $cierre ? null : $salida->marcada_at);
+        $tipo = $turno['tipo'] ?? null;
+        $minutos = $componente->minutosTrabajados($permanencia, $tipo);
         $tolerancia = (int) $componente->regla('tolerancia_min');
         $toleranciaExtra = (int) $componente->regla('tolerancia_extra_min');
         $deTurno = '';
@@ -116,7 +120,7 @@ class Novedades
             ? "Trabajó {$duro}"
             : "Estuvo {$this->horas($permanencia)}; con {$this->horas($permanencia - $minutos)} de descanso, trabajó {$duro}";
 
-        if ($salida->origen === OrigenMarcacion::CierreAutomatico) {
+        if ($cierre) {
             return $this->anotar($salida, TipoNovedad::SinSalida, "No marcó salida. Entró el {$entrada->marcada_at->format('d/m')} a las {$entrada->marcada_at->hora()} y el turno se cerró a las {$this->horas($permanencia)} en el sitio.", $minutos, $entrada);
         }
 
@@ -125,8 +129,6 @@ class Novedades
         // de 4 h no es «turno corto»; un N1 de 7 h 30 min en el sitio, con
         // 30 min de descanso, espera 7 h. Sin turno con horario, la jornada del
         // componente.
-        $turno = $this->programacion->reconocer($componente, $entrada->marcada_at, $entrada->colaborador?->tipoTurno, $salida->marcada_at);
-        $tipo = $turno['tipo'] ?? null;
         $esperados = $componente->jornadaPara($tipo);
         if ($tipo?->minutosDeHorario() !== null) {
             $deTurno = " en su turno {$tipo->codigo}";

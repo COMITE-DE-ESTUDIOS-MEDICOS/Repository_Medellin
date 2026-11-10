@@ -36,7 +36,11 @@ generaba horas extra que alguien tenía que aprobar. En la prueba de estrés de 
    hora extra. La tolerancia de siempre (20) sigue para la tardanza y el turno corto.
 3. La misma jornada va al **reporte y al Excel** (columna «Jornada (h)»): las novedades y el
    reporte dicen siempre lo mismo.
-4. La tolerancia de horas extra es también el **margen con el que se cierra solo un turno sin
+4. **El descanso va por el turno** (Edwar, 2026-11-10): se usa el tramo del horario del turno
+   reconocido, no el del tiempo en el sitio. Un T4 que sale a las 10:05 no pierde 30 min:
+   trabajó 4 h 5 min. Nunca se descuenta más de lo que daría el tiempo en el sitio: un N1 que
+   se va a las 3 h no descuenta.
+5. La tolerancia de horas extra es también el **margen con el que se cierra solo un turno sin
    salida** (DOC-21 v0.4).
 
 ## Criterios de aceptación
@@ -46,6 +50,7 @@ generaba horas extra que alguien tenía que aprobar. En la prueba de estrés de 
 | CA-01 | T4 de 4 h, N1 de 7 h 30 min, C13 de 12 h y N7 no generan novedad; un N1 que sale una hora antes sí es corto | `JornadaPorTurnoTest::test_doc8_ca01_…` |
 | CA-02 | 50 min de más no son hora extra; 75 min sí; la tolerancia del turno corto sigue en 20 | `test_doc8_ca02_…` |
 | CA-03 | El Excel muestra la jornada del turno (T4 → 4 h) | `test_doc8_ca03_…` |
+| CA-04 | El descanso va por el turno: el T4 nunca descuenta; el N1, 30 min; sin turno, por el tiempo en el sitio | `test_doc8_el_descanso_va_por_el_turno` |
 
 ## Lo que hay que saber
 
@@ -60,3 +65,4 @@ generaba horas extra que alguien tenía que aprobar. En la prueba de estrés de 
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 1.0 | 2026-11-10 | Construida y aprobada con las decisiones de Edwar |
+| 1.1 | 2026-11-10 | El descanso va por el horario del turno (el T4 nunca descuenta) |

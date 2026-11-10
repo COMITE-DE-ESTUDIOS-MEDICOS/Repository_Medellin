@@ -83,6 +83,21 @@ class JornadaPorTurnoTest extends TestCase
         $this->assertSame(TipoNovedad::TurnoCorto, $this->turno('2026-11-11 05:00', '2026-11-11 12:00')->tipo);
     }
 
+    /** Edwar, 2026-11-10: el descanso va por el turno. El T4 no tiene; los demás, el de su horario. */
+    public function test_doc8_el_descanso_va_por_el_turno(): void
+    {
+        $t4 = \App\Models\TipoTurno::where('componente_id', $this->calle->id)->where('codigo', 'T4')->sole();
+        $n1 = \App\Models\TipoTurno::where('componente_id', $this->calle->id)->where('codigo', 'N1')->sole();
+
+        $this->assertSame(0, $this->calle->descansoPara(245, $t4), 'Un T4 que se queda 4 h 5 min no pierde 30 min.');
+        $this->assertSame(0, $this->calle->descansoPara(300, $t4), 'Ni con 5 h: el T4 no tiene descanso.');
+        $this->assertSame(30, $this->calle->descansoPara(450, $n1), 'N1: sus 30 min.');
+        $this->assertSame(0, $this->calle->descansoPara(180, $n1), 'Un N1 que se va a las 3 h no descuenta un descanso que no tomó.');
+        $this->assertSame(30, $this->calle->descansoPara(300), 'Sin turno, por el tiempo en el sitio, como antes.');
+
+        $this->assertNull($this->turno('2026-11-13 06:00', '2026-11-13 10:05'), 'T4 de 6:00 a 10:05: 4 h 5 min de trabajo, sin novedad.');
+    }
+
     public function test_doc8_ca03_el_reporte_usa_la_jornada_del_turno(): void
     {
         $this->turno('2026-11-13 06:00', '2026-11-13 10:00');
