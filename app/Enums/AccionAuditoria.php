@@ -80,7 +80,7 @@ enum AccionAuditoria: string
             self::UsuarioCreado => 'Creó un usuario',
             self::UsuarioActualizado => 'Actualizó un usuario',
             self::UsuarioDesactivado => 'Desactivó un usuario',
-            self::AuthentikAprovisionado => 'Creó la identidad en Authentik',
+            self::AuthentikAprovisionado => 'Cambió el acceso en Authentik',
             self::AuthentikFallo => 'Falló una operación con Authentik',
             self::RecepcionRecibida => 'Recibió un archivo por un enlace de carga',
             self::RecepcionArchivada => 'Archivó un recibido en el repositorio',

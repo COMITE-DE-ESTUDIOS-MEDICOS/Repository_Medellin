@@ -72,4 +72,5 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Reporte con el turno reconocido y sin ceros por nodo | DOC-19 | [Aprobada](specs/reporte-turno-reconocido-y-nodo/spec.md) | Construida |
 | Casos de derivación creados por la oficina (DC-001) | DOC-20 | [Aprobada](specs/casos-de-derivacion/spec.md) | Construida |
 | Turno por entrada y salida · cierre sin salida por cargo | DOC-21 | [Aprobada](specs/turno-por-entrada-y-salida/spec.md) | Construida |
+| Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

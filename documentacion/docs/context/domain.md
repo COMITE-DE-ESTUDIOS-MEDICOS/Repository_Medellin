@@ -86,9 +86,20 @@ asigna por dependencia. Nadie gestiona a un usuario con rol mayor; la cuenta de
 plataforma solo la gestiona otro superadministrador.
 *Origen:* F-02 · *Código:* `RolDependencia`, `UsuarioController::verificarRango`, `Livewire\Usuarios::alcanza`.
 
-**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante; la
-entrada es por Authentik o el formulario propio.
-*Origen:* F-02 · *Código:* `UsuarioController`, `AuthentikProvisioner`.
+**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante. Desde
+DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
+
+- su usuario es la cédula (`^[0-9A-Z]{3,20}$`);
+- dar acceso la crea sin contraseña, o la agrega al grupo de Documenta si ya existía;
+- desactivar a la persona la saca del grupo, sin desactivar su cuenta;
+- Documenta nunca cambia el nombre, el correo, el usuario ni la contraseña de esa cuenta;
+- la contraseña la define cada persona en Authentik, con un enlace de recuperación de un solo
+  uso;
+- se entra por Authentik: la primera vez por el usuario, después por el `sub`, nunca por el
+  correo;
+- el formulario propio queda solo para el superadministrador, como acceso de emergencia.
+
+*Origen:* F-02, DOC-22 · *Código:* `UsuarioController`, `AuthentikProvisioner`, `Auth\AuthentikController`, `Auth\SesionController`.
 
 **RN-04. Todo cambio deja auditoría.** Quién, qué, cuándo, IP y navegador. Inactivar
 exige motivo.

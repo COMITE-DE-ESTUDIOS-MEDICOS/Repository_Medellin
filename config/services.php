@@ -34,10 +34,14 @@ return [
         'client_secret' => env('AUTHENTIK_CLIENT_SECRET'),
         'redirect' => env('AUTHENTIK_REDIRECT_URI', 'http://localhost:8000/auth/authentik/callback'),
 
-        // Cuenta de servicio con permiso para crear y editar usuarios, nada
-        // más. Sin ella la app sigue funcionando: el aprovisionamiento
-        // simplemente no se intenta.
+        // Cuenta de servicio (repository-sync): ver y crear usuarios, y
+        // agregar o sacar miembros del grupo de Documenta. Sin token o sin
+        // grupo la app sigue funcionando: el aprovisionamiento no se intenta.
         'api_token' => env('AUTHENTIK_API_TOKEN'),
+
+        // UUID (no el nombre) del grupo de acceso de este entorno:
+        // «Documenta Local», «Documenta Pruebas» o «Documenta» (DOC-22).
+        'grupo_id' => env('AUTHENTIK_GRUPO_ID'),
     ],
 
     'slack' => [

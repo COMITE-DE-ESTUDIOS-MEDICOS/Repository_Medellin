@@ -15,6 +15,8 @@ use Illuminate\View\View;
 /**
  * Autenticación mínima y a la medida: no hay registro público ni
  * recuperación por correo. Los usuarios los crea un administrador.
+ * Desde DOC-22 todos entran por Authentik; este formulario es solo la
+ * entrada de emergencia del superadministrador.
  */
 class SesionController extends Controller
 {
@@ -28,7 +30,7 @@ class SesionController extends Controller
         $request->validate([
             'identificador' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
-        ], attributes: ['identificador' => 'documento o usuario', 'password' => 'contraseña']);
+        ], attributes: ['identificador' => 'usuario', 'password' => 'contraseña']);
 
         // Se acepta el documento, el nombre de usuario o el correo: quien
         // entra cada mañana no debería tener que recordar cuál de los tres
@@ -46,6 +48,16 @@ class SesionController extends Controller
             ['id' => $usuario?->id ?? 0, 'password' => $request->input('password')],
             $request->boolean('recordarme'),
         );
+
+        // DOC-22 (PA-01): el formulario propio queda solo para el
+        // superadministrador, como entrada de emergencia si Authentik se cae.
+        // Los demás entran por Authentik. El rechazo va después del attempt
+        // (conserva el timebox) y con el mismo mensaje, para no revelar
+        // quién es superadministrador.
+        if ($entro && ! $request->user()->es_superadmin) {
+            Auth::logout();
+            $entro = false;
+        }
 
         if (! $entro) {
             throw ValidationException::withMessages([

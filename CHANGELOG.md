@@ -26,6 +26,9 @@ Cada viñeta, corta y para quien no programa.
 - La pantalla «En turno» marca como excedido a quien pasó el fin de su turno.
 - El reporte de turnos trae la columna «Turno» (N1, T4, N7…) con el turno reconocido, y el Excel respeta los filtros de la pantalla. Ya no se queda «cargando» al descargar.
 - Al descargar una carpeta en ZIP, los documentos y las carpetas inactivados ya no se incluyen.
+- Una sola cuenta institucional (Authentik) para Documenta y las demás apps del Comité. El usuario es la cédula, sin puntos ni espacios. Se entra con «Entrar con la cuenta institucional».
+- La contraseña ya no la pone el administrador: cada persona la define en Authentik. Para alguien nuevo, el administrador le entrega un enlace de recuperación de un solo uso que se genera en Authentik.
+- Desactivar a alguien en Documenta solo le quita Documenta, no las otras apps. Corregir su usuario en Documenta no lo cambia en Authentik: eso se hace allá.
 - Al elegir carpeta («Dentro de», «Copiar», «Mover») hay un buscador: se escribe parte del nombre o de la ruta (varias palabras, sin tildes) y aparece una lista corta con el nombre de la carpeta y dónde está.
 
 ## v2.1

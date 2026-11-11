@@ -6,6 +6,7 @@ use App\Enums\AccionAuditoria;
 use App\Enums\RolDependencia;
 use App\Models\User;
 use App\Services\Auditor;
+use App\Services\AuthentikProvisioner;
 use App\Services\ContextoDependencia;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -54,10 +55,10 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')
-                    ->label('Usuario')
+                    ->label('Persona')
                     ->weight('semibold')
                     ->sortable()
-                    ->description(fn (User $u) => collect([$u->documento ?? 'Sin documento', $u->cargo])->filter()->join(' · '))
+                    ->description(fn (User $u) => collect([$u->documento ?? 'Sin usuario', $u->cargo])->filter()->join(' · '))
                     ->searchable(query: function (Builder $query, string $search) {
                         // El documento se busca normalizado: «1.234.567» desde una planilla también encuentra.
                         $query->where(fn ($s) => $s->where('users.name', 'like', "%{$search}%")
@@ -92,7 +93,7 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
                         default => 'danger',
                     })
                     ->tooltip(fn (string $state) => $state === 'Falta en Authentik'
-                        ? 'Documenta no pudo crear esta cuenta en Authentik. Edítala y ponle una contraseña para reintentarlo.' : null),
+                        ? 'Documenta no pudo darle acceso en Authentik. Edítala y guárdala de nuevo para reintentarlo.' : null),
                 TextColumn::make('ultimo_acceso_at')
                     ->label('Último acceso')
                     ->formatStateUsing(fn ($state) => $state?->fechaHora())
@@ -177,6 +178,11 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
             $usuario,
             "Revocó el acceso de {$usuario->name} a la dependencia",
         );
+
+        // Sin ninguna dependencia ya no entra a Documenta: fuera del grupo.
+        if (! $usuario->activo || $usuario->dependencias()->doesntExist()) {
+            app(AuthentikProvisioner::class)->quitarAcceso($usuario);
+        }
 
         Notification::make()->title("Se revocó el acceso de {$usuario->name}.")->success()->send();
     }
