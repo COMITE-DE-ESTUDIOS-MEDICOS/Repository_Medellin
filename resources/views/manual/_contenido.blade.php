@@ -65,17 +65,18 @@
 
     <h3>Ingresar</h3>
     <ol class="pasos">
-        <li>Abre Documenta en el navegador y toca <strong>Ingresar</strong>.</li>
-        <li>Te lleva a la página de acceso del Comité (Authentik). Escribe tu <strong>número de documento</strong> como usuario y tu contraseña.</li>
+        <li>Abre Documenta en el navegador y toca <strong>Entrar con la cuenta institucional</strong>.</li>
+        <li>Te lleva a la página de acceso del Comité (Authentik). Es la <strong>misma cuenta</strong> de MedTech y de las otras aplicaciones: escribe tu <strong>usuario</strong> (por norma interna, tu cédula, sin puntos ni espacios), tu contraseña y, si te lo pide, tu segundo factor.</li>
         <li>Al entrar llegas a <strong>Documentos</strong>.</li>
     </ol>
+    <p>La <strong>contraseña la defines tú en Authentik</strong>; Documenta no la conoce ni la cambia. La primera vez, quien administra los usuarios te entrega un enlace para crearla (ver <span class="ruta">Administración → Usuarios</span>).</p>
     <div class="nota">
         <span class="nota-titulo">¿No puedes entrar?</span>
-        Las cuentas las crea Coordinación o Administración. Si dice que tu usuario no está registrado o que tu cuenta está desactivada, comunícate con ellos.
+        Las cuentas las crea Coordinación o Administración. Si dice que tu usuario no está registrado o que tu cuenta está desactivada, comunícate con ellos. El <strong>Acceso de emergencia (administración)</strong> de la pantalla de ingreso es solo para el superadministrador, por si Authentik no responde.
     </div>
 
     <h3>Mi perfil</h3>
-    <p>En el menú de tu cuenta → <strong>Mi perfil</strong>: tu nombre y cargo, la apariencia (claro, oscuro o la del sistema, que te acompaña en cualquier equipo) y el cambio de contraseña. El documento y el rol los cambia quien administra los usuarios.</p>
+    <p>En el menú de tu cuenta → <strong>Mi perfil</strong>: tu nombre y cargo, la apariencia (claro, oscuro o la del sistema, que te acompaña en cualquier equipo) y un enlace a tu cuenta de Authentik, que es donde se cambia la contraseña. El usuario y el rol los cambia quien administra los usuarios.</p>
 
     <h3>La pantalla</h3>
     <ul>
@@ -364,11 +365,24 @@
     <h3>Usuarios</h3>
     <ol class="pasos">
         <li>Ve a <span class="ruta">Administración → Usuarios</span> → <strong>Dar acceso</strong>.</li>
-        <li>Nombre, número de documento (es su usuario) y correo.</li>
+        <li>Nombre, <strong>usuario</strong> (por norma interna, la cédula de la persona: solo números, sin puntos ni espacios) y correo. El único usuario con letras es el del superadministrador de Documenta (por ejemplo, <code>adminDocumenta</code>), que se crea a mano en Authentik y se escribe tal cual, con sus mayúsculas y minúsculas.</li>
         <li>Asigna el <strong>rol</strong> en cada dependencia. Puedes desactivar a alguien sin borrarlo.</li>
         <li>Para un usuario de Edición, marca <strong>Aprueba novedades de turno</strong> si debe aprobarlas (Coordinación y Administración siempre pueden).</li>
     </ol>
-    <p>En la lista se busca por nombre, correo o documento (con o sin puntos) y se filtra por rol, estado o «Aprueba novedades». <strong>Revocar</strong> quita el acceso a esta dependencia sin borrar la cuenta; pide confirmación. Nadie gestiona a quien tiene un rol mayor que el suyo.</p>
+    <p>Dar acceso le abre Documenta con su <strong>cuenta institucional de Authentik</strong> (la misma de MedTech). Si ya la tenía por otra aplicación, se usa esa. Documenta <strong>no pone ni cambia contraseñas</strong>: cada persona define la suya en Authentik.</p>
+
+    <h4>Para que una persona nueva cree su contraseña</h4>
+    <ol class="pasos">
+        <li>En Authentik: <span class="ruta">Directorio → Usuarios</span> → la persona → <strong>Crear enlace de recuperación</strong>.</li>
+        <li>Entrégale esa URL, que sirve <strong>una sola vez</strong>: impresa, en persona o por mensaje.</li>
+        <li>Ella abre el enlace y define su contraseña y su segundo factor. Desde ahí entra con <strong>Entrar con la cuenta institucional</strong>.</li>
+    </ol>
+    <div class="nota">
+        <span class="nota-titulo">Tener en cuenta</span>
+        <strong>Desactivar</strong> a alguien en Documenta solo le quita Documenta: sigue entrando a las otras aplicaciones. Si se va de la institución, se desactiva en Authentik.
+        Si el <strong>usuario</strong> (la cédula) quedó mal escrito, corregirlo en Documenta no lo cambia en Authentik: allá se corrige a mano.
+    </div>
+    <p>En la lista se busca por nombre, correo o usuario (la cédula, con o sin puntos) y se filtra por rol, estado o «Aprueba novedades». <strong>Revocar</strong> quita el acceso a esta dependencia sin borrar la cuenta; pide confirmación. Nadie gestiona a quien tiene un rol mayor que el suyo.</p>
 
     <h3>Tipos de documento</h3>
     <p>Las categorías para clasificar documentos (Acta, Informe, Contrato…) y filtrar en el explorador.</p>

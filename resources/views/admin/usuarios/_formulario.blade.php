@@ -20,7 +20,7 @@
     <div class="space-y-6 lg:col-span-2">
 
         {{-- 1. La persona --}}
-        <x-seccion-ficha icono="persona" titulo="Datos de la persona" descripcion="El documento es el usuario con el que entra, aquí y en Authentik.">
+        <x-seccion-ficha icono="persona" titulo="Datos de la persona" descripcion="El usuario es con el que entra por Authentik. Corregirlo aquí no lo cambia allá.">
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="sm:col-span-2">
                     <label for="name" class="{{ $etiqueta }}">Nombre completo *</label>
@@ -29,15 +29,28 @@
                 </div>
 
                 <div>
-                    <label for="documento" class="{{ $etiqueta }}">Número de documento *</label>
-                    <input id="documento" name="documento" type="text" inputmode="numeric" required maxlength="30"
+                    <label for="documento" class="{{ $etiqueta }}">Usuario *</label>
+                    <input id="documento" name="documento" type="text" required maxlength="30"
                            value="{{ old('documento', $u?->documento) }}" class="{{ $campo }}" autocomplete="off">
                     @error('documento')
                         <p class="{{ $error }}">{{ $message }}</p>
                     @else
-                        <p class="{{ $ayuda }}">Sin puntos ni espacios.{{ $esNuevo ? ' Si ya tiene cuenta en otra dependencia, se le suma esta.' : '' }}</p>
+                        <p class="{{ $ayuda }}">{{ ($usuario ?? null)?->es_superadmin ? 'El usuario del superadministrador en Authentik (p. ej. adminDocumenta): letras y números, sin espacios, tal cual.' : 'Por norma interna, la cédula de la persona: solo números, sin puntos ni espacios. Obligatorio con acceso web.' }}{{ $esNuevo ? ' Si ya tiene cuenta en otra dependencia, se le suma esta.' : '' }}</p>
                     @enderror
                 </div>
+
+                @if($u?->es_superadmin)
+                    <div>
+                        <label for="usuario" class="{{ $etiqueta }}">Alias de emergencia (opcional)</label>
+                        <input id="usuario" name="usuario" type="text" maxlength="50"
+                               value="{{ old('usuario', $u->usuario) }}" class="{{ $campo }}" autocomplete="off">
+                        @error('usuario')
+                            <p class="{{ $error }}">{{ $message }}</p>
+                        @else
+                            <p class="{{ $ayuda }}">Solo para entrar por el acceso de emergencia (administración). Las demás personas entran con la cuenta institucional.</p>
+                        @enderror
+                    </div>
+                @endif
 
                 <div>
                     <label for="cargo" class="{{ $etiqueta }}">Cargo</label>
@@ -88,24 +101,9 @@
             </label>
         </x-seccion-ficha>
 
-        {{--
-            3. Contraseña. La que se ponga aquí es la misma con la que la
-            persona entrará por Authentik: Documenta la crea allá tal cual.
-        --}}
-        <x-seccion-ficha icono="candado" :titulo="'Contraseña'.($esNuevo ? ' *' : '')"
-            :descripcion="($esNuevo ? 'Con esta entra, aquí y en Authentik.' : 'Déjala vacía para no cambiarla.').' Sin largo mínimo (puede ser el documento menos el último dígito). Entrégasela por un medio seguro.'">
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div>
-                    <label for="password" class="{{ $etiqueta }}">{{ $esNuevo ? 'Contraseña' : 'Nueva contraseña' }}</label>
-                    <input id="password" name="password" type="password" {{ $esNuevo ? 'required' : '' }} class="{{ $campo }}" autocomplete="new-password">
-                    @error('password')<p class="{{ $error }}">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label for="password_confirmation" class="{{ $etiqueta }}">Confirmar contraseña</label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" class="{{ $campo }}" autocomplete="new-password">
-                </div>
-            </div>
-        </x-seccion-ficha>
+        {{-- 3. Contraseña: la gestiona Authentik; Documenta no la toca (DOC-22). --}}
+        <x-seccion-ficha icono="candado" titulo="Contraseña"
+            descripcion="La contraseña la define la persona en Authentik. Para una persona nueva, crea en Authentik (Directorio → Usuarios → la persona) un «enlace de recuperación» y entrégaselo." />
     </div>
 
     {{-- Panel lateral: la cuenta de un vistazo y los botones, siempre a la mano. --}}
@@ -124,7 +122,7 @@
                     <div class="flex justify-between gap-2">
                         <dt class="text-[var(--muted)]">Authentik</dt>
                         <dd class="{{ blank($u->authentik_id) ? 'font-semibold text-[var(--warning)]' : 'text-[var(--success)]' }}">
-                            {{ blank($u->authentik_id) ? 'Falta: ponle contraseña' : 'Conectado' }}
+                            {{ blank($u->authentik_id) ? 'Falta: guarda de nuevo' : 'Conectado' }}
                         </dd>
                     </div>
                     <div class="flex justify-between gap-2">
@@ -141,7 +139,7 @@
             <label class="mt-4 flex cursor-pointer items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
                 <span>
                     <span class="block text-sm font-medium text-[var(--text)]">Cuenta activa</span>
-                    <span class="block text-xs text-[var(--muted)]">Apagada, no puede entrar.</span>
+                    <span class="block text-xs text-[var(--muted)]">Apagada, no puede entrar: sale del grupo de Documenta en Authentik. Su cuenta sigue activa para las demás aplicaciones.</span>
                 </span>
                 <input type="hidden" name="activo" value="0">
                 <input type="checkbox" name="activo" value="1" @checked(old('activo', $u?->activo ?? true)) class="peer sr-only">

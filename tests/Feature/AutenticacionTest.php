@@ -14,6 +14,9 @@ use Tests\TestCase;
  * Autenticación propia y mínima: los usuarios los crea un administrador.
  * No hay registro público ni recuperación por correo, y eso es una decisión
  * de diseño que conviene dejar amarrada.
+ *
+ * Desde DOC-22 el formulario propio es solo la entrada de emergencia del
+ * superadministrador: por eso las pruebas que entran por él usan uno.
  */
 class AutenticacionTest extends TestCase
 {
@@ -23,7 +26,7 @@ class AutenticacionTest extends TestCase
 
     public function test_las_credenciales_correctas_abren_sesion(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
 
         $this->post(route('login'), ['identificador' => $usuario->documento, 'password' => 'password'])
             ->assertRedirect(route('documentos.index'));
@@ -112,7 +115,7 @@ class AutenticacionTest extends TestCase
      */
     public function test_el_documento_se_puede_escribir_con_puntos_o_sin_ellos(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
         $usuario->update(['documento' => '1234567890']);
 
         foreach (['1234567890', '1.234.567.890', '1 234 567 890', ' 1234567890 '] as $comoLoEscribe) {
@@ -133,7 +136,7 @@ class AutenticacionTest extends TestCase
      */
     public function test_se_entra_con_documento_con_usuario_o_con_correo(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
 
         $usuario->update([
             'documento' => '1234567890',
@@ -155,7 +158,7 @@ class AutenticacionTest extends TestCase
 
     public function test_un_usuario_desactivado_no_puede_iniciar_sesion(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
         $usuario->update(['activo' => false]);
 
         $this->post(route('login'), ['identificador' => $usuario->documento, 'password' => 'password'])
@@ -167,7 +170,7 @@ class AutenticacionTest extends TestCase
 
     public function test_desactivar_a_alguien_con_la_sesion_abierta_lo_expulsa_en_la_siguiente_peticion(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
 
         $this->post(route('login'), ['identificador' => $usuario->documento, 'password' => 'password']);
         $this->get(route('documentos.index'))->assertOk();
@@ -214,7 +217,7 @@ class AutenticacionTest extends TestCase
 
     public function test_cambiar_la_contrasena_exige_la_contrasena_actual(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
 
         $this->actingAs($usuario)
             ->put(route('perfil.password'), [
@@ -240,7 +243,7 @@ class AutenticacionTest extends TestCase
 
     public function test_cerrar_sesion_deja_al_usuario_fuera(): void
     {
-        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario = $this->superadmin();
 
         $this->post(route('login'), ['identificador' => $usuario->documento, 'password' => 'password']);
         $this->assertAuthenticated();
@@ -249,5 +252,14 @@ class AutenticacionTest extends TestCase
 
         $this->assertGuest();
         $this->get(route('documentos.index'))->assertRedirect(route('login'));
+    }
+
+    /** Quien puede usar el formulario propio (DOC-22, PA-01). */
+    private function superadmin(): User
+    {
+        $usuario = $this->usuarioCon(RolDependencia::Lectura);
+        $usuario->forceFill(['es_superadmin' => true])->save();
+
+        return $usuario;
     }
 }
