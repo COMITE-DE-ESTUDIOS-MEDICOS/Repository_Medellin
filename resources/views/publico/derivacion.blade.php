@@ -10,7 +10,7 @@
     $horas = intdiv(\App\Models\Derivacion::META_MINUTOS, 60);
 
     // Con errores del servidor, se abre el primer paso que tiene uno.
-    $pasoDe = ['cedula' => 0, 'numero' => 1, 'nodo_id' => 2, 'cumplio_requerimiento' => 2, 'observacion' => 2,
+    $pasoDe = ['cedula' => 0, 'numero' => 1, 'nodo_id' => 2, 'gestion_realizada' => 2, 'cumplio_requerimiento' => 2, 'observacion' => 2,
         'justificacion' => 2, 'evidencia1' => 3, 'evidencia2' => 3, 'evidencia3' => 3];
     $pasoInicial = collect($errors->keys())->map(fn ($campo) => $pasoDe[$campo] ?? 0)->min() ?? 0;
     $seccion = 'space-y-5 rounded-xl bg-[var(--card)] p-5 ring-1 ring-[var(--border)]';
@@ -96,6 +96,10 @@
                 <p class="text-xs font-medium text-[var(--muted)]">Ubicación</p>
                 <p data-caso-ubicacion class="text-sm text-[var(--text)]"></p>
             </div>
+            <div>
+                <p class="text-xs font-medium text-[var(--muted)]">Comuna</p>
+                <p data-caso-comuna class="text-sm text-[var(--text)]"></p>
+            </div>
             <div data-caso-soporte class="hidden">
                 <p class="text-xs font-medium text-[var(--muted)]">Soporte</p>
                 <img data-caso-soporte-imagen alt="Soporte del caso" class="mt-1 hidden max-h-96 w-full rounded-lg object-contain ring-1 ring-[var(--border)]">
@@ -117,6 +121,13 @@
                     <option value="{{ $nodo->id }}" @selected(old('nodo_id', $enlace->nodo_id) == $nodo->id)>{{ $nodo->nombre }}</option>
                 @endforeach
             </select>
+        </div>
+
+        <div>
+            <label for="gestion_realizada" class="{{ $etiqueta }}">Atención o gestión realizada *</label>
+            <textarea id="gestion_realizada" name="gestion_realizada" rows="4" required minlength="10" maxlength="2000" autocomplete="off"
+                      class="{{ $campo }}">{{ old('gestion_realizada') }}</textarea>
+            <p class="{{ $ayuda }}">Qué se hizo en el sitio: a quién se atendió, qué se entregó, a dónde se remitió…</p>
         </div>
 
         <fieldset>

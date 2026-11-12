@@ -6,6 +6,7 @@ use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
@@ -54,7 +55,7 @@ class Derivacion extends Model
         'respondida_at', 'respondida_por', 'ultimo_aviso_at',
         'numero', 'remitente', 'creado_por', 'clave_formulario', 'atendida_at', 'cumplio_requerimiento', 'observacion',
         'soporte_documento_id', 'evidencia1_documento_id', 'evidencia2_documento_id', 'evidencia3_documento_id',
-        'actualizado_por',
+        'actualizado_por', 'comuna', 'gestion_realizada',
     ];
 
     protected function casts(): array
@@ -62,6 +63,7 @@ class Derivacion extends Model
         return [
             'fecha_requerimiento' => 'date', 'respondida_at' => 'datetime', 'ultimo_aviso_at' => 'datetime',
             'atendida_at' => 'datetime', 'cumplio_requerimiento' => 'boolean', 'numero' => 'integer',
+            'comuna' => 'integer',
         ];
     }
 
@@ -132,6 +134,14 @@ class Derivacion extends Model
         return (int) $desde->diffInMinutes($hasta);
     }
 
+    /** DOC-23: «3 · Manrique»; sin comuna (los anteriores), «—». */
+    public function nombreComuna(): string
+    {
+        $nombre = config('repositorio.comunas')[$this->comuna] ?? null;
+
+        return $nombre === null ? '—' : "{$this->comuna} · {$nombre}";
+    }
+
     /** DOC-20: un caso creado por la oficina; si no, es un registro anterior. */
     public function esCaso(): bool
     {
@@ -200,6 +210,12 @@ class Derivacion extends Model
     public function creador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por');
+    }
+
+    /** DOC-23: la conversación del caso, del más antiguo al más reciente. */
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(ComentarioDerivacion::class)->oldest()->oldest('id');
     }
 
     public function respondedor(): BelongsTo

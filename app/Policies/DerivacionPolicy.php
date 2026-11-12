@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\ComentarioDerivacion;
 use App\Models\Derivacion;
 use App\Models\User;
 use App\Services\ContextoDependencia;
@@ -41,6 +42,23 @@ class DerivacionPolicy
     public function update(User $usuario, Derivacion $derivacion): bool
     {
         return $this->view($usuario, $derivacion);
+    }
+
+    /**
+     * DOC-23: comenta quien ve el caso (Edición en adelante); Lectura no.
+     * Comentar no cambia el caso: vale abierto o atendido.
+     */
+    public function comentar(User $usuario, Derivacion $derivacion): bool
+    {
+        return $this->view($usuario, $derivacion);
+    }
+
+    /** DOC-23: un comentario lo borra quien lo escribió, o Coordinación en adelante. */
+    public function borrarComentario(User $usuario, Derivacion $derivacion, ComentarioDerivacion $comentario): bool
+    {
+        return $comentario->derivacion_id === $derivacion->id
+            && $this->view($usuario, $derivacion)
+            && ($comentario->user_id === $usuario->id || $usuario->puedeGestionarEn($derivacion->dependencia_id));
     }
 
     public function delete(User $usuario, Derivacion $derivacion): bool

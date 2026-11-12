@@ -95,6 +95,16 @@
         </div>
 
         <div>
+            <label for="comuna" class="{{ $etiqueta }}">Comuna *</label>
+            <select id="comuna" name="comuna" required class="{{ $campo }}">
+                <option value="">Elige la comuna o el corregimiento</option>
+                @foreach(config('repositorio.comunas') as $numero => $nombre)
+                    <option value="{{ $numero }}" @selected((string) old('comuna') === (string) $numero)>{{ $numero }} · {{ $nombre }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div>
             <p class="{{ $etiqueta }}">Soporte del caso *</p>
             <p class="{{ $ayuda }}">Una foto con la cámara, o una imagen o un PDF del dispositivo (el oficio, el correo o el pantallazo).</p>
             <x-campo-archivo nombre="soporte" requerido camara formatos="publico" sello="Caso" />

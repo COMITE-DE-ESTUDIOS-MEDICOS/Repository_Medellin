@@ -93,7 +93,7 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
                         default => 'danger',
                     })
                     ->tooltip(fn (string $state) => $state === 'Falta en Authentik'
-                        ? 'Documenta no pudo darle acceso en Authentik. Edítala y guárdala de nuevo para reintentarlo.' : null),
+                        ? 'Documenta no pudo darle acceso en Authentik. Usa «Sincronizar con Authentik» para reintentarlo.' : null),
                 TextColumn::make('ultimo_acceso_at')
                     ->label('Último acceso')
                     ->formatStateUsing(fn ($state) => $state?->fechaHora())
@@ -144,6 +144,19 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
                     ->modalSubmitActionLabel('Sí, revocar')
                     ->visible(fn (User $u) => $u->id !== auth()->id() && $this->alcanza($u))
                     ->action(fn (User $u) => $this->revocar($u)),
+                Action::make('sincronizar')
+                    ->label('Sincronizar con Authentik')
+                    ->icon('heroicon-m-arrow-path')
+                    ->link()
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (User $u) => "¿Sincronizar a {$u->name} con Authentik?")
+                    ->modalDescription(fn (User $u) => $u->activo
+                        ? 'Está activa: queda en el grupo de Documenta en Authentik. Si no tiene cuenta allá, se le crea sin contraseña.'
+                        : 'Está inactiva: se retira del grupo de Documenta en Authentik. Su cuenta sigue activa para las demás aplicaciones.')
+                    ->modalSubmitActionLabel('Sincronizar')
+                    ->authorize(fn (User $u) => app(ContextoDependencia::class)->puedeGestionar() && $this->alcanza($u))
+                    ->visible(fn (User $u) => $this->alcanza($u))
+                    ->action(fn (User $u) => $this->sincronizar($u)),
             ])
             ->emptyStateHeading('Aún no hay usuarios habilitados')
             ->emptyStateDescription('Con «Dar acceso» se crea la cuenta o se suma una que ya existe.');
@@ -185,6 +198,44 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
         }
 
         Notification::make()->title("Se revocó el acceso de {$usuario->name}.")->success()->send();
+    }
+
+    /**
+     * Lo mismo que guardar la ficha, para una persona: activa, al grupo;
+     * inactiva, fuera. Nunca cambia ni desactiva la cuenta de Authentik.
+     */
+    protected function sincronizar(User $usuario): void
+    {
+        abort_unless(app(ContextoDependencia::class)->puedeGestionar() && $this->alcanza($usuario), 403);
+
+        // Fuera de la tabla: el registro trae columnas del join que no son de users.
+        $usuario = User::findOrFail($usuario->id);
+        $authentik = app(AuthentikProvisioner::class);
+
+        if (! $authentik->configurado()) {
+            Notification::make()->title('Authentik no está configurado en este servidor.')->warning()->send();
+
+            return;
+        }
+
+        $ok = $usuario->activo ? $authentik->darAcceso($usuario) : $authentik->quitarAcceso($usuario);
+
+        if (! $ok) {
+            Notification::make()
+                ->title('Authentik: no se pudo sincronizar.')
+                ->body($authentik->causaDelFallo())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title($usuario->activo
+                ? "Authentik: {$usuario->name} quedó en el grupo de Documenta."
+                : "Authentik: {$usuario->name} quedó fuera del grupo de Documenta. Su cuenta sigue activa para las demás aplicaciones.")
+            ->success()
+            ->send();
     }
 
     public function render(): View

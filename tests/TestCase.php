@@ -20,6 +20,15 @@ abstract class TestCase extends BaseTestCase
     /** @var list<string> archivos temporales que hay que borrar al terminar */
     private array $temporales = [];
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Ninguna prueba sale a internet: una llamada sin Http::fake() revienta en vez de
+        // crear cuentas de verdad en Authentik (pasó el 2026-11-12).
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+    }
+
     protected function tearDown(): void
     {
         foreach ($this->temporales as $ruta) {

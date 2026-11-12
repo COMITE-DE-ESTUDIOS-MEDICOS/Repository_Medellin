@@ -142,6 +142,7 @@ class DerivacionController extends Controller
             'mensaje' => $caso->descripcion,
             'entidad' => $caso->entidad,
             'ubicacion' => $caso->ubicacion,
+            'comuna' => $caso->nombreComuna(),
             'soporte' => $soporte === null ? null : [
                 'url' => URL::temporarySignedRoute('derivacion.soporte', now()->addMinutes(self::SOPORTE_MINUTOS), [
                     'token' => $token, 'derivacion' => $caso->id,
@@ -221,6 +222,7 @@ class DerivacionController extends Controller
 
         $datos = $peticion->validate([
             'nodo_id' => ['required', Rule::exists('nodos', 'id')->where('componente_id', $enlace->componente_id)->where('activo', 1)],
+            'gestion_realizada' => ['required', 'string', 'min:10', 'max:2000'],
             'cumplio_requerimiento' => ['required', 'boolean'],
             'observacion' => ['required_if:cumplio_requerimiento,0', 'nullable', 'string', 'max:5000'],
             'justificacion' => ['nullable', 'string', 'max:5000'],
@@ -228,13 +230,16 @@ class DerivacionController extends Controller
             'evidencia2' => $imagen,
             'evidencia3' => $imagen,
         ], [
+            'gestion_realizada.required' => 'Escribe la atención o gestión realizada: qué se hizo en el sitio.',
+            'gestion_realizada.min' => 'La atención o gestión realizada debe tener al menos 10 caracteres.',
+            'gestion_realizada.max' => 'La atención o gestión realizada no puede pasar de 2000 caracteres.',
             'cumplio_requerimiento.required' => 'Responde si se cumplió con el requerimiento.',
             'observacion.required_if' => 'Si no se cumplió con el requerimiento, escribe la observación.',
             'evidencia1.required' => 'Falta la evidencia #1.',
             'evidencia2.required' => 'Falta la evidencia #2.',
             'evidencia3.required' => 'Falta la evidencia #3.',
         ], [
-            'nodo_id' => 'nodo que atiende', 'cumplio_requerimiento' => '¿se cumplió con el requerimiento?',
+            'nodo_id' => 'nodo que atiende', 'gestion_realizada' => 'atención o gestión realizada', 'cumplio_requerimiento' => '¿se cumplió con el requerimiento?',
             'observacion' => 'observación', 'justificacion' => 'justificación',
             'evidencia1' => 'evidencia #1', 'evidencia2' => 'evidencia #2', 'evidencia3' => 'evidencia #3',
         ]);
@@ -270,6 +275,7 @@ class DerivacionController extends Controller
                     'nodo_id' => (int) $datos['nodo_id'],
                     'cumplio_requerimiento' => (bool) $datos['cumplio_requerimiento'],
                     'observacion' => $datos['observacion'] ?? null,
+                    'gestion_realizada' => $datos['gestion_realizada'],
                     'justificacion' => $datos['justificacion'] ?? null,
                     'atendida_at' => $ahora,
                     'hora_respuesta' => $ahora->format('H:i'),

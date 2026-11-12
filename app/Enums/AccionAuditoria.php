@@ -56,6 +56,8 @@ enum AccionAuditoria: string
     case NovedadRevisada = 'turno.novedad_revisada';
     case DocumentoAbierto = 'documento.abierto';
     case DocumentoComentado = 'documento.comentado';
+    case CasoComentado = 'caso.comentado';
+    case CasoComentarioBorrado = 'caso.comentario_borrado';
     case CarpetaCustodia = 'carpeta.custodia';
     case GrupoCustodiaGuardado = 'grupo_custodia.guardado';
 
@@ -112,6 +114,8 @@ enum AccionAuditoria: string
             self::NovedadRevisada => 'Aprobó o rechazó una novedad de turno',
             self::DocumentoAbierto => 'Abrió un documento custodiado',
             self::DocumentoComentado => 'Comentó un documento',
+            self::CasoComentado => 'Comentó un caso de derivación',
+            self::CasoComentarioBorrado => 'Borró un comentario de un caso',
             self::CarpetaCustodia => 'Cambió la custodia de una carpeta',
             self::GrupoCustodiaGuardado => 'Creó o cambió un grupo de custodia',
         };

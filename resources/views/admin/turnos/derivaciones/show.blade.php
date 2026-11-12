@@ -45,6 +45,7 @@
         <div class="{{ $fila }}"><dt class="{{ $dt }}">Quién lo envía</dt><dd class="{{ $dd }}">{{ $derivacion->entidad }}</dd></div>
         <div class="{{ $fila }}"><dt class="{{ $dt }}">{{ $derivacion->esCaso() ? 'Mensaje para la atención' : 'Descripción del caso' }}</dt><dd class="{{ $dd }}">{{ $derivacion->descripcion }}</dd></div>
         <div class="{{ $fila }}"><dt class="{{ $dt }}">Ubicación</dt><dd class="{{ $dd }}">{{ $derivacion->ubicacion }}</dd></div>
+        <div class="{{ $fila }}"><dt class="{{ $dt }}">Comuna</dt><dd class="{{ $dd }}">{{ $derivacion->nombreComuna() }}</dd></div>
         <div class="{{ $fila }}">
             <dt class="{{ $dt }}">{{ $derivacion->esCaso() ? 'Quién lo atendió' : 'Quién escala' }}</dt>
             <dd class="{{ $dd }}">
@@ -72,6 +73,9 @@
                 @endif
             </dd>
         </div>
+        @if($derivacion->esCaso() && ! $abierto)
+            <div class="{{ $fila }}"><dt class="{{ $dt }}">Atención o gestión realizada</dt><dd class="{{ $dd }}">{{ $derivacion->gestion_realizada ?? '—' }}</dd></div>
+        @endif
         @if($derivacion->cumplio_requerimiento !== null)
             <div class="{{ $fila }}"><dt class="{{ $dt }}">¿Se cumplió el requerimiento?</dt><dd class="{{ $dd }}">{{ $derivacion->cumplio_requerimiento ? 'Sí' : 'No' }}</dd></div>
         @endif
@@ -124,6 +128,11 @@
                                min="{{ $derivacion->requeridaAt()->format('Y-m-d\TH:i') }}" max="{{ now()->format('Y-m-d\TH:i') }}"
                                value="{{ old('atendida_at') }}" class="{{ $campo }}">
                     </div>
+                    <div>
+                        <label for="gestion_realizada" class="{{ $etiqueta }}">Atención o gestión realizada *</label>
+                        <textarea id="gestion_realizada" name="gestion_realizada" rows="3" required minlength="10" maxlength="2000" class="{{ $campo }}">{{ old('gestion_realizada') }}</textarea>
+                        <p class="mt-1 text-xs text-[var(--muted)]">Qué se hizo en el sitio: a quién se atendió, qué se entregó, a dónde se remitió…</p>
+                    </div>
                     <fieldset>
                         <legend class="{{ $etiqueta }}">¿Se cumplió el requerimiento? *</legend>
                         <div class="mt-1 flex gap-4 text-sm text-[var(--text)]">
@@ -162,5 +171,63 @@
         @endforeach
     </div>
 </div>
+
+{{-- DOC-23: comentarios del caso. Se pliegan con un clic; la vía pública no los ve. --}}
+@php($comentarios = $derivacion->comentarios()->with('autor')->get())
+<details id="comentarios" class="group mt-6 scroll-mt-4 rounded-lg bg-[var(--card)] ring-1 ring-[var(--border)]" @if($comentarios->isNotEmpty() || $errors->has('texto')) open @endif>
+    <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-2 text-sm font-medium text-[var(--text)] [&::-webkit-details-marker]:hidden">
+        <span aria-hidden="true" class="text-[var(--muted)] transition-transform group-open:rotate-90">›</span>
+        Comentarios <span class="text-[var(--muted)]">({{ $comentarios->count() }})</span>
+    </summary>
+
+    <ul class="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+        @forelse($comentarios as $comentario)
+            <li id="comentario-{{ $comentario->id }}" class="scroll-mt-4 px-4 py-3 target:bg-[var(--card-soft)]">
+                <div class="flex items-baseline gap-2">
+                    <p class="text-sm font-medium text-[var(--text)]">{{ $comentario->autor?->name ?? 'Usuario retirado' }}</p>
+                    <p class="text-xs text-[var(--muted)]">{{ $comentario->created_at->fechaHora() }}</p>
+                    @can('borrarComentario', [$derivacion, $comentario])
+                        <form method="POST" action="{{ route('admin.turnos.derivaciones.comentarios.destroy', [$derivacion, $comentario]) }}" class="ml-auto" onsubmit="return confirm('¿Borrar este comentario?')">
+                            @csrf @method('DELETE')
+                            <button class="text-xs text-[var(--muted)] hover:text-[var(--danger)]">Borrar</button>
+                        </form>
+                    @endcan
+                </div>
+                <p class="mt-1 whitespace-pre-line text-sm text-[var(--text)]">{{ $comentario->texto }}</p>
+            </li>
+        @empty
+            <li class="px-4 py-3 text-sm text-[var(--muted)]">
+                Sin comentarios. Deja aquí indicaciones sobre el caso: quien lo creó se entera por la campana.
+            </li>
+        @endforelse
+    </ul>
+
+    @can('comentar', $derivacion)
+        <form method="POST" action="{{ route('admin.turnos.derivaciones.comentarios.store', $derivacion) }}" class="space-y-2 border-t border-[var(--border)] p-4">
+            @csrf
+            <label for="texto" class="sr-only">Escribe un comentario</label>
+            <textarea id="texto" name="texto" rows="2" required maxlength="2000"
+                      placeholder="Ej: Confirma con la Alcaldía si ya lo trasladaron."
+                      class="liquid-input w-full resize-y text-sm [field-sizing:content]">{{ old('texto') }}</textarea>
+            @error('texto')<p class="text-xs text-[var(--danger)]">{{ $message }}</p>@enderror
+            <div class="flex justify-end">
+                <button class="liquid-button-primary rounded-md px-4 py-2 text-sm font-medium">Comentar</button>
+            </div>
+        </form>
+    @endcan
+</details>
+
+<script>
+    // Desde la campana (#comentarios o #comentario-N) la conversación se abre sola.
+    (() => {
+        const abrir = () => {
+            if (!location.hash.startsWith('#comentario')) return;
+            document.getElementById('comentarios').open = true;
+            document.getElementById(location.hash.slice(1))?.scrollIntoView();
+        };
+        abrir();
+        window.addEventListener('hashchange', abrir);
+    })();
+</script>
 
 @endsection

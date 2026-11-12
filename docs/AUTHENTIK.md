@@ -73,8 +73,8 @@ nuevo no alcanza para lo que ese código intentaba hacer (cambiar cuentas y cont
   bloquea en todas las aplicaciones, y es solo para quien sale de la empresa.
 - **Usuario mal escrito:** se corrige a mano en Authentik (Directorio → Usuarios → Editar) y en
   Documenta. Quien ya entró sigue entrando, porque lo reconoce el `sub`.
-- **Si Authentik falla al dar acceso:** queda en la auditoría. Guardar de nuevo la ficha lo
-  reintenta.
+- **Si Authentik falla al dar acceso:** queda en la auditoría y la fila dice «Falta en
+  Authentik». Se reintenta con **Sincronizar con Authentik** en la fila (o guardando la ficha).
 - **El superadministrador** tiene además el acceso de emergencia (formulario plegado de la
   pantalla de ingreso), con una contraseña que solo vive en Documenta.
 
