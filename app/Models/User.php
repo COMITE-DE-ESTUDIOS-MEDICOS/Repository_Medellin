@@ -104,7 +104,7 @@ class User extends Authenticatable
     public function dependencias(): BelongsToMany
     {
         return $this->belongsToMany(Dependencia::class, 'dependencia_usuario')
-            ->withPivot('rol')
+            ->withPivot('rol', 'aprueba_novedades')
             ->withTimestamps();
     }
 
@@ -148,14 +148,35 @@ class User extends Authenticatable
             return RolDependencia::Administracion;
         }
 
-        $relacion = $this->dependencias->firstWhere('id', $id)
-            ?? $this->dependencias()->whereKey($id)->first();
+        $relacion = $this->membresia($id);
 
         if ($relacion === null) {
             return null;
         }
 
         return RolDependencia::tryFrom($relacion->pivot->rol);
+    }
+
+    /** La dependencia con su pivote (rol, aprueba_novedades), o null si no pertenece. */
+    protected function membresia(int $id): ?Dependencia
+    {
+        return $this->dependencias->firstWhere('id', $id)
+            ?? $this->dependencias()->whereKey($id)->first();
+    }
+
+    /**
+     * Aprobar o rechazar novedades de turno: Coordinación y Administración
+     * siempre; de Edición, solo quien tenga marcado «Aprueba novedades».
+     */
+    public function puedeAprobarNovedadesEn(Dependencia|int|null $dependencia): bool
+    {
+        if ($this->puedeGestionarEn($dependencia)) {
+            return true;
+        }
+
+        $id = $dependencia instanceof Dependencia ? $dependencia->id : $dependencia;
+
+        return $id !== null && $this->puedeEditarEn($id) && (bool) $this->membresia($id)?->pivot->aprueba_novedades;
     }
 
     public function perteneceA(Dependencia|int|null $dependencia): bool

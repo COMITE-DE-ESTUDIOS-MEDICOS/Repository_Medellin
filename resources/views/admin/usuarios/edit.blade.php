@@ -3,19 +3,17 @@
 
 @section('contenido')
 
-<div class="mx-auto max-w-xl">
+<div class="mx-auto max-w-6xl">
+    <div class="mb-4 flex flex-wrap items-center gap-x-1 text-sm text-[var(--muted)]">
+        <a href="{{ route('admin.usuarios.index') }}" class="hover:text-[var(--text)]">Usuarios</a>
+        <span>/</span>
+        <span class="font-medium text-[var(--text)]">{{ $usuario->name }}</span>
+    </div>
     <h1 class="mb-6 text-lg font-semibold text-[var(--text)]">Editar a {{ $usuario->name }}</h1>
 
-    <form method="POST" action="{{ route('admin.usuarios.update', $usuario) }}"
-          class="space-y-6 rounded-lg bg-[var(--card)] p-6 ring-1 ring-[var(--border)]">
+    <form method="POST" action="{{ route('admin.usuarios.update', $usuario) }}">
         @csrf @method('PUT')
-        @include('admin.usuarios._formulario')
-
-        <div class="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-            <a href="{{ route('admin.usuarios.index') }}"
-               class="rounded-md px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Cancelar</a>
-            <button class="liquid-button-primary rounded-md px-4 py-2 text-sm font-medium">Guardar cambios</button>
-        </div>
+        @include('admin.usuarios._formulario', ['boton' => 'Guardar cambios'])
     </form>
 </div>
 

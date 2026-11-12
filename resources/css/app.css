@@ -373,3 +373,111 @@ dl dd {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
+
+/*
+ * Las barras de scroll con los colores de Documenta (las tablas anchas de
+ * Filament, las listas, la página): delgadas, redondeadas, del color del
+ * borde y más marcadas al pasar el mouse. Siguen el tema claro u oscuro.
+ * Firefox usa las propiedades estándar; Chrome, Edge y Safari, los
+ * pseudo-elementos. .sin-barra (abajo) las sigue ocultando.
+ */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted);
+}
+
+/*
+ * Scroll sin barra visible (el menú lateral): se desplaza con la rueda, el
+ * dedo o el teclado, pero no ocupa ni ensucia el borde. Firefox usa la
+ * propiedad estándar; Chrome, Edge y Safari, el pseudo-elemento.
+ */
+.sin-barra {
+    scrollbar-width: none;
+}
+
+.sin-barra::-webkit-scrollbar {
+    display: none;
+}
+
+/*
+ * Selects sin barra de scroll en la lista desplegable. La lista abierta la
+ * dibuja el navegador, no la página: solo el «select personalizable» de
+ * Chrome y Edge (appearance: base-select) deja darle estilo. Donde no existe
+ * —Firefox, Safari—, el @supports no aplica y el select queda como siempre.
+ */
+@supports (appearance: base-select) {
+    select.liquid-input,
+    select.liquid-input::picker(select) {
+        appearance: base-select;
+    }
+
+    select.liquid-input {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+
+    select.liquid-input::picker-icon {
+        color: var(--muted);
+        transition: rotate 0.2s ease;
+    }
+
+    select.liquid-input:open::picker-icon {
+        rotate: 180deg;
+    }
+
+    select.liquid-input::picker(select) {
+        margin-top: 4px;
+        max-height: 18rem;
+        padding: 4px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--text);
+        box-shadow: var(--shadow);
+        scrollbar-width: none;
+    }
+
+    select.liquid-input option {
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+    select.liquid-input option:hover,
+    select.liquid-input option:focus-visible {
+        background: var(--card-soft);
+    }
+
+    select.liquid-input option:checked {
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    select.liquid-input optgroup {
+        padding-top: 4px;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+}

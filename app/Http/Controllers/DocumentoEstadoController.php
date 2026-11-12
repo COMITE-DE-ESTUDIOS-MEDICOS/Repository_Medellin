@@ -41,6 +41,12 @@ class DocumentoEstadoController extends Controller
             ['motivo' => $datos['motivo']],
         );
 
+        if ($request->user()->cannot('view', $documento)) {
+            return redirect()
+                ->route('documentos.index', ['carpeta' => $documento->carpeta?->uuid])
+                ->with('exito', "Inactivaste «{$documento->nombre}». Administración puede reactivarlo.");
+        }
+
         return back()->with('exito', 'Documento inactivado.');
     }
 

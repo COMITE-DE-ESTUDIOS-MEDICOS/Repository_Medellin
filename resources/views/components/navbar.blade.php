@@ -111,6 +111,11 @@
                 Mi perfil
             </a>
 
+            <a href="{{ route('manual') }}"
+               class="block px-4 py-2 text-sm text-[var(--text)] hover:bg-[var(--card-soft)]">
+                Manual de usuario
+            </a>
+
             <form method="POST" action="{{ route('logout') }}" data-sonido-al-enviar="salida">
                 @csrf
                 <button class="block w-full px-4 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--card-soft)]">

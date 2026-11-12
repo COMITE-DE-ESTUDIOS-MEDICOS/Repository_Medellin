@@ -582,7 +582,9 @@ class EnvioPublicoTest extends TestCase
     {
         [, $token] = $this->enlace();
 
-        for ($intento = 1; $intento <= 6; $intento++) {
+        // 20 por minuto: deja pasar las 6 tandas de una carga de 300 (y algún
+        // reintento), y sigue frenando una avalancha.
+        for ($intento = 1; $intento <= 20; $intento++) {
             $this->post(route('envio.recibir', ['token' => $token]), $this->envio([
                 'archivo' => [$this->archivoPdf("envio-{$intento}.pdf", "CONTENIDO {$intento}")],
             ]))->assertRedirect();

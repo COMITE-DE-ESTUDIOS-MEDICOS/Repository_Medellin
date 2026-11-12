@@ -19,6 +19,8 @@ class AuditoriaController extends Controller
 
         $registros = Auditoria::query()
             ->where('dependencia_id', $this->contexto->requerida()->id)
+            // Por el nombre del archivo o de quien lo envió: va en la descripción.
+            ->when($request->filled('q'), fn ($q) => $q->where('descripcion', 'like', '%'.$request->string('q').'%'))
             ->when($request->filled('accion'), fn ($q) => $q->where('accion', $request->string('accion')))
             ->when($request->filled('usuario'), fn ($q) => $q->where('user_id', $request->integer('usuario')))
             ->when($request->filled('desde'), fn ($q) => $q->whereDate('created_at', '>=', $request->date('desde')))

@@ -46,10 +46,26 @@
                value="{{ old('colaborador.entidad') }}" autocomplete="organization" class="{{ $campo }}">
     </div>
 
+    {{--
+        El cargo se elige de los del componente del enlace (Calle: conductores,
+        operador terapéutico, monitor de ruta). Sin lista, se escribe.
+    --}}
+    @php
+        $cargos = $componente?->cargos() ?? [];
+    @endphp
     <div>
-        <label for="colaborador_cargo" class="{{ $etiqueta }}">Cargo {!! $opcional !!}</label>
-        <input id="colaborador_cargo" name="colaborador[cargo]" type="text" maxlength="255"
-               value="{{ old('colaborador.cargo') }}" autocomplete="organization-title" class="{{ $campo }}">
+        <label for="colaborador_cargo" class="{{ $etiqueta }}">Cargo *</label>
+        @if($cargos)
+            <select id="colaborador_cargo" name="colaborador[cargo]" required class="{{ $campo }}">
+                <option value="">Selecciona…</option>
+                @foreach($cargos as $cargo)
+                    <option value="{{ $cargo }}" @selected(old('colaborador.cargo') === $cargo)>{{ $cargo }}</option>
+                @endforeach
+            </select>
+        @else
+            <input id="colaborador_cargo" name="colaborador[cargo]" type="text" required maxlength="255"
+                   value="{{ old('colaborador.cargo') }}" autocomplete="organization-title" class="{{ $campo }}">
+        @endif
     </div>
 
     <x-campos.selector-nodo :componente="$componente" />

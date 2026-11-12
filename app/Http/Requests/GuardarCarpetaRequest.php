@@ -17,6 +17,12 @@ class GuardarCarpetaRequest extends FormRequest
             'carpeta_id' => [
                 'nullable',
                 Rule::exists('carpetas', 'id')->where('dependencia_id', $dependenciaId),
+                new \App\Rules\CarpetaAccesible,
+            ],
+            // La custodia la asigna Coordinación (el controlador lo comprueba).
+            'grupo_custodia_id' => [
+                'nullable',
+                Rule::exists('grupos_custodia', 'id')->where('dependencia_id', $dependenciaId),
             ],
         ];
     }

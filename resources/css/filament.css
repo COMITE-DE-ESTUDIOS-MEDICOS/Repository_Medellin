@@ -1,0 +1,76 @@
+/*
+ * Los estilos de las piezas de Filament (tablas, formularios, ventanas,
+ * avisos) que se usan dentro de páginas de Documenta. Se cargan solo en esas
+ * páginas (@push('estilos')), no en todo el sitio. Ver docs/FILAMENT.md.
+ */
+@import 'tailwindcss';
+
+@import '../../vendor/filament/support/resources/css/index.css';
+@import '../../vendor/filament/actions/resources/css/index.css';
+@import '../../vendor/filament/forms/resources/css/index.css';
+@import '../../vendor/filament/infolists/resources/css/index.css';
+@import '../../vendor/filament/notifications/resources/css/index.css';
+@import '../../vendor/filament/schemas/resources/css/index.css';
+@import '../../vendor/filament/tables/resources/css/index.css';
+
+/* El mismo modo oscuro de Documenta: la clase .dark en <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../app/Livewire/**/*.php';
+@source '../views/livewire/**/*.blade.php';
+
+/* La letra de Documenta: sin esto, el tema de Tailwind de este archivo la cambiaba en toda la página. */
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/*
+ * Filament con los colores de Documenta (variables de app.css): fondos,
+ * bordes, textos y el azul institucional. Solo se tocan los tonos que
+ * usan sus tablas, formularios y ventanas.
+ */
+:root {
+    --gray-50: var(--card-soft);
+    --gray-200: var(--border);
+    --gray-500: var(--muted);
+    --gray-950: var(--text);
+    --primary-600: var(--primary);
+    --primary-500: var(--primary-hover);
+}
+
+html[data-theme='dark'],
+.dark {
+    /* En oscuro estos tonos son de texto, no de fondo ni de borde. */
+    --gray-50: var(--text);
+    --gray-200: var(--text);
+    --gray-400: var(--muted);
+    --gray-700: var(--border);
+    --gray-800: var(--card-soft);
+    --gray-900: var(--card);
+    --gray-950: var(--bg);
+    --primary-500: var(--primary);
+    --primary-400: var(--primary-hover);
+}
+
+/* Encabezados de tabla como los del resto de Documenta. */
+.fi-ta-header-cell {
+    background-color: var(--card-soft);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+/* El botón principal con el azul de Documenta (Filament elige el tono por contraste). */
+.fi-btn.fi-color-primary:not(.fi-outlined) {
+    --bg: var(--primary);
+    --hover-bg: var(--primary-hover);
+    --dark-bg: var(--primary);
+    --dark-hover-bg: var(--primary-hover);
+    --text: #fff;
+    --hover-text: #fff;
+    --dark-text: #fff;
+    --dark-hover-text: #fff;
+}

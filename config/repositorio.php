@@ -45,6 +45,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Cargas grandes, por tandas
+    |--------------------------------------------------------------------------
+    | Se pueden elegir hasta 'maximo_total' archivos de una vez; el navegador
+    | los manda en tandas de 'por_tanda' (o menos, si una tanda pasaría de
+    | 'mb_por_tanda'). El servidor sigue recibiendo como mucho 'por_tanda' por
+    | petición: sus límites no cambian. 'mb_por_tanda' tiene que quedar por
+    | debajo de post_max_size en php.ini.
+    */
+    'carga' => [
+        'maximo_total' => (int) env('REPOSITORIO_CARGA_MAXIMO_TOTAL', 300),
+        'por_tanda' => 50,
+        'mb_por_tanda' => (int) env('REPOSITORIO_CARGA_MB_POR_TANDA', 150),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Resolución de las fotografías
     |--------------------------------------------------------------------------
     | El peso no basta como tope: una foto de 48 MP cabe en 25 MB y aun así se
@@ -88,6 +104,12 @@ return [
     'formatos' => [
 
         'publico' => $formatosPublicos,
+
+        // Evidencias fotográficas: lo mismo de la puerta pública, sin el PDF.
+        'imagenes' => [
+            'extensiones' => array_values(array_diff($formatosPublicos['extensiones'], ['pdf'])),
+            'mimetypes' => array_values(array_diff($formatosPublicos['mimetypes'], ['application/pdf'])),
+        ],
 
         'aplicacion' => [
             'extensiones' => [
@@ -144,6 +166,27 @@ return [
         */
         'no_habiles' => [],
 
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Festivos de Colombia
+    |--------------------------------------------------------------------------
+    | Para los turnos: en festivo aplican los turnos de «domingos y festivos»
+    | (C13) y no los de lunes a sábado. Ley Emiliani y Semana Santa según la
+    | Pascua de cada año.
+    |
+    | ponytail: lista fija; antes de 2028 agregar el año siguiente (o
+    | calcularlos con easter_days(), que necesita la extensión calendar).
+    */
+
+    'festivos' => [
+        '2026-01-01', '2026-01-12', '2026-03-23', '2026-04-02', '2026-04-03', '2026-05-01',
+        '2026-05-18', '2026-06-08', '2026-06-15', '2026-06-29', '2026-07-20', '2026-08-07',
+        '2026-08-17', '2026-10-12', '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25',
+        '2027-01-01', '2027-01-11', '2027-03-22', '2027-03-25', '2027-03-26', '2027-05-01',
+        '2027-05-10', '2027-05-31', '2027-06-07', '2027-07-05', '2027-07-20', '2027-08-07',
+        '2027-08-16', '2027-10-18', '2027-11-01', '2027-11-15', '2027-12-08', '2027-12-25',
     ],
 
     /*

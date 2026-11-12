@@ -5,6 +5,9 @@
 
     // Del componente salen los nodos del registro.
     'componente' => null,
+
+    // Sin registro: solo entra quien ya está registrado (derivaciones).
+    'registro' => true,
 ])
 
 @php
@@ -32,7 +35,7 @@
         <input id="cedula" name="cedula" type="text" inputmode="numeric" required maxlength="20"
                autocomplete="off" value="{{ old('cedula') }}" data-cedula-entrada
                class="liquid-input mt-1.5 w-full py-2.5 text-base sm:text-sm">
-        <p class="mt-1 text-xs text-[var(--muted)]">Es tu llave: con ella te reconocemos la próxima vez.</p>
+        <p class="mt-1 text-xs text-[var(--muted)]">{{ $registro ? 'Es tu llave: con ella te reconocemos la próxima vez.' : 'Tiene que estar registrada en el componente.' }}</p>
     </div>
 
     {{-- Al reconocerla, solo el primer nombre recortado. Nada más llega al navegador. --}}
@@ -47,6 +50,8 @@
     <p data-cedula-aviso aria-live="polite" class="hidden text-xs font-medium text-[var(--warning)]"></p>
 
     <div data-cedula-registro>
-        <x-campos.registro-colaborador :componente="$componente" />
+        @if($registro)
+            <x-campos.registro-colaborador :componente="$componente" />
+        @endif
     </div>
 </div>

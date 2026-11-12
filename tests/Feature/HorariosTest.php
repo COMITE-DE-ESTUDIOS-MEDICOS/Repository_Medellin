@@ -344,7 +344,7 @@ class HorariosTest extends TestCase
             ->get(route('admin.enlaces.index'))
             ->assertOk()
             ->assertSee('Enviado')
-            ->assertSee('15/09/2026 09:30')
+            ->assertSee('15/09/2026 9:30 a. m.')
             ->assertSee('Corregir fecha de envío');
     }
 }

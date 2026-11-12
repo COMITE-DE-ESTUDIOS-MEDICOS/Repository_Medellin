@@ -10,7 +10,9 @@ use App\Models\Etiqueta;
 use App\Models\TipoDocumento;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
+use App\Services\CargaPorTandas;
 use App\Services\ContextoDependencia;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +67,7 @@ class DocumentoController extends Controller
             ->when($request->filled('hasta'), fn ($q) => $q->whereDate('fecha_documento', '<=', $request->date('hasta')))
             ->with(['versionActual', 'tipoDocumento', 'etiquetas', 'creador', 'recepcion'])
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(config('repositorio.por_pagina'))
             ->withQueryString();
 
@@ -75,6 +78,10 @@ class DocumentoController extends Controller
             'documentos' => $documentos,
             'busqueda' => $busqueda,
             'tipos' => $this->tiposDisponibles(),
+            // A dónde se puede copiar o mover lo marcado (solo quien edita).
+            'destinos' => $this->contexto->puedeEditar() ? Carpeta::destinosLegibles() : [],
+            // Qué carpetas están bajo custodia, para el candado.
+            'custodiadas' => Carpeta::custodiaEfectiva($this->contexto->id()),
         ]);
     }
 
@@ -86,7 +93,7 @@ class DocumentoController extends Controller
             'carpetaActual' => $request->filled('carpeta')
                 ? Carpeta::where('uuid', $request->string('carpeta'))->first()
                 : null,
-            'carpetas' => Carpeta::activas()->orderBy('nombre')->get(),
+            'carpetas' => Carpeta::visiblesPara(auth()->user())->activas()->orderBy('nombre')->get(),
             'tipos' => $this->tiposDisponibles(),
         ]);
     }
@@ -96,20 +103,34 @@ class DocumentoController extends Controller
      * Los metadatos del formulario —carpeta, tipo, fecha, etiquetas— son
      * comunes a todos: es lo que hace útil subir un lote de actas de una vez.
      */
-    public function store(GuardarDocumentoRequest $request): RedirectResponse
+    public function store(GuardarDocumentoRequest $request): RedirectResponse|JsonResponse
     {
         $this->autorizarEdicion();
         $dependencia = $this->contexto->requerida();
 
         $archivos = $request->archivos();
 
+        // Si viene de una carga grande partida en tandas (carga-tandas.js),
+        // esto la recuerda entre tanda y tanda.
+        $tanda = CargaPorTandas::desde($request, 'usuario:'.$request->user()->id);
+        $hashes = [];
+
         // Todo o nada: si el quinto archivo falla, no quedan cuatro
         // documentos a medias sin que nadie se entere.
-        $documentos = DB::transaction(function () use ($request, $dependencia, $archivos) {
+        $documentos = DB::transaction(function () use ($request, $dependencia, $archivos, $tanda, &$hashes) {
             $etiquetas = Etiqueta::resolverDesdeTexto($request->input('etiquetas'), $dependencia->id);
             $creados = [];
 
             foreach ($archivos as $indice => $archivo) {
+                // Reintentar una tanda que sí había llegado no la duplica.
+                $hash = hash_file('sha256', $archivo->getRealPath());
+
+                if ($tanda && ($tanda->yaRecibido($hash) || in_array($hash, $hashes, true))) {
+                    continue;
+                }
+
+                $hashes[] = $hash;
+
                 $documento = Documento::create([
                     'dependencia_id' => $dependencia->id,
                     'carpeta_id' => $request->input('carpeta_id'),
@@ -136,12 +157,21 @@ class DocumentoController extends Controller
         });
 
         // Una entrada por documento: la auditoría sigue documentos, no cargas.
+        // Con el origen y la carpeta, para cuando alguien dice que no subió
+        // algo, o que lo subió en otro lado.
+        $carpeta = $documentos ? ($documentos[0]->carpeta?->rutaTexto() ?? 'Raíz') : null;
+
         foreach ($documentos as $documento) {
             $this->auditor->registrar(
                 AccionAuditoria::DocumentoCreado,
                 $documento,
                 "Cargó «{$documento->nombre}»",
+                ['origen' => 'Aplicación', 'carpeta' => $carpeta],
             );
+        }
+
+        if ($tanda) {
+            return $this->respuestaDeTanda($request, $tanda, $hashes, $documentos);
         }
 
         if (count($documentos) === 1) {
@@ -153,6 +183,33 @@ class DocumentoController extends Controller
         return redirect()
             ->route('documentos.index', ['carpeta' => $documentos[0]->carpeta?->uuid])
             ->with('exito', count($documentos).' documentos cargados.');
+    }
+
+    /**
+     * Lo que se contesta a cada tanda de una carga grande. La última deja el
+     * aviso para la pantalla a la que se vuelve y dice cuál es.
+     *
+     * @param  list<string>  $hashes
+     * @param  list<Documento>  $documentos
+     */
+    protected function respuestaDeTanda(Request $request, CargaPorTandas $tanda, array $hashes, array $documentos): JsonResponse
+    {
+        $tanda->anotar($hashes, array_map(fn (Documento $d) => $d->nombre, $documentos));
+
+        if (! $tanda->esUltima()) {
+            return response()->json(['cargados' => count($documentos)]);
+        }
+
+        $total = count($tanda->nombres());
+        $request->session()->flash('exito', $total === 1 ? 'Documento cargado.' : "{$total} documentos cargados.");
+
+        $carpeta = Carpeta::find($request->input('carpeta_id'));
+
+        return response()->json([
+            'cargados' => count($documentos),
+            'total' => $total,
+            'redirect' => route('documentos.index', ['carpeta' => $carpeta?->uuid]),
+        ]);
     }
 
     /**
@@ -186,16 +243,53 @@ class DocumentoController extends Controller
     {
         $this->authorize('view', $documento);
 
+        // Abrir un documento custodiado queda en la auditoría: con lo
+        // custodiado importa también quién lo miró, no solo quién lo descargó.
+        if ($documento->carpeta_id && isset(Carpeta::custodiaEfectiva($documento->dependencia_id)[$documento->carpeta_id])) {
+            $this->auditor->registrar(AccionAuditoria::DocumentoAbierto, $documento, "Abrió «{$documento->nombre}»");
+        }
+
         $documento->load([
             'versiones.autor', 'etiquetas', 'tipoDocumento', 'carpeta', 'creador', 'inactivador',
-            'recepcion.enlace',
+            'recepcion.enlace', 'comentarios.autor',
         ]);
 
         return view('documentos.show', [
             'documento' => $documento,
+            'vecinos' => $this->vecinos($documento),
             'migas' => $documento->carpeta?->ruta() ?? collect(),
-            'carpetas' => Carpeta::activas()->orderBy('nombre')->get(),
+            'carpetas' => Carpeta::visiblesPara(auth()->user())->activas()->orderBy('nombre')->get(),
         ]);
+    }
+
+    /**
+     * El anterior y el siguiente de la misma carpeta, en el orden del
+     * explorador (lo más nuevo primero), para pasar de un archivo a otro con
+     * las flechas sin volver a la lista.
+     *
+     * ponytail: trae los uuid de toda la carpeta; con carpetas de decenas de
+     * miles de archivos, buscar solo el vecino de cada lado con dos consultas.
+     *
+     * @return array{anterior: ?string, siguiente: ?string, posicion: int, total: int}
+     */
+    protected function vecinos(Documento $documento): array
+    {
+        $orden = Documento::query()
+            ->visiblesPara(auth()->user())
+            ->where('carpeta_id', $documento->carpeta_id)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->pluck('uuid')
+            ->values();
+
+        $i = $orden->search($documento->uuid);
+
+        return [
+            'anterior' => $i === false ? null : $orden->get($i - 1),
+            'siguiente' => $i === false ? null : $orden->get($i + 1),
+            'posicion' => $i === false ? 0 : $i + 1,
+            'total' => $orden->count(),
+        ];
     }
 
     /**
@@ -213,6 +307,7 @@ class DocumentoController extends Controller
                 Rule::exists('carpetas', 'id')
                     ->where('dependencia_id', $documento->dependencia_id)
                     ->where('activa', true),
+                new \App\Rules\CarpetaAccesible,
             ],
         ]);
 
@@ -241,7 +336,7 @@ class DocumentoController extends Controller
 
         return view('documentos.edit', [
             'documento' => $documento->load('etiquetas'),
-            'carpetas' => Carpeta::activas()->orderBy('nombre')->get(),
+            'carpetas' => Carpeta::visiblesPara(auth()->user())->activas()->orderBy('nombre')->get(),
             'tipos' => $this->tiposDisponibles(),
         ]);
     }

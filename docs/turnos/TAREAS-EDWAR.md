@@ -64,34 +64,34 @@ José puede crear un `Colaborador` y un `EnlaceTurno` con factories.
 - [x] **En turno ahora**: quién tiene una entrada abierta, en qué nodo y desde qué hora.
       Usa `Marcador::estadoDe()` de José. Mientras no exista, usa un *stub*.
 
-## Fase 3b — marcaciones, novedades, corrección y reporte
+## Fase 3b — marcaciones, novedades, corrección y reporte ✅
 
-- [ ] **Marcaciones**: listado con filtros por **cédula**, componente, nodo y rango de
+- [x] **Marcaciones**: listado con filtros por **cédula**, componente, nodo y rango de
       fechas, con miniatura de la foto y enlace al mapa (lat y lng).
-- [ ] **Novedades**: marcaciones con `fuera_de_zona`, `fuera_de_turno`,
+- [x] **Novedades**: marcaciones con `fuera_de_zona`, `fuera_de_turno`,
       `sin_ubicacion` u `origen = cierre_automatico`.
-- [ ] **Corrección manual**: agregar la marca que falta con motivo obligatorio. Llama a
+- [x] **Corrección manual**: agregar la marca que falta con motivo obligatorio. Llama a
       `Marcador::registrarManual()`. **Nunca edita** una marca existente.
-- [ ] **Tarea programada** (`routes/console.php`): `Marcador::cerrarAbiertas()` cada hora.
-- [ ] **Reporte CSV**: horas por colaborador y nodo en un rango. Lleva BOM UTF-8 para
+- [x] **Tarea programada** (`routes/console.php`): `Marcador::cerrarAbiertas()` cada hora.
+- [x] **Reporte CSV**: horas por colaborador y nodo en un rango. Lleva BOM UTF-8 para
       que Excel muestre bien las tildes. No hace falta ninguna librería de Excel por
       ahora.
 
-## Tests (`tests/Feature/Turnos/Admin*`)
+## Tests (`tests/Feature/Turnos/Admin*`) ✅
 
-- [ ] La búsqueda por cédula encuentra con y sin puntos («1.234.567» = «1234567»).
-- [ ] Edición y Lectura no ven el módulo; Coordinación sí.
-- [ ] Una dependencia no ve los colaboradores ni las marcaciones de otra.
-- [ ] La corrección manual crea una fila nueva y deja la original intacta.
-- [ ] `Marcacion::update()` lanza una excepción.
-- [ ] El CSV suma bien un turno que pasa de medianoche.
+- [x] La búsqueda por cédula encuentra con y sin puntos («1.234.567» = «1234567»).
+- [x] Edición y Lectura no ven el módulo; Coordinación sí.
+- [x] Una dependencia no ve los colaboradores ni las marcaciones de otra.
+- [x] La corrección manual crea una fila nueva y deja la original intacta.
+- [x] `Marcacion::update()` lanza una excepción.
+- [x] El CSV suma bien un turno que pasa de medianoche.
 
-## Pendiente de coordinar con José (ver `PLAN.md` §8)
+## Pendiente de coordinar con José (ver `PLAN.md` §8) ✅
 
-- [ ] **8.1** Cargo, componente y nodo obligatorios; selects dependientes del componente,
+- [x] **8.1** Cargo, componente y nodo obligatorios; selects dependientes del componente,
       sin `<optgroup>`; toast con lo que falte. Aplica también a los filtros y al
       formulario de enlaces de turno.
-- [ ] **8.2** Versión automática en el menú (deploy cuenta las fusiones desde `v2.0`).
-- [ ] **8.3** Pantalla «Novedades» con aprobar o rechazar y aviso por la campana.
+- [x] **8.2** Versión automática en el menú (deploy cuenta las fusiones desde `v2.0`).
+- [x] **8.3** Pantalla «Novedades» con aprobar o rechazar y aviso por la campana.
       Decidir si Edición valida.
-- [ ] **8.4** Avisos de versión automáticos (`CHANGELOG.md`) y módulo «Enviar aviso».
+- [x] **8.4** Avisos de versión automáticos (`CHANGELOG.md`) y módulo «Enviar aviso».

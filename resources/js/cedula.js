@@ -79,12 +79,19 @@ function iniciar(campo) {
     let consultada = null;
     let turno = 0;
 
+    // Quien use la pieza (el enlace de turno, por ejemplo) se entera de la
+    // respuesta sin tener que volver a preguntar: null es «aún no se sabe».
+    const anunciar = (datos) => {
+        campo.dispatchEvent(new CustomEvent('cedula:consultada', { detail: datos, bubbles: true }));
+    };
+
     const reiniciar = () => {
         consultada = null;
         turno++;
         mostrarSaludo('');
         avisar('');
         abrirRegistro(false);
+        anunciar(null);
     };
 
     const consultar = async () => {
@@ -143,14 +150,27 @@ function iniciar(campo) {
         }
 
         consultada = cedula;
+        anunciar(datos);
 
         if (datos.existe) {
             mostrarSaludo('Hola, ' + datos.saludo);
             abrirRegistro(false);
             recordar(cedula);
+        } else if (datos.aviso) {
+            // Registrada pero no puede seguir (no está en turno, otro cargo): se dice por qué
+            // y no se abre el registro, que no le sirve.
+            mostrarSaludo('');
+            abrirRegistro(false);
+            avisar(datos.aviso);
         } else {
             mostrarSaludo('');
             abrirRegistro(true);
+
+            // Un formulario sin registro (derivaciones) no deja entrar a quien no está.
+            // El servidor puede decir por qué no (supervisión: «solo para el Apoyo…»).
+            if (registro.children.length === 0) {
+                avisar(datos.aviso || 'Esta identificación no está registrada. Pide a Coordinación que te registre.');
+            }
         }
     };
 

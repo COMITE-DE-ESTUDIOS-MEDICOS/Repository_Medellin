@@ -66,7 +66,7 @@
                         {{ $enlace->usos }}{{ $enlace->max_usos ? ' / '.$enlace->max_usos : '' }}
                     </td>
                     <td class="px-4 py-3 text-[var(--text)]">
-                        {{ $enlace->enviado_at?->format('d/m/Y H:i') ?? '—' }}
+                        {{ $enlace->enviado_at?->fechaHora() ?? '—' }}
 
                         @can('corregirEnvio', $enlace)
                             {{--
@@ -102,7 +102,7 @@
                         @endcan
                     </td>
                     <td class="px-4 py-3 text-[var(--text)]">
-                        {{ $enlace->expira_at?->format('d/m/Y H:i') ?? 'Sin vencimiento' }}
+                        {{ $enlace->expira_at?->fechaHora() ?? 'Sin vencimiento' }}
                     </td>
                     <td class="px-4 py-3">
                         @if($enlace->estaVigente())

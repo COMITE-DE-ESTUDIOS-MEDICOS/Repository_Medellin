@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\AccionAuditoria;
 use App\Enums\EstadoEscaneo;
 use App\Enums\EstadoRecepcion;
+use App\Models\Colaborador;
+use App\Models\Componente;
 use App\Models\Documento;
 use App\Models\EnlaceCarga;
 use App\Models\Recepcion;
@@ -12,7 +14,13 @@ use App\Notifications\RecepcionRecibida;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
 use App\Services\CalendarioHabil;
+use App\Services\CargaPorTandas;
 use App\Services\ContextoDependencia;
+use App\Services\Turnos\IdentificadorColaborador;
+use App\Services\Turnos\Marcador;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -37,11 +45,15 @@ class EnvioPublicoController extends Controller
      */
     public const MAXIMO_ARCHIVOS = 50;
 
+    public const AVISO_SIN_TURNO = 'Para enviar evidencias tienes que estar en turno: marca tu entrada primero.';
+
     public function __construct(
         protected AlmacenamientoDocumentos $almacenamiento,
         protected Auditor $auditor,
         protected ContextoDependencia $contexto,
         protected CalendarioHabil $calendario,
+        protected IdentificadorColaborador $identificador,
+        protected Marcador $marcador,
     ) {
     }
 
@@ -59,15 +71,26 @@ class EnvioPublicoController extends Controller
         return response()->view('publico.enviar', [
             'token' => $token,
             'proposito' => $enlace->proposito,
-            'maximoArchivos' => self::MAXIMO_ARCHIVOS,
+            // Lo que se puede elegir de una vez; el navegador lo manda en
+            // tandas de MAXIMO_ARCHIVOS (carga-tandas.js).
+            'maximoArchivos' => config('repositorio.carga.maximo_total'),
+            // Con componente, quien envía es una persona de campo: basta su cédula.
+            'componente' => $this->componenteDe($enlace)?->load(['nodos' => fn ($q) => $q->activos()]),
         ]);
     }
 
-    public function recibir(Request $peticion, string $token): Response|RedirectResponse
+    public function recibir(Request $peticion, string $token): Response|RedirectResponse|JsonResponse
     {
         $enlace = EnlaceCarga::porToken($token);
 
-        if ($enlace === null || ! $enlace->estaVigente()) {
+        // Una carga grande llega en tandas (carga-tandas.js) y cuenta como un
+        // solo envío: si la primera tanda gastó el último uso, las siguientes
+        // de esa misma carga entran igual (mientras el enlace siga activo y
+        // sin vencer).
+        $tanda = $enlace ? CargaPorTandas::desde($peticion, 'enlace:'.$enlace->id) : null;
+        $continuaUnaCarga = $tanda?->yaEmpezo() && $enlace->activo && ! $enlace->haExpirado();
+
+        if ($enlace === null || (! $enlace->estaVigente() && ! $continuaUnaCarga)) {
             return $this->enlaceNoDisponible($token, $enlace);
         }
 
@@ -88,12 +111,9 @@ class EnvioPublicoController extends Controller
             // La identidad la declara quien sube, no el enlace. Es lo que se
             // guarda como cadena de custodia junto a cada documento, así que
             // se pide entera: sin correo ni entidad no hay a quién volver.
-            'remitente_nombre' => ['required', 'string', 'max:255'],
-            'remitente_email' => ['required', 'email', 'max:255'],
-            'remitente_entidad' => ['required', 'string', 'max:255'],
-            'nodo' => ['required', 'integer', 'between:1,6'],
+            ...$this->reglasDeIdentidad($peticion, $enlace),
 
-            'archivo' => ['required', 'array', 'max:'.self::MAXIMO_ARCHIVOS],
+            'archivo' => ['required', 'array', 'max:'.self::MAXIMO_ARCHIVOS, \App\Services\CargaPorTandas::reglaCompleta()],
             'archivo.*' => [
                 'bail',
                 'file',
@@ -116,6 +136,8 @@ class EnvioPublicoController extends Controller
             'tomadas.*' => ['nullable', 'date'],
 
             'mensaje' => ['nullable', 'string', 'max:1000'],
+
+            ...CargaPorTandas::reglas(),
         ], [
             'remitente_nombre.required' => 'Escribe tu nombre para que sepan de quién viene.',
             'remitente_email.required' => 'Escribe tu correo, por si necesitan responderte.',
@@ -132,6 +154,9 @@ class EnvioPublicoController extends Controller
         // vería estos registros en su pantalla de auditoría.
         $this->contexto->establecer($enlace->dependencia);
 
+        $componente = $this->componenteDe($enlace);
+        $colaborador = $componente ? $this->colaboradorQueEnvia($peticion, $enlace) : null;
+
         $archivos = array_values($peticion->file('archivo'));
 
         // El juicio se hace una sola vez y se congela en cada fila. Una vez
@@ -143,12 +168,29 @@ class EnvioPublicoController extends Controller
         // Si la transacción se cae después de escribir algún archivo, las
         // filas se deshacen solas pero los archivos no: hay que borrarlos.
         $rutasGuardadas = [];
+        $hashes = [];
 
         try {
-            $recepciones = DB::transaction(function () use ($peticion, $enlace, $archivos, $datos, $fueraDeHorario, &$rutasGuardadas) {
+            [$recepciones, $remitente] = DB::transaction(function () use ($peticion, $enlace, $archivos, $datos, $fueraDeHorario, $componente, $colaborador, $tanda, &$rutasGuardadas, &$hashes) {
                 $creadas = [];
 
+                // La primera vez de una persona de campo se registra aquí, en la
+                // misma transacción: si el envío falla, tampoco queda registrada.
+                if ($componente && $colaborador === null) {
+                    $colaborador = $this->identificador->registrar($componente, $peticion->input('cedula'), $datos['colaborador']);
+                }
+
+                $remitente = $this->remitente($datos, $colaborador?->load('nodo'));
+
                 foreach ($archivos as $indice => $archivo) {
+                    // Reintentar una tanda que sí había llegado no la duplica.
+                    $hash = hash_file('sha256', $archivo->getRealPath());
+
+                    if ($tanda && ($tanda->yaRecibido($hash) || in_array($hash, $hashes, true))) {
+                        continue;
+                    }
+
+                    $hashes[] = $hash;
                     $nombreOriginal = Str::limit($archivo->getClientOriginalName(), 250, '');
 
                     // El reloj de quien envía puede estar en cualquier huso o
@@ -201,10 +243,11 @@ class EnvioPublicoController extends Controller
 
                         // Lo que declara quien sube. Se guarda aquí y no en el
                         // enlace: el enlace ya no tiene identidad.
-                        'remitente_nombre' => $datos['remitente_nombre'],
-                        'remitente_email' => $datos['remitente_email'],
-                        'remitente_entidad' => $datos['remitente_entidad'],
-                        'nodo' => $datos['nodo'],
+                        'colaborador_id' => $remitente['colaborador_id'],
+                        'remitente_nombre' => $remitente['nombre'],
+                        'remitente_email' => $remitente['email'],
+                        'remitente_entidad' => $remitente['entidad'],
+                        'nodo' => $remitente['nodo'],
                         'tomada_at' => $tomada,
 
                         // El archivo vive bajo documentos/, con su versión.
@@ -231,10 +274,14 @@ class EnvioPublicoController extends Controller
                 }
 
                 // Un uso por envío, no por archivo: quien puso «1 uso» está
-                // pensando en una entrega, no en un contador de ficheros.
-                $enlace->registrarUso();
+                // pensando en una entrega, no en un contador de ficheros. Una
+                // carga por tandas es un solo envío: el uso se cuenta en la
+                // primera tanda que entra.
+                if (! $tanda?->yaEmpezo()) {
+                    $enlace->registrarUso();
+                }
 
-                return $creadas;
+                return [$creadas, $remitente];
             });
         } catch (Throwable $e) {
             foreach ($rutasGuardadas as $ruta) {
@@ -244,25 +291,53 @@ class EnvioPublicoController extends Controller
             throw $e;
         }
 
-        // Una notificación por envío, no por archivo: nadie quiere tres
-        // correos porque alguien mandó tres fotos a la vez.
-        if ($enlace->creador) {
-            $enlace->creador->notify(new RecepcionRecibida($enlace, count($recepciones), $datos['remitente_nombre']));
+        $nombres = collect($recepciones)->pluck('nombre_original')->all();
+
+        if ($tanda) {
+            $tanda->marcarEmpezada();
+            $tanda->anotar($hashes, $nombres);
+            // La confirmación y el aviso, con todo lo de la carga, no solo
+            // con lo de la última tanda.
+            $nombres = $tanda->nombres();
+        }
+
+        // Una notificación por envío, no por archivo ni por tanda: nadie
+        // quiere seis avisos porque alguien mandó 300 fotos.
+        if ($enlace->creador && (! $tanda || $tanda->esUltima())) {
+            $enlace->creador->notify(new RecepcionRecibida($enlace, count($nombres), $remitente['nombre']));
         }
 
         // Una entrada por documento: la auditoría sigue documentos, no envíos.
+        $carpeta = $enlace->carpeta?->rutaTexto() ?? 'Raíz';
+
         foreach ($recepciones as $recepcion) {
             $this->auditor->registrar(
                 AccionAuditoria::RecepcionRecibida,
                 $recepcion->documento,
                 "{$recepcion->remitente_nombre} envió «{$recepcion->nombre_original}» por un enlace de carga",
-                ['enlace' => $enlace->id, 'recepcion' => $recepcion->id, 'tamano' => $recepcion->tamano],
+                [
+                    'origen' => 'Enlace de carga',
+                    'carpeta' => $carpeta,
+                    'enlace' => $enlace->id,
+                    'recepcion' => $recepcion->id,
+                    'tamano' => $recepcion->tamano,
+                ],
             );
+        }
+
+        if ($tanda) {
+            if (! $tanda->esUltima()) {
+                return response()->json(['recibidos' => count($recepciones)]);
+            }
+
+            $peticion->session()->flash('envio.confirmado', $nombres);
+
+            return response()->json(['recibidos' => count($recepciones), 'redirect' => route('envio.confirmacion')]);
         }
 
         return redirect()
             ->route('envio.confirmacion')
-            ->with('envio.confirmado', collect($recepciones)->pluck('nombre_original')->all());
+            ->with('envio.confirmado', $nombres);
     }
 
     /**
@@ -320,6 +395,109 @@ class EnvioPublicoController extends Controller
         }
 
         return response()->view('publico.recibido', ['archivos' => (array) $archivos]);
+    }
+
+    /**
+     * ¿Esta cédula ya está registrada? Lo mismo que en el enlace de turno:
+     * solo si existe y el saludo recortado. Nada más sale de aquí.
+     */
+    public function cedula(Request $peticion, string $token): JsonResponse
+    {
+        $enlace = EnlaceCarga::porToken($token);
+        abort_if($enlace === null || ! $enlace->estaVigente() || $this->componenteDe($enlace) === null, 404);
+
+        $datos = $peticion->validate(['cedula' => ['required', 'string', 'max:20']]);
+        $colaborador = $this->identificador->buscar($enlace->dependencia_id, $datos['cedula']);
+        $existe = $colaborador?->activo ?? false;
+
+        // DOC-13 (RN-43): para enviar hay que estar en turno; una cédula nueva no lo está.
+        if (! $this->marcador->estaEnTurno($existe ? $colaborador : null)) {
+            return response()->json(['existe' => false, 'saludo' => '', 'aviso' => self::AVISO_SIN_TURNO]);
+        }
+
+        return response()->json(['existe' => $existe, 'saludo' => $existe ? $colaborador->saludo() : '']);
+    }
+
+    /** El componente del enlace, si tiene uno y está activo. */
+    protected function componenteDe(EnlaceCarga $enlace): ?Componente
+    {
+        return $enlace->componente?->activo ? $enlace->componente : null;
+    }
+
+    /**
+     * Con componente: la cédula y, solo si es nueva, sus datos una vez. Sin
+     * él: nombre, correo, entidad y nodo, como siempre.
+     */
+    protected function reglasDeIdentidad(Request $peticion, EnlaceCarga $enlace): array
+    {
+        $componente = $this->componenteDe($enlace);
+
+        if ($componente === null) {
+            return [
+                'remitente_nombre' => ['required', 'string', 'max:255'],
+                'remitente_email' => ['required', 'email', 'max:255'],
+                'remitente_entidad' => ['required', 'string', 'max:255'],
+                'nodo' => ['required', 'integer', 'between:1,6'],
+            ];
+        }
+
+        $peticion->merge(['cedula' => User::normalizarDocumento($peticion->input('cedula'))]);
+        $existe = $this->identificador->buscar($enlace->dependencia_id, (string) $peticion->input('cedula')) !== null;
+
+        return ['cedula' => ['required', 'string', 'min:5', 'max:20', 'regex:/^[0-9A-Z]+$/']]
+            + ($existe ? [] : $this->identificador->reglasDeRegistro($componente));
+    }
+
+    /** La persona de campo que envía, ya registrada; null si es nueva y puede registrarse. */
+    protected function colaboradorQueEnvia(Request $peticion, EnlaceCarga $enlace): ?Colaborador
+    {
+        $colaborador = $this->identificador->buscar($enlace->dependencia_id, (string) $peticion->input('cedula'));
+
+        if ($colaborador && ! $colaborador->activo) {
+            throw ValidationException::withMessages([
+                'cedula' => 'Tu identificación no está habilitada para enviar. Comunícate con Coordinación.',
+            ]);
+        }
+
+        if ($colaborador === null && ! $this->componenteDe($enlace)->regla('autoregistro')) {
+            throw ValidationException::withMessages([
+                'cedula' => 'Tu identificación no está registrada. Pide a Coordinación que te registre.',
+            ]);
+        }
+
+        // DOC-13 (RN-43): para enviar evidencias hay que estar en turno; una cédula nueva no lo está.
+        if (! $this->marcador->estaEnTurno($colaborador)) {
+            throw ValidationException::withMessages(['cedula' => self::AVISO_SIN_TURNO]);
+        }
+
+        return $colaborador;
+    }
+
+    /**
+     * Lo que queda como cadena de custodia en la recepción. Con persona de
+     * campo se copia de su ficha, para que todo lo que ya lee remitente_*
+     * (la ficha del documento, la auditoría) siga funcionando igual.
+     */
+    protected function remitente(array $datos, ?Colaborador $colaborador): array
+    {
+        if ($colaborador === null) {
+            return [
+                'colaborador_id' => null,
+                'nombre' => $datos['remitente_nombre'],
+                'email' => $datos['remitente_email'],
+                'entidad' => $datos['remitente_entidad'],
+                'nodo' => $datos['nodo'],
+            ];
+        }
+
+        return [
+            'colaborador_id' => $colaborador->id,
+            'nombre' => $colaborador->nombre,
+            'email' => $colaborador->correo,
+            'entidad' => $colaborador->entidad,
+            // recepciones.nodo sigue siendo el número de siempre (1 a 6).
+            'nodo' => $colaborador->nodo?->orden,
+        ];
     }
 
     /**

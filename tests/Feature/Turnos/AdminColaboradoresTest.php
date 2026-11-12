@@ -22,6 +22,8 @@ class AdminColaboradoresTest extends TestCase
 
     private User $coordinador;
 
+    private Nodo $nodo;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -29,6 +31,13 @@ class AdminColaboradoresTest extends TestCase
         $this->dependencia = Dependencia::factory()->create();
         $this->calle = Componente::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Calle']);
         $this->coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia);
+        $this->nodo = Nodo::factory()->create(['componente_id' => $this->calle->id, 'nombre' => 'Nodo base']);
+    }
+
+    /** Lo mínimo que exige el formulario: componente, nodo y cargo son obligatorios. */
+    private function ficha(array $datos): array
+    {
+        return $datos + ['componente_id' => $this->calle->id, 'nodo_id' => $this->nodo->id, 'cargo' => 'Monitor de ruta'];
     }
 
     private function persona(array $datos = []): Colaborador
@@ -87,6 +96,7 @@ class AdminColaboradoresTest extends TestCase
                 'documento' => '1.020.304.050',
                 'nombre' => 'Laura Pérez',
                 'nodo_id' => $nodo->id,
+                'cargo' => 'Monitor de ruta',
             ])
             ->assertSessionHasNoErrors();
 
@@ -95,8 +105,15 @@ class AdminColaboradoresTest extends TestCase
         $this->assertSame($this->calle->id, $laura->componente_id, 'El componente sale del nodo elegido.');
 
         $this->actingAs($this->coordinador)
-            ->post(route('admin.turnos.colaboradores.store'), ['documento' => '1020304050', 'nombre' => 'Otra'])
+            ->post(route('admin.turnos.colaboradores.store'), $this->ficha(['documento' => '1020304050', 'nombre' => 'Otra']))
             ->assertSessionHasErrors('documento');
+    }
+
+    public function test_componente_nodo_y_cargo_son_obligatorios(): void
+    {
+        $this->actingAs($this->coordinador)
+            ->post(route('admin.turnos.colaboradores.store'), ['documento' => '55443322', 'nombre' => 'Sin nada'])
+            ->assertSessionHasErrors(['componente_id', 'nodo_id', 'cargo']);
     }
 
     public function test_no_acepta_un_nodo_de_otro_componente(): void
@@ -125,14 +142,14 @@ class AdminColaboradoresTest extends TestCase
         $this->actingAs($this->coordinador)
             ->post(route('admin.turnos.colaboradores.store'), [
                 'documento' => '80111222', 'nombre' => 'Con cargo', 'componente_id' => $this->calle->id,
-                'cargo' => 'Monitor de ruta',
+                'nodo_id' => $this->nodo->id, 'cargo' => 'Monitor de ruta',
             ])
             ->assertSessionHasNoErrors();
 
         $this->actingAs($this->coordinador)
             ->post(route('admin.turnos.colaboradores.store'), [
                 'documento' => '80111333', 'nombre' => 'Inventado', 'componente_id' => $this->calle->id,
-                'cargo' => 'Astronauta',
+                'nodo_id' => $this->nodo->id, 'cargo' => 'Astronauta',
             ])
             ->assertSessionHasErrors('cargo');
     }
@@ -145,7 +162,7 @@ class AdminColaboradoresTest extends TestCase
         $this->actingAs($this->coordinador)
             ->put(route('admin.turnos.colaboradores.update', $persona), [
                 'documento' => $persona->documento, 'nombre' => 'Nombre nuevo',
-                'componente_id' => $this->calle->id, 'cargo' => 'Orientador',
+                'componente_id' => $this->calle->id, 'nodo_id' => $this->nodo->id, 'cargo' => 'Orientador',
             ])
             ->assertSessionHasNoErrors();
 
@@ -179,19 +196,24 @@ class AdminColaboradoresTest extends TestCase
             ->assertSee('Todavía no ha marcado turno.');
     }
 
-    public function test_edicion_y_lectura_no_entran(): void
+    public function test_edicion_gestiona_a_las_personas_y_lectura_no_entra(): void
     {
         $persona = $this->persona();
 
-        foreach ([RolDependencia::Edicion, RolDependencia::Lectura] as $rol) {
-            $usuario = $this->usuarioCon($rol, $this->dependencia);
+        // Los editores son los líderes de cada componente o nodo.
+        $editor = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia);
+        $this->actingAs($editor)->get(route('admin.turnos.colaboradores.index'))->assertOk();
+        $this->actingAs($editor)->get(route('admin.turnos.colaboradores.show', $persona))->assertOk();
+        $this->actingAs($editor)
+            ->post(route('admin.turnos.colaboradores.store'), $this->ficha(['documento' => '12345678', 'nombre' => 'De un editor']))
+            ->assertSessionHasNoErrors();
 
-            $this->actingAs($usuario)->get(route('admin.turnos.colaboradores.index'))->assertForbidden();
-            $this->actingAs($usuario)->get(route('admin.turnos.colaboradores.show', $persona))->assertForbidden();
-            $this->actingAs($usuario)
-                ->post(route('admin.turnos.colaboradores.store'), ['documento' => '12345678', 'nombre' => 'X'])
-                ->assertForbidden();
-        }
+        $lector = $this->usuarioCon(RolDependencia::Lectura, $this->dependencia);
+        $this->actingAs($lector)->get(route('admin.turnos.colaboradores.index'))->assertForbidden();
+        $this->actingAs($lector)->get(route('admin.turnos.colaboradores.show', $persona))->assertForbidden();
+        $this->actingAs($lector)
+            ->post(route('admin.turnos.colaboradores.store'), $this->ficha(['documento' => '87654321', 'nombre' => 'X']))
+            ->assertForbidden();
     }
 
     public function test_no_se_alcanza_una_persona_de_otra_dependencia(): void

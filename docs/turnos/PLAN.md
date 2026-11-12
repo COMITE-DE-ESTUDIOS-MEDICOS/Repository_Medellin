@@ -1,9 +1,9 @@
 # Plan: módulo de turnos por componente
 
-> **Estado: planificación.** Nada de esto está construido.
-> El reparto del trabajo está en [`TAREAS-EDWAR.md`](TAREAS-EDWAR.md) y
-> [`TAREAS-JOSE.md`](TAREAS-JOSE.md). Este documento es el **contrato común**: si algo
-> de aquí cambia, se avisa a los dos.
+> **Estado: implementado** (13 de octubre de 2026). La referencia de uso, despliegue y
+> arquitectura está en [`README.md`](README.md). Este documento queda como registro de
+> las decisiones y del reparto. Las fases de José (1a, 2a y 3a) las terminó Edwar; ver
+> [`TAREAS-JOSE.md`](TAREAS-JOSE.md).
 
 **En una frase:** las personas de campo abren un enlace compartido (QR) y escriben su
 cédula. La primera vez llenan sus datos; desde ahí, solo la cédula. Con ese mismo
@@ -223,7 +223,7 @@ Los pasos **a** y **b** de cada fila van en paralelo.
    pero puede marcar en cualquiera que tenga un enlace.
 7. **Formato del reporte que necesitan (el Excel).**
 
-## 8. Cola de trabajo acordada (pendiente de coordinar)
+## 8. Cola de trabajo acordada (✅ hecha)
 
 > Anotado el 9 de octubre. Se coordina con José antes de empezar: varios puntos tocan
 > los dos lados (administración y vía pública).

@@ -47,6 +47,18 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
+      # filament.css importa los estilos de vendor/filament: sin las
+      # dependencias de PHP, Vite no los encuentra y la compilación falla.
+      - name: Instalar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: intl, zip
+          tools: composer:v2
+
+      - name: Instalar dependencias de PHP (solo para compilar)
+        run: composer install --no-dev --no-scripts --no-interaction --prefer-dist --no-progress
+
       - name: Compilar assets
         run: |
           npm ci

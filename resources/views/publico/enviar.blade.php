@@ -25,7 +25,9 @@
     </div>
 @endif
 
+{{-- Más de 50 archivos se envían por tandas (carga-tandas.js). --}}
 <form method="POST" action="{{ route('envio.recibir', ['token' => $token]) }}"
+          data-tandas data-por-tanda="{{ \App\Services\CargaPorTandas::porTanda() }}" data-mb-por-tanda="{{ config('repositorio.carga.mb_por_tanda') }}"
       enctype="multipart/form-data" class="mt-6 space-y-6">
     @csrf
 
@@ -33,6 +35,10 @@
         La identidad la escribe quien envía, no quien generó el enlace. Es lo
         que queda como cadena de custodia junto a cada documento.
     --}}
+    @if($componente)
+        {{-- Persona de campo: la cédula basta; sus datos se llenan una sola vez. --}}
+        <x-campos.cedula :consulta="route('envio.cedula', ['token' => $token])" :componente="$componente" />
+    @else
     <fieldset class="space-y-4">
         <legend class="text-sm font-semibold text-[var(--text)]">Quién envía</legend>
 
@@ -67,11 +73,12 @@
             </select>
         </div>
     </fieldset>
+    @endif
 
     <fieldset>
         <legend class="text-sm font-semibold text-[var(--text)]">Qué envías</legend>
         <p class="mt-1 text-xs text-[var(--muted)]">
-            Hasta {{ $maximoArchivos }} archivos. PDF o fotos, máximo
+            Hasta {{ $maximoArchivos }} archivos; si son muchos, se envían por pasos. PDF o fotos, máximo
             {{ round(config('repositorio.tamano_maximo_kb') / 1024) }} MB cada uno.
             Cada uno se guarda por separado, con el nombre que le pongas.
         </p>

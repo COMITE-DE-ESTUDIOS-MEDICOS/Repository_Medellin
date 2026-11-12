@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flujo de retiro · Documenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f7; --card: #ffffff; --soft: #f8fafb; --border: #dfe4e8; --text: #1f2933; --muted: #66727d;
+    --primary: #1f4e79; --success: #198754; --warning: #b7791f; --danger: #c53030; --nuevo: #6d4bc4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', system-ui, sans-serif; padding: 40px 16px; }
+  .lienzo { width: 100%; max-width: 980px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px; box-shadow: 0 8px 25px rgba(0,0,0,.06); }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+  .marca { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 28px; line-height: 1.15; margin-top: 6px; }
+  h1 span { color: var(--primary); }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); }
+  .leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
+  .hoy { background: #e8f0f8; border: 2px solid var(--primary); }
+  .prop { background: #f1ecfb; border: 2px dashed var(--nuevo); }
+  .auto { background: #e9f6ef; border: 2px solid var(--success); }
+
+  .flujo { display: flex; flex-direction: column; align-items: center; }
+  .paso { position: relative; width: min(560px, 100%); border-radius: 14px; padding: 14px 18px; text-align: center; font-size: 15px; }
+  .paso b { display: block; font-size: 16px; margin-bottom: 2px; }
+  .paso small { color: var(--muted); font-size: 13px; }
+  .paso.hoy { background: #e8f0f8; border: 2px solid var(--primary); }
+  .paso.prop { background: #f1ecfb; border: 2px dashed var(--nuevo); }
+  .paso.auto { background: #e9f6ef; border: 2px solid var(--success); }
+  .paso.inicio { background: var(--text); color: #fff; border-radius: 999px; width: auto; padding: 12px 28px; }
+  .paso.fin { background: var(--success); color: #fff; border-radius: 999px; width: auto; padding: 12px 28px; }
+  .etiqueta { position: absolute; top: -10px; right: 14px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--nuevo); color: #fff; }
+
+  .flecha { width: 2px; height: 26px; background: var(--muted); position: relative; margin: 2px 0 8px; }
+  .flecha::after { content: ''; position: absolute; left: -5px; bottom: -6px; border: 6px solid transparent; border-top: 8px solid var(--muted); }
+
+  .decision { width: 210px; height: 120px; display: grid; place-items: center; position: relative; }
+  .decision::before { content: ''; position: absolute; width: 104px; height: 104px; transform: rotate(45deg); background: #fff8eb; border: 2px solid var(--warning); border-radius: 12px; }
+  .decision span { position: relative; font-weight: 700; font-size: 14px; text-align: center; max-width: 150px; line-height: 1.25; }
+
+  .rama { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: min(760px, 100%); margin-top: 4px; }
+  .rama > div { display: flex; flex-direction: column; align-items: center; }
+  .rama .paso { width: 100%; }
+  .sino { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--warning); margin-bottom: 6px; }
+
+  .efectos { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: min(760px, 100%); }
+  .efectos .paso { width: 100%; text-align: left; font-size: 14px; padding: 12px 14px; }
+
+  footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+
+  @media (max-width: 640px) {
+    .lienzo { padding: 24px 16px; }
+    h1 { font-size: 22px; }
+    .rama, .efectos { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main class="lienzo">
+  <header>
+    <div>
+      <p class="marca">Documenta · Comité de Estudios Médicos</p>
+      <h1>Retiro de una <span>persona de campo</span></h1>
+    </div>
+    <div class="leyenda">
+      <span><i class="hoy"></i>Existe hoy</span>
+      <span><i class="prop"></i>Propuesta DOC-16</span>
+      <span><i class="auto"></i>Lo hace el sistema</span>
+    </div>
+  </header>
+
+  <section class="flujo">
+    <div class="paso inicio">La persona renuncia, termina contrato o es trasladada</div>
+    <div class="flecha"></div>
+
+    <div class="paso hoy"><b>Líder o Coordinación abre su ficha</b><small>Turnos → Personas de campo → buscar por cédula → Editar</small></div>
+    <div class="flecha"></div>
+
+    <div class="paso prop"><span class="etiqueta">Nuevo</span><b>Toca «Retirar» y completa</b><small>Motivo: Renuncia · Terminación de contrato · Traslado · Abandono del cargo · Otro (con texto)<br>Fecha de retiro: hoy por defecto; puede ser anterior</small></div>
+    <div class="flecha"></div>
+
+    <div class="paso auto"><b>Queda retirada (desactivada)</b><small>Hoy: «Desactivó a …» en la auditoría, con quién, cuándo, IP y navegador.<br>Nuevo: también el motivo y la fecha efectiva de retiro</small></div>
+    <div class="flecha"></div>
+
+    <div class="efectos">
+      <div class="paso auto"><b>Los enlaces no la reconocen</b><small>No marca turno ni reporta derivaciones, supervisiones o evidencias</small></div>
+      <div class="paso auto"><b>No se la espera en turno</b><small>Sin avisos falsos de «No registró entrada»</small></div>
+      <div class="paso auto"><b>Su historia se conserva</b><small>Marcaciones, fotos, derivaciones, supervisiones y novedades</small></div>
+      <div class="paso prop"><span class="etiqueta">Nuevo</span><b>Reportes con la fecha de retiro</b><small>Ficha: «Retirada el 24/10 · Renuncia». Filtro «Retiradas». El resumen mensual no cuenta días después</small></div>
+    </div>
+    <div class="flecha"></div>
+
+    <div class="decision"><span>¿Tiene cuenta en Documenta?</span></div>
+    <div class="rama">
+      <div>
+        <p class="sino">Sí</p>
+        <div class="paso hoy"><b>Quitarle el acceso</b><small>Administración → Usuarios → Revocar (o apagar «Cuenta activa»)</small></div>
+        <div class="flecha"></div>
+        <div class="paso prop"><span class="etiqueta">Nuevo</span><b>El sistema lo recuerda</b><small>Al retirarla, avisa si la misma cédula tiene cuenta</small></div>
+      </div>
+      <div>
+        <p class="sino">No</p>
+        <div class="paso hoy"><b>Nada más que hacer</b><small>Las personas de campo no tienen cuenta</small></div>
+      </div>
+    </div>
+    <div class="flecha"></div>
+
+    <div class="decision"><span>¿Vuelve a trabajar?</span></div>
+    <div class="rama">
+      <div>
+        <p class="sino">Sí</p>
+        <div class="paso hoy"><b>Reactivar desde su ficha</b><small>Queda en la auditoría. Recupera su historia y vuelve a marcar con la misma cédula</small></div>
+      </div>
+      <div>
+        <p class="sino">No</p>
+        <div class="paso fin">Retiro cerrado · trazable en la auditoría</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Nada se borra: el retiro desactiva y deja constancia (constitución IV).</span>
+    <span>Borrador para revisar con Talento Humano y Nómina · 27-10-2026</span>
+  </footer>
+</main>
+</body>
+</html>

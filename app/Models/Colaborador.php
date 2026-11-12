@@ -34,6 +34,9 @@ class Colaborador extends Model
         'cargo',
         'componente_id',
         'nodo_id',
+        'tipo_turno_id',
+        'punto_critico_id',
+        'dias_descanso',
         'origen',
         'verificado_at',
         'verificado_por',
@@ -46,6 +49,7 @@ class Colaborador extends Model
             'origen' => OrigenColaborador::class,
             'verificado_at' => 'datetime',
             'activo' => 'boolean',
+            'dias_descanso' => 'array',
         ];
     }
 
@@ -97,6 +101,23 @@ class Colaborador extends Model
     public function nodo(): BelongsTo
     {
         return $this->belongsTo(Nodo::class);
+    }
+
+    /** Su turno de siempre (N1, T3…): con él se sabe a qué hora se le espera. */
+    public function tipoTurno(): BelongsTo
+    {
+        return $this->belongsTo(TipoTurno::class);
+    }
+
+    /** Su punto crítico de siempre. Si marca con el QR de otro punto, vale ese ese día. */
+    public function puntoCritico(): BelongsTo
+    {
+        return $this->belongsTo(PuntoCritico::class);
+    }
+
+    public function ausencias(): HasMany
+    {
+        return $this->hasMany(Ausencia::class);
     }
 
     public function verificador(): BelongsTo

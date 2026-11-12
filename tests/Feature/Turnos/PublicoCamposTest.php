@@ -23,11 +23,20 @@ class PublicoCamposTest extends TestCase
         $this->withViewErrors([]);
     }
 
-    private function componente(array $nodos): object
+    /** Con la misma forma que un Componente: sus nodos y sus cargos. */
+    private function componente(array $nodos, array $cargos = []): object
     {
-        return (object) [
-            'nodos' => Collection::make($nodos)->map(fn (array $nodo) => (object) $nodo),
-        ];
+        return new class(Collection::make($nodos)->map(fn (array $nodo) => (object) $nodo), $cargos)
+        {
+            public function __construct(public Collection $nodos, private array $listaDeCargos)
+            {
+            }
+
+            public function cargos(): array
+            {
+                return $this->listaDeCargos;
+            }
+        };
     }
 
     /** La etiqueta de apertura del control con ese name, para mirarle los atributos. */
@@ -92,11 +101,11 @@ class PublicoCamposTest extends TestCase
     }
 
     /** Obligatorios: identificación (arriba), nombre y nodo. Lo demás, opcional. */
-    public function test_el_registro_pide_nombre_y_nodo_y_lo_demas_es_opcional(): void
+    public function test_el_registro_pide_nombre_nodo_y_cargo_y_lo_demas_es_opcional(): void
     {
         $componente = $this->componente([
             ['id' => 30, 'nombre' => 'Nodo Norte', 'orden' => 1, 'activo' => true],
-        ]);
+        ], ['Conductor camioneta', 'Monitor de ruta']);
 
         $html = (string) $this->blade(
             '<x-campos.cedula consulta="/t/abc/cedula" :componente="$componente" />',
@@ -106,7 +115,11 @@ class PublicoCamposTest extends TestCase
         $this->assertStringContainsString('required', $this->control($html, 'colaborador[nombre]'));
         $this->assertStringContainsString('required', $this->control($html, 'colaborador[nodo_id]'));
 
-        foreach (['correo', 'telefono', 'entidad', 'cargo'] as $opcional) {
+        // El cargo es obligatorio y sale de la lista del componente (PLAN.md §8.1).
+        $this->assertStringContainsString('required', $this->control($html, 'colaborador[cargo]'));
+        $this->assertStringContainsString('<option value="Monitor de ruta"', $html);
+
+        foreach (['correo', 'telefono', 'entidad'] as $opcional) {
             $this->assertStringNotContainsString(
                 'required',
                 $this->control($html, "colaborador[{$opcional}]"),

@@ -3,17 +3,23 @@
 namespace App\Http\Controllers\Admin\Turnos;
 
 use App\Enums\AccionAuditoria;
+use App\Enums\EstadoNovedad;
 use App\Enums\OrigenColaborador;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GuardarColaboradorRequest;
 use App\Models\Colaborador;
 use App\Models\Componente;
+use App\Models\Marcacion;
+use App\Models\NovedadTurno;
+use App\Models\TipoTurno;
 use App\Models\User;
 use App\Services\Auditor;
 use App\Services\ContextoDependencia;
+use App\Services\Turnos\Jornadas;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -81,17 +87,66 @@ class ColaboradorController extends Controller
             ->with('exito', 'Persona registrada.');
     }
 
-    public function show(Colaborador $colaborador): View
+    public function show(Request $request, Colaborador $colaborador, Jornadas $jornadas): View
     {
         $this->authorize('view', $colaborador);
 
-        $colaborador->load(['componente', 'nodo', 'verificador']);
+        $colaborador->load(['componente', 'nodo', 'verificador', 'tipoTurno', 'puntoCritico']);
 
-        return view('admin.turnos.colaboradores.show', [
+        return view('admin.turnos.colaboradores.show', $this->quincena($request, $colaborador, $jornadas) + [
             'colaborador' => $colaborador,
-            'marcaciones' => $colaborador->marcaciones()->with('nodo')->latest('marcada_at')->limit(20)->get(),
+            'ausencias' => $colaborador->ausencias()->with(['tipo', 'registrador'])->latest('desde')->limit(10)->get(),
+            // D, VAC, I, P… del componente: los códigos que no son turno.
+            'tiposAusencia' => TipoTurno::where('componente_id', $colaborador->componente_id)
+                ->activos()->where('es_turno', false)->orderBy('orden')->get(),
             'recepciones' => $colaborador->recepciones()->with('documento')->latest()->limit(10)->get(),
         ]);
+    }
+
+    /**
+     * Los turnos de una quincena (1–15 o 16–fin de mes), uno por fila: así la
+     * ficha pesa lo mismo con dos semanas de marcas que con tres años. Las
+     * anuladas van aparte, al historial; las marcas sueltas (una salida sin
+     * entrada) se muestran para poder corregirlas.
+     */
+    protected function quincena(Request $request, Colaborador $colaborador, Jornadas $jornadas): array
+    {
+        $dia = rescue(fn () => $request->filled('q') ? Carbon::parse($request->query('q')) : null, null, false) ?? now();
+        $desde = $dia->day <= 15 ? $dia->copy()->startOfMonth() : $dia->copy()->setDay(16)->startOfDay();
+        $hasta = $dia->day <= 15 ? $dia->copy()->setDay(15)->endOfDay() : $dia->copy()->endOfMonth();
+        $dePersona = fn (Builder $q) => $q->where('colaborador_id', $colaborador->id);
+
+        // Un día antes: la salida del día 1 a las 4:30 es del turno de noche del día anterior.
+        $todos = $jornadas->entre($desde->copy()->subDay(), $hasta, $dePersona);
+        $turnos = $todos->filter(fn (array $t) => $t['entrada']->marcada_at->gte($desde))->reverse()->values();
+
+        $vigentes = Marcacion::query()->vigentes()->tap($dePersona)->with('nodo')
+            ->whereBetween('marcada_at', [$desde, $hasta])->get();
+        $emparejadas = $todos->flatMap(fn (array $t) => [$t['entrada']->id, $t['salida']?->id])->filter()->flip();
+        $sueltas = $vigentes->reject(fn (Marcacion $m) => isset($emparejadas[$m->id]))->sortByDesc('marcada_at')->values();
+
+        $novedades = NovedadTurno::whereIn('marcacion_id', $turnos->flatMap(fn (array $t) => [$t['entrada']->id, $t['salida']?->id])->filter())
+            ->where('estado', '!=', EstadoNovedad::Corregida->value)
+            ->get()
+            ->groupBy('marcacion_id');
+
+        $turnos = $turnos->map(fn (array $t) => $t + [
+            'trabajado' => $t['minutos'] !== null ? $colaborador->componente?->minutosTrabajados($t['minutos'], $t['tipo'] ?? null) ?? $t['minutos'] : null,
+            'novedades' => collect([$novedades->get($t['entrada']->id), $novedades->get($t['salida']?->id)])->flatten()->filter(),
+        ]);
+
+        return [
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'turnos' => $turnos,
+            'sueltas' => $sueltas,
+            'anuladas' => Marcacion::query()->tap($dePersona)->whereNotNull('anulada_at')
+                ->with('anulador')->whereBetween('marcada_at', [$desde, $hasta->copy()->addDay()])
+                ->latest('marcada_at')->get(),
+            // Sin salida y es su última marca: está en turno, no le falta la salida.
+            'ultimaId' => $colaborador->marcaciones()->vigentes()->latest('marcada_at')->value('id'),
+            'haMarcado' => $vigentes->isNotEmpty() || $colaborador->marcaciones()->exists(),
+        ];
     }
 
     public function edit(Colaborador $colaborador): View
@@ -182,6 +237,10 @@ class ColaboradorController extends Controller
 
     protected function componentesConNodos()
     {
-        return Componente::activos()->with(['nodos' => fn ($q) => $q->activos()])->orderBy('nombre')->get();
+        return Componente::activos()->with([
+            'nodos' => fn ($q) => $q->activos(),
+            'tiposTurno' => fn ($q) => $q->activos()->where('es_turno', true),
+            'puntosCriticos' => fn ($q) => $q->activos(),
+        ])->orderBy('nombre')->get();
     }
 }

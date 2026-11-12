@@ -1,0 +1,45 @@
+OK   inicio de sesión — http://127.0.0.1:8765/documentos
+     tarjetas: Actas 2026 | Archivo 2024 | Contratos | Fotografías de campo | Informes — seleccionables: 0,2,3,4
+OK   las tarjetas no enseñan ningún checkbox — visibles: 0
+OK   un ⋮ por carpeta (4 activas + 1 inactiva) — hay 5
+OK   área táctil del ⋮ ≥ 44 px — 44×44
+OK   Tab desde el enlace de la tarjeta llega al ⋮ — Opciones de la carpeta Actas 2026
+OK   Enter abre el menú
+OK   el foco entra en la primera opción — Editar
+OK   aria-expanded="true" con el menú abierto
+OK   abrir el menú no navega
+OK   ↓ pasa a «Seleccionar» — Seleccionar
+OK   ↓ en la última vuelve a la primera — Editar
+OK   ↑ en la primera va a la última — Seleccionar
+OK   Inicio va a la primera — Editar
+OK   Fin va a la última — Seleccionar
+OK   Escape cierra el menú
+OK   tras Escape el foco vuelve al ⋮ — Opciones de la carpeta Actas 2026
+OK   aria-expanded="false" al cerrar
+OK   ↑ sobre el ⋮ cerrado abre y entra por la última — Seleccionar
+OK   Tab cierra el menú
+OK   y el foco sigue a la tarjeta siguiente — Archivo 2024
+OK   Enter en «Seleccionar» marca la carpeta
+OK   tras seleccionar, el foco vuelve al ⋮ — Opciones de la carpeta Actas 2026
+OK   el ⋮ queda descrito como «Seleccionada» (aria-describedby) — "Seleccionada"
+OK   con la carpeta marcada la opción dice «Quitar selección» — Quitar selección
+OK   «Quitar selección» la desmarca
+OK   sin nada marcado la barra se esconde
+OK   clic en ⋮ abre el menú
+OK   clic en ⋮ no abre la carpeta
+OK   abrir otro menú cierra el anterior — abiertos: 2
+OK   clic fuera cierra el menú
+OK   elegir «Seleccionar» cierra el menú
+OK   elegir «Seleccionar» no abre la carpeta
+OK   la barra del lote aparece con 2 marcadas — {"oculta":false,"cuenta":"2"}
+OK   la tarjeta marcada lleva anillo de 2 px — rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0
+OK   la marca de check se ve solo en las seleccionadas — flex,-,flex,none,none
+OK   «Marcar todos» marca los 3 documentos y deja las carpetas como estaban — {"cuenta":"5","carpetas":[true,true,false,false]}
+OK   desmarcarlo deja solo las 2 carpetas
+OK   «Quitar marcas» desmarca las tarjetas, sus estados y esconde la barra — {"oculta":true,"marcadas":0,"estados":""}
+OK   en móvil el menú no se sale por los lados — {"izq":147,"der":339,"abajo":452.1502685546875,"ancho":360,"alto":740}
+OK   pegado abajo, el menú se abre hacia arriba y queda en pantalla — {"arriba":565.14990234375,"abajo":661.14990234375,"alto":740}
+     tras marcar el documento: {"doc":true,"cuenta":"2"}
+OK   mover sigue pidiendo confirmación — ¿Mover 2 a «Contratos»? Dejarán de estar donde están ahora.
+OK   mover lo marcado con el menú funciona de punta a punta — Se movieron 1 documento y 1 carpeta a «Contratos».
+OK   sin errores de JavaScript en consola

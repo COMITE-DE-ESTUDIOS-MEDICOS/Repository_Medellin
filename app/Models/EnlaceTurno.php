@@ -25,12 +25,21 @@ class EnlaceTurno extends Model
 
     protected $table = 'enlaces_turno';
 
+    /** Para qué sirve el enlace. Mismo token, QR y cédula; cambia el formulario. */
+    public const TIPOS = [
+        'turno' => 'Turnos (entrada y salida)',
+        'derivacion' => 'Derivaciones y respuesta territorial',
+        'supervision' => 'Supervisión territorial',
+    ];
+
     protected $fillable = [
         'token_hash',
         'token_cifrado',
         'dependencia_id',
+        'tipo',
         'componente_id',
         'nodo_id',
+        'punto_critico_id',
         'nombre',
         'activo',
         'expira_at',
@@ -55,9 +64,32 @@ class EnlaceTurno extends Model
      */
     public function url(): string
     {
+        if ($this->esDerivacion()) {
+            return route('derivacion.enlace', ['token' => $this->token()]);
+        }
+
+        if ($this->esSupervision()) {
+            return route('supervision.enlace', ['token' => $this->token()]);
+        }
+
         return Route::has('turno.enlace')
             ? route('turno.enlace', ['token' => $this->token()])
             : url('t/'.$this->token());
+    }
+
+    public function esDerivacion(): bool
+    {
+        return $this->tipo === 'derivacion';
+    }
+
+    public function esSupervision(): bool
+    {
+        return $this->tipo === 'supervision';
+    }
+
+    public function etiquetaTipo(): string
+    {
+        return self::TIPOS[$this->tipo] ?? $this->tipo;
     }
 
     public function haExpirado(): bool
@@ -96,6 +128,12 @@ class EnlaceTurno extends Model
         return $this->belongsTo(Nodo::class);
     }
 
+    /** El QR pegado en un punto crítico: quien marca con él, queda en ese punto ese día. */
+    public function puntoCritico(): BelongsTo
+    {
+        return $this->belongsTo(PuntoCritico::class);
+    }
+
     public function creador(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creado_por');
@@ -104,5 +142,15 @@ class EnlaceTurno extends Model
     public function marcaciones(): HasMany
     {
         return $this->hasMany(Marcacion::class);
+    }
+
+    public function derivaciones(): HasMany
+    {
+        return $this->hasMany(Derivacion::class);
+    }
+
+    public function supervisiones(): HasMany
+    {
+        return $this->hasMany(Supervision::class);
     }
 }

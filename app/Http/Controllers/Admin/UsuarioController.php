@@ -24,32 +24,12 @@ class UsuarioController extends Controller
     ) {
     }
 
-    public function index(Request $request): View
+    /** La lista es una tabla de Filament (App\Livewire\Usuarios): búsqueda, filtros y revocar. */
+    public function index(): View
     {
         $this->autorizar();
-        $dependencia = $this->contexto->requerida();
 
-        $usuarios = $dependencia->usuarios()
-            ->when($request->filled('q'), function ($q) use ($request) {
-                $texto = $request->string('q')->toString();
-                $like = '%'.$texto.'%';
-
-                // El documento se busca normalizado: quien pegue «1.234.567»
-                // desde una planilla tiene que encontrar a la persona igual.
-                $porDocumento = '%'.User::normalizarDocumento($texto).'%';
-
-                $q->where(fn ($s) => $s->where('name', 'like', $like)
-                    ->orWhere('documento', 'like', $porDocumento)
-                    ->orWhere('email', 'like', $like));
-            })
-            ->orderBy('name')
-            ->paginate(config('repositorio.por_pagina'))
-            ->withQueryString();
-
-        return view('admin.usuarios.index', [
-            'usuarios' => $usuarios,
-            'roles' => RolDependencia::cases(),
-        ]);
+        return view('admin.usuarios.index', ['roles' => RolDependencia::cases()]);
     }
 
     public function create(Request $request): View
@@ -85,7 +65,7 @@ class UsuarioController extends Controller
 
         // Un usuario puede pertenecer a varias dependencias con roles distintos.
         $usuario->dependencias()->syncWithoutDetaching([
-            $dependencia->id => ['rol' => $rol->value],
+            $dependencia->id => ['rol' => $rol->value, 'aprueba_novedades' => $request->boolean('aprueba_novedades')],
         ]);
 
         $this->auditor->registrar(
@@ -130,6 +110,7 @@ class UsuarioController extends Controller
         return view('admin.usuarios.edit', [
             'usuario' => $usuario,
             'rolActualUsuario' => $usuario->rolEn($this->contexto->id()),
+            'apruebaNovedades' => (bool) $usuario->dependencias()->whereKey($this->contexto->id())->first()?->pivot->aprueba_novedades,
             'roles' => $this->rolesAsignables($request),
         ]);
     }
@@ -160,7 +141,7 @@ class UsuarioController extends Controller
 
         $usuario->dependencias()->updateExistingPivot(
             $this->contexto->id(),
-            ['rol' => $request->string('rol')->toString()],
+            ['rol' => $request->string('rol')->toString(), 'aprueba_novedades' => $request->boolean('aprueba_novedades')],
         );
 
         $this->auditor->registrar(

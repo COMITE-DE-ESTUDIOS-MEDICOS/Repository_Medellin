@@ -3,13 +3,34 @@
 
 @section('contenido')
 
-<div class="mb-4 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm text-[var(--muted)]">
+<div class="mb-4 flex flex-wrap items-center gap-x-1 gap-y-2 text-sm text-[var(--muted)]">
     <a href="{{ route('documentos.index') }}" class="hover:text-[var(--text)]">Inicio</a>
     @foreach($migas as $miga)
         <span>/</span>
         <a href="{{ route('documentos.index', ['carpeta' => $miga->uuid]) }}"
            class="hover:text-[var(--text)]">{{ $miga->nombre }}</a>
     @endforeach
+
+    {{-- Pasar al archivo de al lado sin volver a la lista (también con ← y →). --}}
+    @if($vecinos['total'] > 1)
+        <nav class="ml-auto flex items-center gap-2" aria-label="Archivos de esta carpeta">
+            @if($vecinos['anterior'])
+                <a href="{{ route('documentos.show', $vecinos['anterior']) }}" data-navegar="anterior" rel="prev"
+                   title="Anterior (←)" class="flex size-9 items-center justify-center rounded-full bg-[var(--card)] text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
+                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+                    <span class="sr-only">Archivo anterior</span>
+                </a>
+            @endif
+            <span class="tabular-nums">{{ $vecinos['posicion'] }} de {{ $vecinos['total'] }}</span>
+            @if($vecinos['siguiente'])
+                <a href="{{ route('documentos.show', $vecinos['siguiente']) }}" data-navegar="siguiente" rel="next"
+                   title="Siguiente (→)" class="flex size-9 items-center justify-center rounded-full bg-[var(--card)] text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
+                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+                    <span class="sr-only">Archivo siguiente</span>
+                </a>
+            @endif
+        </nav>
+    @endif
 </div>
 
 @unless($documento->activo)
@@ -19,7 +40,7 @@
             <p class="mt-1">
                 Motivo: {{ $documento->motivo_inactivacion }} ·
                 {{ $documento->inactivador?->name }} ·
-                {{ $documento->inactivado_at?->format('d/m/Y H:i') }}
+                {{ $documento->inactivado_at?->fechaHora() }}
             </p>
             <p class="mt-1">Solo lo ve el rol de administración. El registro se conserva completo.</p>
         </div>
@@ -57,7 +78,7 @@
                 </div>
 
                 <div class="flex shrink-0 flex-col gap-2">
-                    <a href="{{ route('documentos.descargar', $documento) }}"
+                    <a href="{{ route('documentos.descargar', $documento) }}" download
                        class="liquid-button-primary rounded-md px-4 py-2 text-center text-sm font-medium">
                         Descargar
                     </a>
@@ -75,11 +96,9 @@
                       class="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-4">
                     @csrf
                     <label for="copiar_carpeta" class="text-sm text-[var(--muted)]">Copiar a</label>
-                    <select id="copiar_carpeta" name="carpeta_id" class="liquid-input min-w-0 flex-1 text-sm">
+                    <select id="copiar_carpeta" name="carpeta_id" data-buscable class="liquid-input min-w-0 flex-1 text-sm">
                         <option value="">Raíz</option>
-                        @foreach($carpetas as $carpeta)
-                            <option value="{{ $carpeta->id }}" @selected($carpeta->id === $documento->carpeta_id)>{{ $carpeta->nombre }}</option>
-                        @endforeach
+                        <x-opciones-carpeta :carpetas="$carpetas" :seleccionada="$documento->carpeta_id" />
                     </select>
                     <button class="rounded-md bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
                         Copiar
@@ -105,6 +124,49 @@
                 @endif
             </div>
         @endif
+
+        <div id="comentarios" class="scroll-mt-4 rounded-lg bg-[var(--card)] ring-1 ring-[var(--border)]">
+            <h2 class="border-b border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)]">
+                Comentarios <span class="text-[var(--muted)]">({{ $documento->comentarios->count() }})</span>
+            </h2>
+
+            <ul class="divide-y divide-[var(--border)]">
+                @forelse($documento->comentarios as $comentario)
+                    <li id="comentario-{{ $comentario->id }}" class="scroll-mt-4 px-4 py-3 target:bg-[var(--card-soft)]">
+                        <div class="flex items-baseline gap-2">
+                            <p class="text-sm font-medium text-[var(--text)]">{{ $comentario->autor?->name ?? 'Usuario retirado' }}</p>
+                            <p class="text-xs text-[var(--muted)]" title="{{ $comentario->created_at->fechaHora() }}">
+                                {{ $comentario->created_at->diffForHumans() }}
+                            </p>
+                            @if($comentario->user_id === auth()->id() || auth()->user()->puedeGestionarEn($documento->dependencia_id))
+                                <form method="POST" action="{{ route('documentos.comentarios.destroy', [$documento, $comentario]) }}" class="ml-auto"
+                                      onsubmit="return confirm('¿Borrar este comentario?')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-xs text-[var(--muted)] hover:text-[var(--danger)]">Borrar</button>
+                                </form>
+                            @endif
+                        </div>
+                        <p class="mt-1 whitespace-pre-line text-sm text-[var(--text)]">{{ $comentario->texto }}</p>
+                    </li>
+                @empty
+                    <li class="px-4 py-3 text-sm text-[var(--muted)]">
+                        Sin comentarios. Si la foto está mal tomada o no cumple el estándar, dilo aquí: quien la subió se entera por la campana.
+                    </li>
+                @endforelse
+            </ul>
+
+            <form method="POST" action="{{ route('documentos.comentarios.store', $documento) }}" class="space-y-2 border-t border-[var(--border)] p-4">
+                @csrf
+                <label for="texto" class="sr-only">Escribe un comentario</label>
+                <textarea id="texto" name="texto" rows="2" required maxlength="2000"
+                          placeholder="Ej: La foto está desenfocada, no se lee el documento. Tómala de nuevo."
+                          class="liquid-input w-full resize-y text-sm [field-sizing:content]">{{ old('texto') }}</textarea>
+                @error('texto')<p class="text-xs text-[var(--danger)]">{{ $message }}</p>@enderror
+                <div class="flex justify-end">
+                    <button class="liquid-button-primary rounded-md px-4 py-2 text-sm font-medium">Comentar</button>
+                </div>
+            </form>
+        </div>
 
         {{--
             Para quien sube, el archivo se reemplaza. Por debajo cada reemplazo
@@ -162,10 +224,10 @@
                                 <td class="px-4 py-3 text-[var(--muted)]">{{ $version->tamano_legible }}</td>
                                 <td class="px-4 py-3 text-[var(--muted)]">
                                     {{ $version->autor?->name ?? 'Usuario eliminado' }}<br>
-                                    <span class="text-xs">{{ $version->created_at->format('d/m/Y H:i') }}</span>
+                                    <span class="text-xs">{{ $version->created_at->fechaHora() }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('documentos.versiones.descargar', [$documento, $version]) }}"
+                                    <a href="{{ route('documentos.versiones.descargar', [$documento, $version]) }}" download
                                        class="text-sm text-[var(--primary)] hover:underline">Descargar</a>
                                 </td>
                             </tr>
@@ -221,7 +283,7 @@
                 </div>
                 <div class="flex justify-between gap-3">
                     <dt class="text-[var(--muted)]">Cargado el</dt>
-                    <dd class="text-right text-[var(--text)]">{{ $documento->created_at->format('d/m/Y H:i') }}</dd>
+                    <dd class="text-right text-[var(--text)]">{{ $documento->created_at->fechaHora() }}</dd>
                 </div>
             </dl>
         </div>
@@ -270,7 +332,7 @@
                     <div class="flex justify-between gap-3">
                         <dt class="text-[var(--muted)]">Recibido el</dt>
                         <dd class="text-right text-[var(--text)]">
-                            {{ $recepcion->created_at->format('d/m/Y H:i') }}
+                            {{ $recepcion->created_at->fechaHora() }}
 
                             {{--
                                 El juicio de horario es el que se hizo ese día,
@@ -307,7 +369,7 @@
                         <div class="flex justify-between gap-3">
                             <dt class="text-[var(--muted)]">Foto tomada el</dt>
                             <dd class="text-right text-[var(--text)]">
-                                {{ $recepcion->tomada_at->format('d/m/Y H:i:s') }}
+                                {{ $recepcion->tomada_at->fechaHora(true) }}
                                 <span class="mt-0.5 block text-xs text-[var(--muted)]">Según el reloj del teléfono</span>
                             </dd>
                         </div>
@@ -334,7 +396,7 @@
             </div>
         @endif
 
-        @can('inactivar', $documento)
+        @canany(['inactivar', 'reactivar'], $documento)
             <div class="rounded-lg bg-[var(--card)] p-4 ring-1 ring-[var(--border)]">
                 <h2 class="mb-1 text-sm font-medium text-[var(--text)]">Estado</h2>
                 <p class="mb-3 text-xs text-[var(--muted)]">
@@ -342,6 +404,7 @@
                 </p>
 
                 @if($documento->activo)
+                    @can('inactivar', $documento)
                     <form method="POST" action="{{ route('documentos.inactivar', $documento) }}" class="space-y-2">
                         @csrf @method('PATCH')
                         <input type="text" name="motivo" required maxlength="255" placeholder="Motivo de la inactivación"
@@ -350,7 +413,8 @@
                             Inactivar documento
                         </button>
                     </form>
-                @else
+                    @endcan
+                @elseif(auth()->user()->can('reactivar', $documento))
                     <form method="POST" action="{{ route('documentos.reactivar', $documento) }}">
                         @csrf @method('PATCH')
                         <button class="w-full rounded-md bg-[var(--success)] px-4 py-2 text-sm font-medium text-white hover:brightness-90">
@@ -359,7 +423,7 @@
                     </form>
                 @endif
             </div>
-        @endcan
+        @endcanany
     </aside>
 </div>
 

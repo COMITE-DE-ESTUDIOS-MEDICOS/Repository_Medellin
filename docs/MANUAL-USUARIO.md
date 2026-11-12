@@ -149,3 +149,11 @@ asignarle el rol ahí. Ese administrador da acceso a su propio equipo desde
 Para mantener el sistema ligero, deliberadamente no incluye: edición en línea
 de documentos, chats internos, firmas digitales ni flujos de aprobación con
 varios pasos.
+
+---
+
+## Turnos de las personas de campo
+
+Marcar entrada y salida con QR, ver quién está en turno, validar novedades y
+descargar el reporte: está explicado paso a paso en
+[`turnos/README.md`](turnos/README.md).

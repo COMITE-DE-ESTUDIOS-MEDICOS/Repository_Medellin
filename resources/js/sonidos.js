@@ -7,11 +7,16 @@
  * toast, la pantalla de recibido). Quien tiene el volumen apagado, o un
  * navegador que no lo deja sonar, no se pierde nada.
  */
+/*
+ * 'exito' es el de los toasts de la app (guardar, cargar, inactivar…).
+ * 'envio' es el de entregar algo por un enlace público: enviar evidencias y
+ * marcar entrada o salida suenan igual porque son la misma clase de acción.
+ */
 const SONIDOS = {
     exito: '/media/terminalCommandSucceeded.mp3',
+    envio: '/media/taskCompleted.mp3',
     error: '/media/error.mp3',
     salida: '/media/responseReceived1.mp3',
-    envio: '/media/taskCompleted.mp3',
     notificacion: '/media/codeActionApplied.mp3',
 };
 

@@ -22,9 +22,24 @@ class GuardarColaboradorRequest extends FormRequest
             $this->merge(['documento' => User::normalizarDocumento($this->input('documento'))]);
         }
 
+        $this->merge(['dias_descanso' => array_values((array) $this->input('dias_descanso', []))]);
+
         if ($this->filled('nodo_id') && ! $this->filled('componente_id')) {
             $this->merge(['componente_id' => Nodo::find($this->input('nodo_id'))?->componente_id]);
         }
+    }
+
+    /**
+     * El permiso va antes que la validación: sin esto, a quien no puede
+     * registrar personas le salían errores de campo en vez de un 403.
+     */
+    public function authorize(): bool
+    {
+        $colaborador = $this->route('colaborador');
+
+        return $colaborador
+            ? $this->user()->can('update', $colaborador)
+            : $this->user()->can('create', \App\Models\Colaborador::class);
     }
 
     public function rules(): array
@@ -45,20 +60,34 @@ class GuardarColaboradorRequest extends FormRequest
             // Si el componente tiene su lista de cargos, solo vale uno de ella.
             // El cargo que la persona ya tenía se acepta aunque no esté: así
             // editar otro dato no obliga a cambiarle el cargo.
+            //
+            // Componente, nodo y cargo son obligatorios (PLAN.md §8.1): sin
+            // ellos no se sabe dónde trabaja ni en qué, y los reportes cojean.
             'cargo' => array_filter([
-                'nullable', 'string', 'max:255',
+                'required', 'string', 'max:255',
                 ($cargos = $this->cargosPermitidos()) !== null ? Rule::in($cargos) : null,
             ]),
             'componente_id' => [
-                'nullable',
+                'required',
                 Rule::exists('componentes', 'id')->where('dependencia_id', $dependenciaId),
             ],
             // El nodo tiene que ser del componente elegido, y por lo tanto de
             // esta dependencia: el id de un nodo ajeno no pasa.
             'nodo_id' => [
-                'nullable',
+                'required',
                 Rule::exists('nodos', 'id')->where('componente_id', $this->input('componente_id')),
             ],
+            // Lo habitual: con su turno se sabe a qué hora esperarla cada día.
+            'tipo_turno_id' => [
+                'nullable',
+                Rule::exists('tipos_turno', 'id')->where('componente_id', $this->input('componente_id'))->where('es_turno', true),
+            ],
+            'punto_critico_id' => [
+                'nullable',
+                Rule::exists('puntos_criticos', 'id')->where('componente_id', $this->input('componente_id')),
+            ],
+            'dias_descanso' => ['nullable', 'array', 'max:6'],
+            'dias_descanso.*' => ['integer', 'between:1,7'],
         ];
     }
 
@@ -82,6 +111,9 @@ class GuardarColaboradorRequest extends FormRequest
             'documento' => 'cédula',
             'componente_id' => 'componente',
             'nodo_id' => 'nodo',
+            'tipo_turno_id' => 'turno habitual',
+            'punto_critico_id' => 'punto crítico habitual',
+            'dias_descanso' => 'días de descanso',
         ];
     }
 

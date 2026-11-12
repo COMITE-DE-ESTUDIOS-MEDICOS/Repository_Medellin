@@ -54,6 +54,7 @@ class GuardarEnlaceCargaRequest extends FormRequest
             'carpeta_id' => [
                 'required',
                 Rule::exists('carpetas', 'id')->where('dependencia_id', $dependenciaId),
+                new \App\Rules\CarpetaAccesible,
                 function (string $atributo, mixed $valor, Closure $falla) use ($puedeCualquierCarpeta, $usuario) {
                     if ($puedeCualquierCarpeta || $valor === null) {
                         return;
@@ -66,6 +67,13 @@ class GuardarEnlaceCargaRequest extends FormRequest
                         $falla('Solo puedes delegar acceso a una carpeta que lideras.');
                     }
                 },
+            ],
+
+            // Opcional: con componente, quien envía se identifica solo con su
+            // cédula (persona de campo). Sin él, declara nombre, correo y entidad.
+            'componente_id' => [
+                'nullable',
+                Rule::exists('componentes', 'id')->where('dependencia_id', $dependenciaId)->where('activo', true),
             ],
 
             'proposito' => ['nullable', 'string', 'max:255'],

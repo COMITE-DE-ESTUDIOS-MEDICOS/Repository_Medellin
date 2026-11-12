@@ -8,13 +8,13 @@ use App\Services\ContextoDependencia;
 
 /**
  * Crear Básica o Estabilización, o cambiar sus reglas, cambia cómo trabaja
- * todo un equipo: es de Administración. Sus nodos van con él.
+ * todo un equipo: es de Coordinación en adelante. Sus nodos van con él.
  */
 class ComponentePolicy
 {
     public function viewAny(User $usuario): bool
     {
-        return $usuario->puedeAdministrarEn(app(ContextoDependencia::class)->id());
+        return $usuario->puedeGestionarEn(app(ContextoDependencia::class)->id());
     }
 
     public function create(User $usuario): bool
@@ -24,6 +24,6 @@ class ComponentePolicy
 
     public function update(User $usuario, Componente $componente): bool
     {
-        return $usuario->puedeAdministrarEn($componente->dependencia_id);
+        return $usuario->puedeGestionarEn($componente->dependencia_id);
     }
 }

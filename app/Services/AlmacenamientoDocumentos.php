@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Carpeta;
 use App\Models\Documento;
 use App\Models\DocumentoVersion;
 use Illuminate\Http\UploadedFile;
@@ -99,6 +100,46 @@ class AlmacenamientoDocumentos
         $this->copiarVersion($origen, $copia, "Copia de «{$documento->nombre}»");
 
         return $copia;
+    }
+
+    /**
+     * Copia una carpeta con sus subcarpetas y documentos activos dentro de
+     * otra (o en la raíz). Lo inactivo no se copia: copiar no resucita lo que
+     * alguien retiró. Devuelve la carpeta nueva y cuántos documentos copió.
+     *
+     * Quien llama abre la transacción y comprueba que el destino no sea la
+     * carpeta misma ni una de sus subcarpetas.
+     *
+     * @return array{0: Carpeta, 1: int}
+     */
+    public function copiarCarpeta(Carpeta $carpeta, ?int $padreId): array
+    {
+        $documentos = 0;
+        $raiz = null;
+        $pendientes = [[$carpeta, $padreId]];
+
+        while ($pendientes) {
+            [$original, $padre] = array_shift($pendientes);
+
+            $nueva = Carpeta::create([
+                'dependencia_id' => $original->dependencia_id,
+                'carpeta_id' => $padre,
+                'nombre' => $original->nombre,
+                'descripcion' => $original->descripcion,
+                'creado_por' => auth()->id(),
+            ]);
+            $raiz ??= $nueva;
+
+            foreach ($original->documentos()->activos()->with('versionActual', 'etiquetas')->get() as $documento) {
+                $documentos += $this->copiarDocumento($documento, $nueva->id) ? 1 : 0;
+            }
+
+            foreach ($original->hijas()->activas()->get() as $hija) {
+                $pendientes[] = [$hija, $nueva->id];
+            }
+        }
+
+        return [$raiz, $documentos];
     }
 
     /** Ruta absoluta en disco, para armar el ZIP sin cargar el archivo en memoria. */

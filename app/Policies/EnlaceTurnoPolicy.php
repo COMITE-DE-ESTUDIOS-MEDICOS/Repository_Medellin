@@ -7,14 +7,14 @@ use App\Models\User;
 use App\Services\ContextoDependencia;
 
 /**
- * Los enlaces de turno (y el panel de quién está en turno) son de
- * Coordinación: deciden quién puede marcar y dónde.
+ * Los enlaces de turno (el QR de cada componente o nodo) los manejan desde
+ * Edición: los editores son los líderes que los reparten.
  */
 class EnlaceTurnoPolicy
 {
     public function viewAny(User $usuario): bool
     {
-        return $usuario->puedeGestionarEn(app(ContextoDependencia::class)->id());
+        return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());
     }
 
     public function create(User $usuario): bool
@@ -24,7 +24,7 @@ class EnlaceTurnoPolicy
 
     public function view(User $usuario, EnlaceTurno $enlace): bool
     {
-        return $usuario->puedeGestionarEn($enlace->dependencia_id);
+        return $usuario->puedeEditarEn($enlace->dependencia_id);
     }
 
     public function revocar(User $usuario, EnlaceTurno $enlace): bool

@@ -16,6 +16,15 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
 
     /*
+    | La versión la escribe bin/deploy.sh en el archivo VERSION, contando las
+    | fusiones desde la etiqueta v2.0: sube sola, sin commits. En una copia
+    | local, sin ese archivo, se ve v2.x-dev.
+    */
+    'version' => is_file(base_path('VERSION'))
+        ? trim((string) file_get_contents(base_path('VERSION')))
+        : env('APP_VERSION', 'v2.x-dev'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------

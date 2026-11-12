@@ -1,10 +1,10 @@
 @extends('layouts.app')
-@section('titulo', 'Enlace de turno')
+@section('titulo', 'Enlace por cédula')
 
 @section('contenido')
 
 <div class="mb-4 text-sm text-[var(--muted)]">
-    <a href="{{ route('admin.turnos.enlaces.index') }}" class="hover:text-[var(--text)]">Enlaces de turno</a>
+    <a href="{{ route('admin.turnos.enlaces.index') }}" class="hover:text-[var(--text)]">Enlaces por cédula</a>
     <span>/</span>
     <span class="font-medium text-[var(--text)]">{{ $donde }}</span>
 </div>
@@ -16,6 +16,7 @@
             @if($enlace->nombre)
                 <p class="text-sm text-[var(--muted)]">{{ $enlace->nombre }}</p>
             @endif
+            <p class="mt-1 text-xs font-medium text-[var(--primary)]">{{ $enlace->etiquetaTipo() }}</p>
 
             <p class="mt-4 text-sm font-medium text-[var(--text)]">Link para compartir por WhatsApp</p>
             <div class="mt-2 flex items-center gap-2">
@@ -47,7 +48,7 @@
                 <div class="flex justify-between gap-3">
                     <dt class="text-[var(--muted)]">Creado</dt>
                     <dd class="text-right text-[var(--text)]">
-                        {{ $enlace->created_at->format('d/m/Y H:i') }} · {{ $enlace->creador?->name ?? '—' }}
+                        {{ $enlace->created_at->fechaHora() }} · {{ $enlace->creador?->name ?? '—' }}
                     </dd>
                 </div>
             </dl>
@@ -58,7 +59,7 @@
                   class="rounded-lg bg-[var(--card)] p-4 ring-1 ring-[var(--border)]">
                 @csrf @method('PATCH')
                 <p class="mb-3 text-xs text-[var(--muted)]">
-                    Revocarlo apaga el link y el QR impreso al instante. Las marcaciones hechas con él se conservan.
+                    Revocarlo apaga el link y el QR impreso al instante. Lo registrado con él se conserva.
                 </p>
                 <button class="rounded-md bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white hover:brightness-90"
                         onclick="return confirm('¿Revocar este enlace? El QR impreso dejará de funcionar.')">

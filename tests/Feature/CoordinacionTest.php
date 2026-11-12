@@ -145,20 +145,20 @@ class CoordinacionTest extends TestCase
         $this->assertDatabaseHas('carpetas', ['id' => $inactiva->id, 'activa' => true]);
     }
 
-    public function test_no_puede_inactivar_ni_reactivar_documentos(): void
+    public function test_inactiva_documentos_pero_no_los_reactiva(): void
     {
         $activo = $this->documento('Acta viva');
         $inactivo = $this->documento('Acta guardada', activo: false);
 
         $this->actingAs($this->coordinador)
             ->patch(route('documentos.inactivar', $activo), ['motivo' => 'Ya no aplica'])
-            ->assertForbidden();
+            ->assertRedirect();
 
         $this->actingAs($this->coordinador)
             ->patch(route('documentos.reactivar', $inactivo))
             ->assertForbidden();
 
-        $this->assertDatabaseHas('documentos', ['id' => $activo->id, 'activo' => true]);
+        $this->assertDatabaseHas('documentos', ['id' => $activo->id, 'activo' => false]);
         $this->assertDatabaseHas('documentos', ['id' => $inactivo->id, 'activo' => false]);
     }
 

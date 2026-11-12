@@ -211,24 +211,21 @@ class PermisosTest extends TestCase
     |--------------------------------------------------------------------------
     */
 
-    public function test_ni_lectura_ni_edicion_pueden_inactivar_o_reactivar(): void
+    public function test_lectura_no_inactiva_y_edicion_inactiva_con_motivo_pero_no_reactiva(): void
     {
         $activo = $this->documento('Acta viva');
         $inactivo = $this->documento('Acta guardada', activo: false);
 
-        foreach ([RolDependencia::Lectura, RolDependencia::Edicion] as $rol) {
-            $usuario = $this->usuario($rol);
+        $lector = $this->usuario(RolDependencia::Lectura);
+        $this->actingAs($lector)->patch(route('documentos.inactivar', $activo), ['motivo' => 'Ya no aplica'])->assertForbidden();
+        $this->actingAs($lector)->patch(route('documentos.reactivar', $inactivo))->assertForbidden();
 
-            $this->actingAs($usuario)
-                ->patch(route('documentos.inactivar', $activo), ['motivo' => 'Ya no aplica'])
-                ->assertForbidden();
+        $editor = $this->usuario(RolDependencia::Edicion);
+        $this->actingAs($editor)->patch(route('documentos.inactivar', $activo), [])->assertSessionHasErrors('motivo');
+        $this->actingAs($editor)->patch(route('documentos.inactivar', $activo), ['motivo' => 'Duplicado'])->assertRedirect();
+        $this->actingAs($editor)->patch(route('documentos.reactivar', $inactivo))->assertForbidden();
 
-            $this->actingAs($usuario)
-                ->patch(route('documentos.reactivar', $inactivo))
-                ->assertForbidden();
-        }
-
-        $this->assertDatabaseHas('documentos', ['id' => $activo->id, 'activo' => true]);
+        $this->assertDatabaseHas('documentos', ['id' => $activo->id, 'activo' => false, 'motivo_inactivacion' => 'Duplicado']);
         $this->assertDatabaseHas('documentos', ['id' => $inactivo->id, 'activo' => false]);
     }
 

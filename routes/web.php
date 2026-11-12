@@ -42,6 +42,12 @@ Route::post('enviar/{token}', [EnvioPublicoController::class, 'recibir'])
     ->middleware('throttle:envio-carga')
     ->name('envio.recibir');
 
+// Solo en los enlaces de un componente: ¿la cédula ya está registrada?
+Route::post('enviar/{token}/cedula', [EnvioPublicoController::class, 'cedula'])
+    ->where('token', '[A-Za-z0-9]{48}')
+    ->middleware('throttle:cedula-consulta')
+    ->name('envio.cedula');
+
 /*
 |--------------------------------------------------------------------------
 | Acceso
@@ -89,6 +95,15 @@ Route::middleware(['auth', 'usuario.activo', 'dependencia'])->group(function () 
         ->name('documentos.previsualizar');
     Route::post('documentos/{documento}/copiar', [DocumentoController::class, 'copiar'])
         ->name('documentos.copiar');
+    // Copiar o mover varios a la vez (los marcados con el check del explorador).
+    Route::post('documentos/lote', [\App\Http\Controllers\LoteController::class, 'aplicar'])
+        ->name('documentos.lote');
+
+    Route::post('documentos/{documento}/comentarios', [\App\Http\Controllers\ComentarioDocumentoController::class, 'store'])
+        ->middleware('throttle:30,1')
+        ->name('documentos.comentarios.store');
+    Route::delete('documentos/{documento}/comentarios/{comentario}', [\App\Http\Controllers\ComentarioDocumentoController::class, 'destroy'])
+        ->name('documentos.comentarios.destroy');
 
     Route::patch('documentos/{documento}/inactivar', [DocumentoEstadoController::class, 'inactivar'])
         ->name('documentos.inactivar');
@@ -118,6 +133,10 @@ Route::middleware(['auth', 'usuario.activo', 'dependencia'])->group(function () 
     | Perfil propio
     |----------------------------------------------------------------------
     */
+
+    // Manual de usuario: para todos los roles; la versión PDF es para «Guardar como PDF».
+    Route::view('manual', 'manual.index')->name('manual');
+    Route::view('manual/pdf', 'manual.pdf')->name('manual.pdf');
 
     Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
     Route::get('notificaciones/contador', [NotificacionController::class, 'contador'])->name('notificaciones.contador');
@@ -155,6 +174,15 @@ Route::middleware(['auth', 'usuario.activo', 'dependencia'])->group(function () 
         Route::patch('enlaces/{enlace}/revocar', [EnlaceCargaController::class, 'revocar'])->name('enlaces.revocar');
         Route::patch('enlaces/{enlace}/fecha-envio', [EnlaceCargaController::class, 'corregirFechaEnvio'])
             ->name('enlaces.fecha-envio');
+
+        // Grupos de custodia (Coordinación): quién ve y trabaja qué carpetas.
+        Route::get('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'index'])->name('custodia.index');
+        Route::post('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'store'])->name('custodia.store');
+        Route::put('custodia/{grupo}', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'update'])->name('custodia.update');
+
+        // Avisos por la campana (Administración).
+        Route::get('avisos', [\App\Http\Controllers\Admin\AvisoController::class, 'index'])->name('avisos.index');
+        Route::post('avisos', [\App\Http\Controllers\Admin\AvisoController::class, 'store'])->name('avisos.store');
     });
 
     Route::get('auditoria', [AuditoriaController::class, 'index'])->name('auditoria.index');

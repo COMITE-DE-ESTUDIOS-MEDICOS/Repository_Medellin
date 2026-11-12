@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('titulo', 'Nuevo enlace de turno')
+@section('titulo', 'Nuevo enlace')
 
 @section('contenido')
 
@@ -11,14 +11,33 @@
 @endphp
 
 <div class="mx-auto max-w-xl">
-    <h1 class="mb-1 text-lg font-semibold text-[var(--text)]">Nuevo enlace de turno</h1>
+    <h1 class="mb-1 text-lg font-semibold text-[var(--text)]">Nuevo enlace</h1>
     <p class="mb-6 text-sm text-[var(--muted)]">
-        Quien lo abra se identifica con su cédula y marca entrada o salida. El enlace no lleva el nombre de nadie.
+        Quien lo abra se identifica con su cédula. El enlace no lleva el nombre de nadie.
     </p>
 
     <form method="POST" action="{{ route('admin.turnos.enlaces.store') }}"
           class="space-y-4 rounded-lg bg-[var(--card)] p-6 ring-1 ring-[var(--border)]">
         @csrf
+
+        <fieldset>
+            <legend class="{{ $etiqueta }}">Para qué es *</legend>
+            <div class="mt-2 space-y-2">
+                @foreach(\App\Models\EnlaceTurno::TIPOS as $valor => $texto)
+                    <label class="flex items-center gap-2 text-sm text-[var(--text)]">
+                        <input type="radio" name="tipo" value="{{ $valor }}" required
+                               @checked(old('tipo', request('tipo', 'turno')) === $valor)>
+                        {{ $texto }}
+                    </label>
+                @endforeach
+            </div>
+            @can('create', \App\Models\EnlaceCarga::class)
+                <p class="{{ $ayuda }}">
+                    ¿Para que alguien suba documentos a una carpeta?
+                    <a href="{{ route('admin.enlaces.create') }}" class="text-[var(--primary)] underline">Crea un enlace de carga</a>.
+                </p>
+            @endcan
+        </fieldset>
 
         <div>
             <label for="componente_id" class="{{ $etiqueta }}">Componente *</label>
@@ -31,18 +50,31 @@
 
         <div>
             <label for="nodo_id" class="{{ $etiqueta }}">Nodo {!! $opcional !!}</label>
-            <select id="nodo_id" name="nodo_id" class="{{ $campo }}">
+            <select id="nodo_id" name="nodo_id" data-depende-de="#componente_id" class="{{ $campo }}">
                 <option value="">Todo el componente</option>
                 @foreach($componentes as $componente)
-                    <optgroup label="{{ $componente->nombre }}">
-                        @foreach($componente->nodos as $nodo)
-                            <option value="{{ $nodo->id }}" @selected(old('nodo_id') == $nodo->id)>{{ $nodo->nombre }}</option>
-                        @endforeach
-                    </optgroup>
+                    @foreach($componente->nodos as $nodo)
+                        <option value="{{ $nodo->id }}" data-componente="{{ $componente->id }}" @selected(old('nodo_id') == $nodo->id)>{{ $nodo->nombre }}</option>
+                    @endforeach
                 @endforeach
             </select>
             <p class="{{ $ayuda }}">
                 Con un nodo, el QR es para pegarlo en ese lugar o en ese vehículo, y el nodo ya va elegido al marcar.
+            </p>
+        </div>
+
+        <div>
+            <label for="punto_critico_id" class="{{ $etiqueta }}">Punto crítico {!! $opcional !!}</label>
+            <select id="punto_critico_id" name="punto_critico_id" data-depende-de="#componente_id" class="{{ $campo }}">
+                <option value="">El habitual de cada persona</option>
+                @foreach($componentes as $componente)
+                    @foreach($componente->puntosCriticos as $punto)
+                        <option value="{{ $punto->id }}" data-componente="{{ $componente->id }}" @selected(old('punto_critico_id') == $punto->id)>{{ $punto->nombre }}</option>
+                    @endforeach
+                @endforeach
+            </select>
+            <p class="{{ $ayuda }}">
+                Para pegar el QR en un punto: quien marque con él queda en ese punto ese día, aunque su habitual sea otro.
             </p>
         </div>
 

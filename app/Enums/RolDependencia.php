@@ -24,8 +24,9 @@ enum RolDependencia: string
         return match ($this) {
             self::Lectura => 'Consulta y descarga los documentos autorizados. No modifica nada.',
             self::Edicion => 'Sube archivos, crea, copia y mueve carpetas y documentos, y genera sus propios enlaces de carga. '
-                .'Puede inactivar las carpetas que creó, si no contienen nada de otras personas.',
-            self::Coordinacion => 'Lo anterior, más gestionar usuarios, tipos, todos los enlaces de carga y auditoría. '
+                .'Puede inactivar las carpetas que creó, si no contienen nada de otras personas. '
+                .'Gestiona los turnos: enlaces, personas de campo, novedades y reporte.',
+            self::Coordinacion => 'Lo anterior, más gestionar usuarios, tipos, componentes de turnos, todos los enlaces de carga y auditoría. '
                 .'Inactiva y reactiva cualquier carpeta; los documentos los retira solo Administración.',
             self::Administracion => 'Control total, incluido retirar carpetas y documentos de la vista.',
         };

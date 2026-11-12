@@ -37,6 +37,7 @@ class GuardarDocumentoRequest extends FormRequest
             'carpeta_id' => [
                 'nullable',
                 Rule::exists('carpetas', 'id')->where('dependencia_id', $dependenciaId),
+                new \App\Rules\CarpetaAccesible,
             ],
             'tipo_documento_id' => [
                 'nullable',
@@ -53,6 +54,7 @@ class GuardarDocumentoRequest extends FormRequest
                 $this->routeIs('documentos.store') ? 'required' : 'nullable',
                 'array',
                 'max:'.self::MAXIMO_ARCHIVOS,
+                \App\Services\CargaPorTandas::reglaCompleta(),
             ],
             'archivo.*' => [
                 'bail',
@@ -63,6 +65,9 @@ class GuardarDocumentoRequest extends FormRequest
             ],
 
             'comentario_version' => ['nullable', 'string', 'max:255'],
+
+            // Si la carga viene partida en tandas (carga-tandas.js).
+            ...\App\Services\CargaPorTandas::reglas(),
         ];
     }
 

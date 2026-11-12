@@ -1,15 +1,22 @@
 # Fotos georreferenciadas
 
 Cuando alguien envía una **foto tomada con la cámara** desde un enlace de carga, el
-navegador le estampa encima una franja con la hora, el lugar y los tres logotipos del
-Comité. Es evidencia de que la foto se tomó ahí y entonces, no un sello decorativo:
-por eso solo se aplica a lo que llega por el botón **Tomar foto**, nunca a lo que se
-elige de la galería o del explorador de archivos.
+navegador le estampa encima un sello con la hora y el lugar (sin logos). Es
+evidencia de que la foto se tomó ahí y entonces, no un sello decorativo: por eso solo se
+aplica a lo que llega por el botón **Tomar foto**, nunca a lo que se elige de la galería
+o del explorador de archivos.
 
 ```
-22/09/26, 10:26:26 a. m.
-Barbosa, Antioquia · 6.404943, -75.407571
+┃ 15:42 ✔                         (recuadro, abajo a la izquierda)
+┃ Turno                           (o «Evidencia»: prop sello de <x-campo-archivo>)
+┃ Mié, 14 de oct 2026
+┃ Cra. 65 #97-121, Castilla, Medellín, Antioquia
+┃ 6.292500, -75.571100
 ```
+
+- La dirección sale de Nominatim (`zoom=18`); sin red o sin calle queda el municipio, y
+  sin ubicación, «Ubicación no disponible».
+- Sin franja de fondo: el texto blanco se lee por su sombra, como en Timemark.
 
 ---
 

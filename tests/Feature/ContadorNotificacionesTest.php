@@ -43,6 +43,21 @@ class ContadorNotificacionesTest extends TestCase
             ->assertExactJson(['sin_leer' => 2]);
     }
 
+    public function test_las_pestanas_separan_derivaciones_de_turnos(): void
+    {
+        $yo = $this->usuarioCon(RolDependencia::Edicion);
+        foreach ([\App\Notifications\DerivacionPendiente::class => 'Derivación #7 sin respuesta', \App\Notifications\NovedadTurnoDetectada::class => 'Tardanza de Ana'] as $tipo => $mensaje) {
+            $yo->notifications()->create(['id' => (string) Str::uuid(), 'type' => $tipo, 'data' => ['mensaje' => $mensaje]]);
+        }
+
+        $this->actingAs($yo)->get(route('notificaciones.index', ['tipo' => 'derivaciones']))
+            ->assertOk()->assertSee('Derivación #7 sin respuesta')->assertDontSee('Tardanza de Ana');
+        $this->actingAs($yo)->get(route('notificaciones.index', ['tipo' => 'turnos']))
+            ->assertSee('Tardanza de Ana')->assertDontSee('Derivación #7 sin respuesta');
+        $this->actingAs($yo)->get(route('notificaciones.index'))
+            ->assertSee('Tardanza de Ana')->assertSee('Derivación #7 sin respuesta');
+    }
+
     public function test_sin_sesion_no_responde(): void
     {
         $this->getJson(route('notificaciones.contador'))->assertUnauthorized();

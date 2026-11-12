@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\AccionAuditoria;
 use App\Http\Requests\GuardarCarpetaRequest;
 use App\Models\Carpeta;
+use App\Models\GrupoCustodia;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
 use App\Services\ContextoDependencia;
@@ -31,7 +32,7 @@ class CarpetaController extends Controller
             'carpetaActual' => $request->filled('carpeta')
                 ? Carpeta::where('uuid', $request->string('carpeta'))->first()
                 : null,
-            'carpetas' => Carpeta::activas()->orderBy('nombre')->get(),
+            'carpetas' => Carpeta::visiblesPara(auth()->user())->activas()->orderBy('nombre')->get(),
         ]);
     }
 
@@ -60,7 +61,11 @@ class CarpetaController extends Controller
 
         return view('carpetas.edit', [
             'carpeta' => $carpeta,
-            'carpetas' => Carpeta::activas()->whereKeyNot($carpeta->id)->orderBy('nombre')->get(),
+            'carpetas' => Carpeta::visiblesPara(auth()->user())->activas()->whereKeyNot($carpeta->id)->orderBy('nombre')->get(),
+            // Custodia: la lista de grupos solo para quien la asigna; la
+            // heredada, para explicar por qué una subcarpeta ya está custodiada.
+            'grupos' => $this->contexto->puedeGestionar() ? GrupoCustodia::orderBy('nombre')->get() : collect(),
+            'custodia' => $carpeta->custodiaDe(),
         ]);
     }
 
@@ -93,6 +98,12 @@ class CarpetaController extends Controller
             "Actualizó la carpeta «{$carpeta->nombre}»",
         );
 
+        // La custodia solo la asigna Coordinación en adelante. A quien no
+        // puede, ni se le muestra el campo ni se le hace caso si lo manda.
+        if ($this->contexto->puedeGestionar() && $request->has('grupo_custodia_id')) {
+            $this->asignarCustodia($carpeta, $request->input('grupo_custodia_id'));
+        }
+
         return redirect()
             ->route('documentos.index', ['carpeta' => $carpeta->uuid])
             ->with('exito', 'Carpeta actualizada.');
@@ -113,6 +124,7 @@ class CarpetaController extends Controller
                 Rule::exists('carpetas', 'id')
                     ->where('dependencia_id', $carpeta->dependencia_id)
                     ->where('activa', true),
+                new \App\Rules\CarpetaAccesible,
             ],
         ]);
 
@@ -125,34 +137,9 @@ class CarpetaController extends Controller
             ]);
         }
 
-        [$copia, $documentos] = DB::transaction(function () use ($carpeta, $destino) {
-            $documentos = 0;
-            $raiz = null;
-            $pendientes = [[$carpeta, $destino?->id]];
-
-            while ($pendientes) {
-                [$original, $padreId] = array_shift($pendientes);
-
-                $nueva = Carpeta::create([
-                    'dependencia_id' => $original->dependencia_id,
-                    'carpeta_id' => $padreId,
-                    'nombre' => $original->nombre,
-                    'descripcion' => $original->descripcion,
-                    'creado_por' => auth()->id(),
-                ]);
-                $raiz ??= $nueva;
-
-                foreach ($original->documentos()->activos()->with('versionActual', 'etiquetas')->get() as $documento) {
-                    $documentos += $this->almacenamiento->copiarDocumento($documento, $nueva->id) ? 1 : 0;
-                }
-
-                foreach ($original->hijas()->activas()->get() as $hija) {
-                    $pendientes[] = [$hija, $nueva->id];
-                }
-            }
-
-            return [$raiz, $documentos];
-        });
+        [$copia, $documentos] = DB::transaction(
+            fn () => $this->almacenamiento->copiarCarpeta($carpeta, $destino?->id)
+        );
 
         $this->auditor->registrar(
             AccionAuditoria::CarpetaCopiada,
@@ -202,6 +189,27 @@ class CarpetaController extends Controller
         return redirect()
             ->route('documentos.index', ['carpeta' => $carpeta->uuid])
             ->with('exito', 'Carpeta reactivada.');
+    }
+
+    protected function asignarCustodia(Carpeta $carpeta, mixed $grupoId): void
+    {
+        $grupoId = $grupoId ? (int) $grupoId : null;
+
+        if ($carpeta->grupo_custodia_id === $grupoId) {
+            return;
+        }
+
+        $carpeta->update(['grupo_custodia_id' => $grupoId]);
+        $grupo = $grupoId ? GrupoCustodia::find($grupoId) : null;
+
+        $this->auditor->registrar(
+            AccionAuditoria::CarpetaCustodia,
+            $carpeta,
+            $grupo
+                ? "Puso la carpeta «{$carpeta->nombre}» bajo custodia de «{$grupo->nombre}»"
+                : "Quitó la custodia de la carpeta «{$carpeta->nombre}»",
+            ['grupo' => $grupoId],
+        );
     }
 
     protected function autorizarEdicion(): void

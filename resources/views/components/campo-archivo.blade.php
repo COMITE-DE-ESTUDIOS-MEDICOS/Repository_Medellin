@@ -6,7 +6,13 @@
     'varios' => false,
     'conNombres' => false,
     'camara' => false,
+    // Con cámara, si también se puede elegir de la galería. Sin galería (turnos,
+    // DOC-12) la foto solo se toma en el momento.
+    'galeria' => true,
     'maximo' => null,
+
+    // Lo que dice el sello de la foto debajo de la hora: «Evidencia», «Turno».
+    'sello' => 'Evidencia',
 
     // De qué conjunto de config/repositorio.php salen los formatos: el de
     // dentro ('aplicacion', que incluye hojas de cálculo) o el de la puerta
@@ -28,17 +34,18 @@
                       active:bg-[var(--card-soft)]';
 @endphp
 
-<div data-campo-archivo
+<div data-campo-archivo class="min-w-0"
      @if($autocompletar) data-autocompletar="{{ $autocompletar }}" @endif
      @if($maximo) data-maximo="{{ $maximo }}" @endif
-     @if($camara) data-lado-maximo="{{ config('repositorio.imagen.lado_maximo') }}" @endif>
+     @if($camara) data-lado-maximo="{{ config('repositorio.imagen.lado_maximo') }}" data-sello="{{ $sello }}" @endif>
 
     {{--
         El campo nativo. Nunca se quita del HTML: si el script no corre, esto
         sigue siendo un formulario de archivo que funciona.
     --}}
     <input id="{{ $nombre }}" name="{{ $nombreCampo }}" type="file" data-entrada
-           @required($requerido) @if($varios) multiple @endif accept="{{ $acepta }}"
+           @required($requerido) @if($varios) multiple @endif
+           @if($camara && ! $galeria) accept="image/*" capture="environment" @else accept="{{ $acepta }}" @endif
            class="mt-1 block w-full text-sm text-[var(--muted)] file:mr-3 file:rounded-md file:border-0
                   file:bg-[var(--card-soft)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--text)]">
 
@@ -48,7 +55,7 @@
             grandes. 'capture' lo pone y lo quita el script justo antes de
             abrir el campo, porque los dos no caben en un mismo input.
         --}}
-        <div data-selectores class="mt-2 hidden grid-cols-2 gap-2">
+        <div data-selectores class="mt-2 hidden {{ $galeria ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
             <button type="button" data-camara class="{{ $botonSelector }}">
                 <svg class="size-7 text-[var(--muted)]" fill="none" stroke="currentColor"
                      stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -59,6 +66,7 @@
                 Tomar foto
             </button>
 
+            @if($galeria)
             <button type="button" data-galeria class="{{ $botonSelector }}">
                 <svg class="size-7 text-[var(--muted)]" fill="none" stroke="currentColor"
                      stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -67,6 +75,7 @@
                 </svg>
                 Elegir archivo
             </button>
+            @endif
         </div>
 
         {{-- El motivo de que las fotos salgan sin coordenadas, y cómo arreglarlo. --}}
@@ -101,7 +110,7 @@
     @endif
 
     {{-- Lo adjuntado, una tarjeta por archivo. --}}
-    <div data-lista class="mt-3 hidden flex-col gap-2"></div>
+    <div data-lista class="mt-3 hidden min-w-0 flex-col gap-2"></div>
 
     <p data-resumen class="mt-2 hidden text-xs text-[var(--muted)]"></p>
 
@@ -114,7 +123,7 @@
         marcado y sus clases se leen aquí, junto al resto de la vista.
     --}}
     <template data-plantilla>
-        <div class="relative flex items-center gap-3 rounded-lg bg-[var(--card-soft)] p-2.5 pr-11 ring-1 ring-[var(--border)]">
+        <div class="relative flex min-w-0 max-w-full items-center gap-3 rounded-lg bg-[var(--card-soft)] p-2.5 pr-11 ring-1 ring-[var(--border)]">
             <img data-miniatura alt="" class="hidden size-14 shrink-0 rounded-md object-cover">
 
             <span data-icono class="hidden size-14 shrink-0 items-center justify-center rounded-md bg-[var(--card)] text-[var(--muted)]">
@@ -143,10 +152,10 @@
                     {{-- Textarea que crece con el texto: un nombre largo se lee entero. --}}
                     <textarea name="nombres[]" data-nombre-campo rows="1"
                               placeholder="Nombre del documento"
-                              class="liquid-input w-full resize-none py-2 text-sm [field-sizing:content]"></textarea>
-                    <span data-archivo class="mt-1 block truncate text-xs text-[var(--muted)]"></span>
+                              class="liquid-input w-full min-w-0 max-w-full resize-none py-2 text-sm [field-sizing:content] [overflow-wrap:anywhere]"></textarea>
+                    <span data-archivo class="mt-1 block text-xs text-[var(--muted)] [overflow-wrap:anywhere]"></span>
                 @else
-                    <span data-archivo class="block truncate text-sm font-medium text-[var(--text)]"></span>
+                    <span data-archivo class="block text-sm font-medium text-[var(--text)] [overflow-wrap:anywhere]"></span>
                     <span data-peso class="block text-xs text-[var(--muted)]"></span>
                 @endif
             </span>

@@ -35,6 +35,21 @@
 @endif
 
 @if($errors->any())
+    {{--
+        Además del bloque, un toast: el bloque queda arriba y en un formulario
+        largo nadie lo ve. Uno solo con todo lo que falta, no uno por campo.
+    --}}
+    <div data-toast-errores data-mensaje="Revisa: {{ implode(' · ', array_slice($errors->all(), 0, 3)) }}{{ count($errors->all()) > 3 ? ' · y '.(count($errors->all()) - 3).' más' : '' }}" hidden></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mensaje = document.querySelector('[data-toast-errores]')?.dataset.mensaje;
+
+            if (mensaje) {
+                window.mostrarToast?.('error', mensaje);
+            }
+        });
+    </script>
+
     <div class="liquid-alert liquid-alert-error mb-4 text-sm">
         <div>
             <p class="font-medium">Revisa los siguientes puntos:</p>

@@ -77,6 +77,11 @@ class Documento extends Model
         return $this->belongsToMany(Etiqueta::class, 'documento_etiqueta');
     }
 
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(ComentarioDocumento::class)->orderBy('created_at');
+    }
+
     public function versiones(): HasMany
     {
         return $this->hasMany(DocumentoVersion::class)->orderByDesc('numero');
@@ -137,10 +142,11 @@ class Documento extends Model
         $query->where('activo', true);
 
         // Lo que está dentro de una carpeta retirada lo ve quien ve la
-        // carpeta retirada: Coordinación. El resto, ni buscándolo.
+        // carpeta retirada: Coordinación. Y lo de una carpeta custodiada,
+        // solo su grupo. El resto, ni buscándolo.
         if (! $usuario?->puedeGestionarEn($dependenciaId)) {
-            $retiradas = Carpeta::idsRetiradas($dependenciaId);
-            $query->where(fn ($q) => $q->whereNull('carpeta_id')->orWhereNotIn('carpeta_id', $retiradas));
+            $ocultas = [...Carpeta::idsRetiradas($dependenciaId), ...Carpeta::idsVedadasPara($usuario, $dependenciaId)];
+            $query->where(fn ($q) => $q->whereNull('carpeta_id')->orWhereNotIn('carpeta_id', $ocultas));
         }
 
         return $query;

@@ -91,7 +91,8 @@ abstraído (migrable a S3 o MinIO cambiando una línea de configuración).
 | [`GEOLOCALIZACION.md`](docs/GEOLOCALIZACION.md) | Las fotos con hora y lugar: cómo funcionan y hasta dónde sirven como prueba |
 | [`RESOLUCION-FOTOS.md`](docs/RESOLUCION-FOTOS.md) | Tamaño y calidad de las fotos de evidencia, en lenguaje no técnico |
 | [`INTERFAZ.md`](docs/INTERFAZ.md) | Convenciones de la capa visual: responsivo, avatar por rol, cabecera |
-| [`turnos/`](docs/turnos/) | Módulo de turnos por componente: plan y reparto del desarrollo (en planificación) |
+| [`turnos/`](docs/turnos/README.md) | Módulo de turnos: uso para Coordinación, despliegue (cron, versión, avisos) y arquitectura |
+| [`PROXIMOS-CAMBIOS.md`](docs/PROXIMOS-CAMBIOS.md) | Cola de trabajo acordada: copiar por check, Edición inactiva, tope semanal de 42 h, carga por tandas |
 
 Los prompts de desarrollo están en [`docs/prompts/`](docs/prompts/) y las notas de reunión en [`docs/reuniones/`](docs/reuniones/).
 

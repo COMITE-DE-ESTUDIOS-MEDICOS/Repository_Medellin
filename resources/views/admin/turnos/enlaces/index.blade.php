@@ -1,13 +1,13 @@
 @extends('layouts.app')
-@section('titulo', 'Enlaces de turno')
+@section('titulo', 'Enlaces por cédula')
 
 @section('contenido')
 
 <div class="mb-4 flex flex-wrap items-center gap-3">
     <div>
-        <h1 class="text-lg font-semibold text-[var(--text)]">Enlaces de turno</h1>
+        <h1 class="text-lg font-semibold text-[var(--text)]">Enlaces por cédula</h1>
         <p class="text-sm text-[var(--muted)]">
-            Con el mismo enlace se marca entrada y salida. Compártelo por WhatsApp o imprime su QR.
+            Turnos, derivaciones y supervisión: quien lo abre se identifica con su cédula. Compártelo por WhatsApp o imprime su QR.
         </p>
     </div>
 
@@ -22,7 +22,8 @@
         <thead class="bg-[var(--card-soft)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
             <tr>
                 <th class="px-4 py-3 font-medium">Dónde</th>
-                <th class="px-4 py-3 font-medium">Marcaciones</th>
+                <th class="px-4 py-3 font-medium">Tipo</th>
+                <th class="px-4 py-3 font-medium">Registros</th>
                 <th class="px-4 py-3 font-medium">Creado</th>
                 <th class="px-4 py-3 font-medium">Estado</th>
                 <th class="px-4 py-3"></th>
@@ -40,7 +41,8 @@
                             <p class="text-xs text-[var(--muted)]">{{ $enlace->nombre }}</p>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-[var(--muted)]">{{ $enlace->marcaciones_count }}</td>
+                    <td class="px-4 py-3 text-[var(--text)]">{{ $enlace->etiquetaTipo() }}</td>
+                    <td class="px-4 py-3 text-[var(--muted)]">{{ $enlace->esDerivacion() ? $enlace->derivaciones_count : ($enlace->esSupervision() ? $enlace->supervisiones_count : $enlace->marcaciones_count) }}</td>
                     <td class="px-4 py-3 text-[var(--muted)]">
                         {{ $enlace->created_at->format('d/m/Y') }}
                         <span class="block text-xs">{{ $enlace->creador?->name }}</span>
@@ -64,8 +66,8 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="px-4 py-10 text-center text-[var(--muted)]">
-                        Aún no hay enlaces de turno. Crea uno por componente, o uno por nodo para pegarlo en cada lugar.
+                    <td colspan="6" class="px-4 py-10 text-center text-[var(--muted)]">
+                        Aún no hay enlaces. Crea uno por componente, o uno por nodo para pegarlo en cada lugar.
                     </td>
                 </tr>
             @endforelse

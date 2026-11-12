@@ -7,14 +7,15 @@ use App\Models\User;
 use App\Services\ContextoDependencia;
 
 /**
- * Las personas de campo las gestiona Coordinación (y Administración). Son
- * datos personales de gente sin cuenta: Edición y Lectura no los ven.
+ * Las personas de campo las gestiona Edición en adelante: los editores son
+ * los líderes de cada componente o nodo. Son datos personales de gente sin
+ * cuenta: Lectura no los ve.
  */
 class ColaboradorPolicy
 {
     public function viewAny(User $usuario): bool
     {
-        return $usuario->puedeGestionarEn(app(ContextoDependencia::class)->id());
+        return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());
     }
 
     public function create(User $usuario): bool
@@ -24,7 +25,7 @@ class ColaboradorPolicy
 
     public function view(User $usuario, Colaborador $colaborador): bool
     {
-        return $usuario->puedeGestionarEn($colaborador->dependencia_id);
+        return $usuario->puedeEditarEn($colaborador->dependencia_id);
     }
 
     public function update(User $usuario, Colaborador $colaborador): bool

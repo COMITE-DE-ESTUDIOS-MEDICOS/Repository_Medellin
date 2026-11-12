@@ -17,7 +17,7 @@
 
     <div class="ml-auto flex flex-wrap gap-2">
         @if($carpetaActual)
-            <a href="{{ route('carpetas.descargar', $carpetaActual) }}"
+            <a href="{{ route('carpetas.descargar', $carpetaActual) }}" download
                class="rounded-md bg-[var(--card)] px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
                 Descargar carpeta
             </a>
@@ -86,27 +86,121 @@
 @if($carpetas->isNotEmpty())
     <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         @foreach($carpetas as $carpeta)
-            <div class="main-card group relative p-4 ring-1 ring-[var(--border)] hover:ring-[var(--primary)] {{ $carpeta->activa ? '' : 'opacity-60' }}">
-                <a href="{{ route('documentos.index', ['carpeta' => $carpeta->uuid]) }}" class="flex items-start gap-3">
-                    <svg class="size-8 shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M2 6a2 2 0 0 1 2-2h5.17a2 2 0 0 1 1.41.59L12 6h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Z"/>
-                    </svg>
+            @php
+                $seleccionable = $destinos && $carpeta->activa;
+                $editable = (bool) $rolActual?->puedeEditar();
+                $lote = "lote-carpeta-{$carpeta->uuid}";
+            @endphp
+            {{--
+                Marcada para copiar o mover, la tarjeta lo dice sola: anillo,
+                tinte y la marca sobre el icono, todo con has-[:checked] sobre
+                el check escondido. Con su menú abierto sube por encima de las
+                vecinas, que si no lo taparían.
+            --}}
+            <div class="main-card group/carpeta relative p-4 ring-1 ring-[var(--border)] hover:ring-[var(--primary)]
+                        has-[:checked]:border-[var(--primary)] has-[:checked]:ring-2 has-[:checked]:ring-[var(--primary)]
+                        has-[:checked]:[background-color:color-mix(in_srgb,var(--primary)_8%,var(--card))]
+                        has-[details[open]]:z-20">
+                {{--
+                    El check del lote sigue aquí, pero sin verse: lo marca
+                    «Seleccionar» en el menú ⋮ y lo envía #form-lote como
+                    siempre (lote-explorador.js).
+                --}}
+                @if($seleccionable)
+                    <input type="checkbox" name="carpetas[]" value="{{ $carpeta->uuid }}" form="form-lote" data-lote-item
+                           id="{{ $lote }}" hidden>
+                @endif
+                <a href="{{ route('documentos.index', ['carpeta' => $carpeta->uuid]) }}"
+                   class="flex items-start gap-3 {{ $carpeta->activa ? '' : 'opacity-60' }} {{ $seleccionable || $editable ? 'pr-8' : '' }}">
+                    <span class="relative shrink-0">
+                        <svg class="size-8 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M2 6a2 2 0 0 1 2-2h5.17a2 2 0 0 1 1.41.59L12 6h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Z"/>
+                        </svg>
+                        @if($seleccionable)
+                            <span aria-hidden="true"
+                                  class="absolute -bottom-1 -right-1.5 hidden size-5 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--card)] ring-2 ring-[var(--card)] group-has-[:checked]/carpeta:flex">
+                                <svg class="size-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" clip-rule="evenodd"
+                                          d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z"/>
+                                </svg>
+                            </span>
+                        @endif
+                    </span>
                     <div class="min-w-0">
-                        <p class="truncate font-medium text-[var(--text)]">{{ $carpeta->nombre }}</p>
+                        <p class="flex items-center gap-1 truncate font-medium text-[var(--text)]">
+                            @if(isset($custodiadas[$carpeta->id]))
+                                <svg class="size-3.5 shrink-0 text-[var(--primary)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <title>Bajo custodia</title>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+                                </svg>
+                            @endif
+                            <span class="truncate">{{ $carpeta->nombre }}</span>
+                        </p>
                         <p class="text-xs text-[var(--muted)]">
                             {{ $carpeta->documentos_count }} {{ Str::plural('documento', $carpeta->documentos_count) }}
                             @unless($carpeta->activa) · inactiva @endunless
                         </p>
+                        {{-- Lo llena lote-explorador.js; describe también al botón ⋮. --}}
+                        @if($seleccionable)
+                            <span id="estado-{{ $lote }}" data-lote-estado="{{ $lote }}" class="sr-only"></span>
+                        @endif
                     </div>
                 </a>
-                @if($rolActual?->puedeEditar())
-                    <a href="{{ route('carpetas.edit', $carpeta) }}"
-                       class="absolute right-2 top-2 hidden text-xs text-[var(--muted)] hover:text-[var(--text)] group-hover:block">Editar</a>
+
+                {{--
+                    Un <details>, como el menú de la cuenta: se abre aunque el
+                    JavaScript falle. menu-opciones.js le pone lo de un menú
+                    (flechas, Escape, uno abierto a la vez). Va al lado del
+                    enlace y no dentro, así que pulsarlo no abre la carpeta.
+                --}}
+                @if($seleccionable || $editable)
+                    <details data-menu-opciones class="absolute right-1 top-1">
+                        <summary aria-haspopup="menu" aria-expanded="false" aria-label="Opciones de la carpeta {{ $carpeta->nombre }}"
+                                 @if($seleccionable) aria-describedby="estado-{{ $lote }}" @endif
+                                 class="foco flex size-11 cursor-pointer list-none items-center justify-center rounded-full text-[var(--muted)]
+                                        hover:bg-[var(--card-soft)] hover:text-[var(--text)] [&::-webkit-details-marker]:hidden">
+                            <svg class="size-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="5" r="1.75"/>
+                                <circle cx="12" cy="12" r="1.75"/>
+                                <circle cx="12" cy="19" r="1.75"/>
+                            </svg>
+                        </summary>
+
+                        <div role="menu" aria-label="Opciones de la carpeta {{ $carpeta->nombre }}"
+                             class="absolute right-0 top-full z-30 mt-1 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md bg-[var(--card)] py-1 shadow-lg ring-1 ring-[var(--border)]">
+                            @if($editable)
+                                <a href="{{ route('carpetas.edit', $carpeta) }}" role="menuitem" tabindex="-1"
+                                   class="flex min-h-11 items-center gap-2.5 px-4 text-sm text-[var(--text)] hover:bg-[var(--card-soft)]
+                                          focus-visible:bg-[var(--card-soft)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--primary)]">
+                                    <svg class="size-4 shrink-0 text-[var(--muted)]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/>
+                                    </svg>
+                                    Editar
+                                </a>
+                            @endif
+                            {{-- El texto cambia con el check (has-[:checked]): no hay que tenerlo al día a mano. --}}
+                            @if($seleccionable)
+                                <button type="button" role="menuitem" tabindex="-1" data-lote-alternar="{{ $lote }}"
+                                        class="flex min-h-11 w-full items-center gap-2.5 px-4 text-left text-sm text-[var(--text)] hover:bg-[var(--card-soft)]
+                                               focus-visible:bg-[var(--card-soft)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--primary)]">
+                                    <svg class="size-4 shrink-0 text-[var(--muted)] group-has-[:checked]/carpeta:hidden" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    </svg>
+                                    <svg class="hidden size-4 shrink-0 text-[var(--muted)] group-has-[:checked]/carpeta:block" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                                    </svg>
+                                    <span class="group-has-[:checked]/carpeta:hidden">Seleccionar</span>
+                                    <span class="hidden group-has-[:checked]/carpeta:inline">Quitar selección</span>
+                                </button>
+                            @endif
+                        </div>
+                    </details>
                 @endif
 
                 @unless($carpeta->activa)
                     @can('reactivar', $carpeta)
-                        <form method="POST" action="{{ route('carpetas.reactivar', $carpeta) }}" class="mt-3">
+                        <form method="POST" action="{{ route('carpetas.reactivar', $carpeta) }}" class="mt-3 opacity-60">
                             @csrf @method('PATCH')
                             <button class="w-full rounded-md bg-[var(--success)] px-3 py-1.5 text-xs font-medium text-white hover:brightness-90">
                                 Reactivar carpeta
@@ -123,6 +217,11 @@
     <table class="min-w-full divide-y divide-[var(--border)] text-sm">
         <thead class="bg-[var(--card-soft)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
             <tr>
+                @if($destinos)
+                    <th class="w-10 py-3 pl-4">
+                        <input type="checkbox" data-lote-todos aria-label="Marcar todos los documentos" class="size-4 cursor-pointer accent-[var(--primary)]">
+                    </th>
+                @endif
                 <th class="px-4 py-3 font-medium">Documento</th>
                 <th class="px-4 py-3 font-medium">Tipo</th>
                 <th class="px-4 py-3 font-medium">Fecha</th>
@@ -134,6 +233,14 @@
         <tbody class="divide-y divide-[var(--border)]">
             @forelse($documentos as $documento)
                 <tr class="{{ $documento->activo ? '' : 'bg-danger-soft' }}">
+                    @if($destinos)
+                        <td class="py-3 pl-4">
+                            @if($documento->activo)
+                                <input type="checkbox" name="documentos[]" value="{{ $documento->uuid }}" form="form-lote" data-lote-item data-lote-documento
+                                       aria-label="Marcar {{ $documento->nombre }}" class="size-4 cursor-pointer accent-[var(--primary)]">
+                            @endif
+                        </td>
+                    @endif
                     <td class="px-4 py-3">
                         <a href="{{ route('documentos.show', $documento) }}"
                            class="break-words font-medium text-[var(--text)] hover:text-[var(--primary)]">
@@ -192,7 +299,7 @@
                                 @endif
                             @endif
 
-                            <a href="{{ route('documentos.descargar', $documento) }}"
+                            <a href="{{ route('documentos.descargar', $documento) }}" download
                                class="text-sm font-medium text-[var(--primary)] hover:underline">Descargar</a>
 
                             @unless($documento->activo)
@@ -208,7 +315,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="px-4 py-10 text-center text-[var(--muted)]">
+                    <td colspan="{{ $destinos ? 7 : 6 }}" class="px-4 py-10 text-center text-[var(--muted)]">
                         @if($busqueda)
                             No hay documentos que coincidan con la búsqueda.
                         @else
@@ -226,5 +333,30 @@
 </div>
 
 <div class="mt-4">{{ $documentos->links() }}</div>
+
+{{--
+    Copiar o mover lo marcado (LoteController). Los checks están repartidos por
+    la página y apuntan aquí con form="form-lote". La barra aparece al marcar
+    algo (lote-explorador.js) y queda fija abajo mientras se recorre la lista.
+--}}
+@if($destinos)
+    <form id="form-lote" method="POST" action="{{ route('documentos.lote') }}" data-lote-barra hidden
+          class="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg bg-[var(--card)] p-3 shadow-lg ring-1 ring-[var(--border)] md:left-72">
+        @csrf
+        <p class="text-sm font-medium text-[var(--text)]"><span data-lote-cuenta>0</span> marcados</p>
+        <select name="destino" data-buscable class="liquid-input min-w-0 flex-1 text-sm" aria-label="Carpeta de destino">
+            <option value="">Raíz de la dependencia</option>
+            @foreach($destinos as $id => $ruta)
+                <option value="{{ $id }}" @selected($id === $carpetaActual?->id)>{{ $ruta }}</option>
+            @endforeach
+        </select>
+        <button name="accion" value="copiar" class="liquid-button-primary rounded-md px-3 py-2 text-sm font-medium">Copiar aquí</button>
+        <button name="accion" value="mover" data-lote-mover
+                class="rounded-md bg-[var(--card-soft)] px-3 py-2 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:brightness-95">
+            Mover aquí
+        </button>
+        <button type="button" data-lote-limpiar class="px-2 py-2 text-sm text-[var(--muted)] hover:text-[var(--text)]">Quitar marcas</button>
+    </form>
+@endif
 
 @endsection

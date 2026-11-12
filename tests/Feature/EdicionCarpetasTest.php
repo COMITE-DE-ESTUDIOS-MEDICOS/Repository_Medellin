@@ -47,36 +47,34 @@ class EdicionCarpetasTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_edicion_inactiva_su_carpeta_pero_no_la_ajena(): void
+    /** Dos carpetas «Octubre» se distinguen por su ruta al copiar o mover. */
+    public function test_los_selectores_de_carpeta_muestran_la_ruta_completa(): void
     {
         $editor = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia);
-        $otro = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia);
+        $nodo2 = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Nodo 2']);
+        $nodo6 = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Nodo 6']);
+        Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'carpeta_id' => $nodo2->id, 'nombre' => 'Octubre']);
+        Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'carpeta_id' => $nodo6->id, 'nombre' => 'Octubre']);
 
-        $propia = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $editor->id]);
-        $ajena = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $otro->id]);
-
-        $this->actingAs($editor)->patch(route('carpetas.inactivar', $ajena))->assertForbidden();
-        $this->actingAs($editor)->patch(route('carpetas.inactivar', $propia))->assertRedirect();
-
-        $this->assertDatabaseHas('carpetas', ['id' => $ajena->id, 'activa' => true]);
-        $this->assertDatabaseHas('carpetas', ['id' => $propia->id, 'activa' => false]);
+        $this->actingAs($editor)->get(route('documentos.create'))
+            ->assertOk()
+            ->assertSee('Nodo 2 / Octubre')
+            ->assertSee('Nodo 6 / Octubre')
+            ->assertSee('data-buscable', false);
     }
 
-    public function test_edicion_no_inactiva_su_carpeta_si_tiene_algo_ajeno(): void
+    /** Edición retira cualquier carpeta que vea (lo custodiado por otros ni lo ve: CustodiaTest). */
+    public function test_edicion_inactiva_carpetas_propias_y_ajenas_pero_no_las_reactiva(): void
     {
         $editor = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia);
         $otro = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia);
 
-        $propia = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $editor->id]);
-        $sub = Carpeta::factory()->create([
-            'dependencia_id' => $this->dependencia->id,
-            'carpeta_id' => $propia->id,
-            'creado_por' => $editor->id,
-        ]);
-        Documento::factory()->en($sub)->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $otro->id]);
+        $ajena = Carpeta::factory()->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $otro->id]);
+        Documento::factory()->en($ajena)->create(['dependencia_id' => $this->dependencia->id, 'creado_por' => $otro->id]);
 
-        $this->actingAs($editor)->patch(route('carpetas.inactivar', $propia))->assertForbidden();
+        $this->actingAs($editor)->patch(route('carpetas.inactivar', $ajena))->assertRedirect();
+        $this->assertDatabaseHas('carpetas', ['id' => $ajena->id, 'activa' => false]);
 
-        $this->assertDatabaseHas('carpetas', ['id' => $propia->id, 'activa' => true]);
+        $this->actingAs($editor)->patch(route('carpetas.reactivar', $ajena))->assertForbidden();
     }
 }

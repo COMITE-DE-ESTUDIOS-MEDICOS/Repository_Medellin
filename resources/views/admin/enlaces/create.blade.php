@@ -22,13 +22,9 @@
 
         <div>
             <label for="carpeta_id" class="{{ $etiqueta }}">Carpeta de destino *</label>
-            <select id="carpeta_id" name="carpeta_id" required class="{{ $campo }}">
+            <select id="carpeta_id" name="carpeta_id" required data-buscable class="{{ $campo }}">
                 <option value="">Selecciona…</option>
-                @foreach($carpetas as $carpeta)
-                    <option value="{{ $carpeta->id }}" @selected(old('carpeta_id', $carpetaPorDefecto) == $carpeta->id)>
-                        {{ $carpeta->nombre }}
-                    </option>
-                @endforeach
+                <x-opciones-carpeta :carpetas="$carpetas" :seleccionada="old('carpeta_id', $carpetaPorDefecto)" />
             </select>
             <p class="{{ $ayuda }}">
                 @if($esAdministrador)
@@ -38,6 +34,24 @@
                 @endif
             </p>
         </div>
+
+        @if($componentes->isNotEmpty())
+            <div>
+                <label for="componente_id" class="{{ $etiqueta }}">
+                    Componente <span class="font-normal text-[var(--muted)]">(si es para personas de campo)</span>
+                </label>
+                <select id="componente_id" name="componente_id" class="{{ $campo }}">
+                    <option value="">Ninguno: es para alguien de fuera</option>
+                    @foreach($componentes as $componente)
+                        <option value="{{ $componente->id }}" @selected(old('componente_id') == $componente->id)>{{ $componente->nombre }}</option>
+                    @endforeach
+                </select>
+                <p class="{{ $ayuda }}">
+                    Con un componente, el formulario pide solo la cédula y toma los datos de la persona.
+                    Sin componente, pide nombre, correo y entidad.
+                </p>
+            </div>
+        @endif
 
         <div>
             <label for="proposito" class="{{ $etiqueta }}">Propósito</label>

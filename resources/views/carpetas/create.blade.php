@@ -23,13 +23,9 @@
 
         <div>
             <label for="carpeta_id" class="{{ $etiqueta }}">Dentro de</label>
-            <select id="carpeta_id" name="carpeta_id" class="{{ $campo }}">
+            <select id="carpeta_id" name="carpeta_id" data-buscable class="{{ $campo }}">
                 <option value="">Raíz de la dependencia</option>
-                @foreach($carpetas as $carpeta)
-                    <option value="{{ $carpeta->id }}" @selected(old('carpeta_id', $carpetaActual?->id) == $carpeta->id)>
-                        {{ $carpeta->nombre }}
-                    </option>
-                @endforeach
+                <x-opciones-carpeta :carpetas="$carpetas" :seleccionada="old('carpeta_id', $carpetaActual?->id)" />
             </select>
         </div>
 

@@ -11,11 +11,38 @@
         <p class="text-sm text-[var(--muted)]">Marcan turno y envían evidencias con su cédula, sin cuenta en Documenta.</p>
     </div>
 
-    <a href="{{ route('admin.turnos.colaboradores.create') }}"
-       class="liquid-button-primary ml-auto rounded-md px-3 py-1.5 text-sm font-medium">
-        Registrar persona
-    </a>
+    <div class="ml-auto flex flex-wrap gap-2">
+        @can('viewAny', App\Models\TipoTurno::class)
+            <a href="{{ route('admin.turnos.tipos-turno') }}" class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Tipos de turno</a>
+        @endcan
+        @can('create', App\Models\Colaborador::class)
+            {{-- Carga masiva (temporal): la plantilla y el botón que la lee. --}}
+            <a href="{{ route('admin.turnos.colaboradores.carga.plantilla') }}" download class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Descargar Excel de carga</a>
+            <form method="POST" action="{{ route('admin.turnos.colaboradores.carga.importar') }}" enctype="multipart/form-data" data-carga-masiva>
+                @csrf
+                <label class="cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)] inline-block">
+                    Carga masiva
+                    <input type="file" name="archivo" accept=".xlsx" class="sr-only" required>
+                </label>
+            </form>
+        @endcan
+        <a href="{{ route('admin.turnos.colaboradores.create') }}"
+           class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">
+            Registrar persona
+        </a>
+    </div>
 </div>
+
+@if(session('carga_errores'))
+    <div class="mb-4 rounded-lg bg-[var(--card)] p-4 text-sm ring-1 ring-[var(--danger)]">
+        <p class="font-medium text-[var(--danger)]">La carga masiva no se hizo. Corrige estas filas del Excel y súbelo de nuevo:</p>
+        <ul class="mt-2 list-disc space-y-0.5 pl-5 text-[var(--text)]">
+            @foreach(session('carga_errores') as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
 @if($pendientes > 0 && request('verificacion') !== 'pendientes')
     <a href="{{ route('admin.turnos.colaboradores.index', ['verificacion' => 'pendientes']) }}"
@@ -45,14 +72,12 @@
 
     <div>
         <label for="nodo" class="block text-xs font-medium text-[var(--muted)]">Nodo</label>
-        <select id="nodo" name="nodo" class="{{ $campo }} mt-1">
+        <select id="nodo" name="nodo" data-depende-de="#componente" class="{{ $campo }} mt-1">
             <option value="">Todos</option>
             @foreach($componentes as $componente)
-                <optgroup label="{{ $componente->nombre }}">
-                    @foreach($componente->nodos as $nodo)
-                        <option value="{{ $nodo->id }}" @selected(request('nodo') == $nodo->id)>{{ $nodo->nombre }}</option>
-                    @endforeach
-                </optgroup>
+                @foreach($componente->nodos as $nodo)
+                    <option value="{{ $nodo->id }}" data-componente="{{ $componente->id }}" @selected(request('nodo') == $nodo->id)>{{ $nodo->nombre }}</option>
+                @endforeach
             @endforeach
         </select>
     </div>
@@ -144,5 +169,14 @@
 </div>
 
 <div class="mt-4">{{ $colaboradores->links() }}</div>
+
+@push('scripts')
+<script>
+    // Elegir el archivo ya lo envía: un clic menos.
+    document.querySelector('[data-carga-masiva] input[type=file]')?.addEventListener('change', (e) => {
+        if (e.target.files.length) e.target.form.submit();
+    });
+</script>
+@endpush
 
 @endsection

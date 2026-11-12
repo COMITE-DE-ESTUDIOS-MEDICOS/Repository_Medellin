@@ -1,20 +1,21 @@
 /**
- * Estampa hora y ubicación sobre una foto tomada con la cámara, con las 3
- * marcas del Comité en una franja inferior. Solo se aplica a fotos de cámara
- * (no a lo elegido de galería/archivo): es evidencia de que se tomó ahí y
- * entonces, no un sello decorativo.
+ * Estampa hora y lugar sobre una foto tomada con la cámara: un recuadro con
+ * la hora y, debajo, la fecha, la dirección a nivel de calle y las
+ * coordenadas, como las apps de «foto con marca de tiempo». Solo se aplica a
+ * fotos de cámara (no a lo elegido de galería/archivo): es evidencia de que
+ * se tomó ahí y entonces, no un sello decorativo.
  *
  * Todo con Canvas + Geolocation nativos del navegador. Si el usuario niega
- * la ubicación, la foto se estampa igual, solo sin coordenadas.
+ * la ubicación, la foto se estampa igual, solo sin dirección.
  */
 
-const LOGOS = ['/img/COMITE DE ESTUDIOS MEDICOS.png', '/img/Mente.png', '/img/Salud.png'];
+const AMARILLO = '#f5b800';
 
 function cargarImagen(src) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = () => resolve(null); // un logo que no carga no debe tumbar el envío
+        img.onerror = () => resolve(null); // una foto que no se lee se envía tal cual
         img.src = src;
     });
 }
@@ -54,6 +55,18 @@ const COMO_PERMITIR = esSafari
         ? 'toca el candado junto a la dirección de la página → Permisos → Ubicación → Permitir. Si no aparece, revisa Ajustes del teléfono → Aplicaciones → tu navegador → Permisos → Ubicación.'
         : 'haz clic en el ícono junto a la dirección de la página y permite la ubicación.';
 
+/**
+ * DOC-15: cómo encender la ubicación precisa en cada teléfono. Sin ella, iOS
+ * (y a veces Android) entrega una ubicación aproximada, con kilómetros de error.
+ */
+export const COMO_ACTIVAR_PRECISA = esSafari
+    ? 'Ajustes → Privacidad y seguridad → Localización → Sitios web de Safari → «Al usar la app» y activa «Ubicación exacta».'
+    : esIphone
+        ? 'Ajustes → busca este navegador (Chrome, Opera…) → Ubicación → «Al usar la app» y activa «Ubicación exacta».'
+    : esAndroid
+        ? 'Ajustes → Ubicación → activa «Usar ubicación precisa» (o «Precisión de la ubicación de Google»).'
+        : 'Activa el GPS o conéctate a una red Wi-Fi.';
+
 const MOTIVOS = {
     1: 'No hay permiso de ubicación: ' + COMO_PERMITIR + ' Luego vuelve a tomar la foto.',
     2: 'El teléfono no está entregando la ubicación. Revisa que la ubicación (GPS) esté activada en los ajustes del teléfono.',
@@ -61,6 +74,7 @@ const MOTIVOS = {
 };
 
 let ciudad = null;
+let direccion = null;
 let ciudadPedida = null;
 
 /**
@@ -82,14 +96,43 @@ export function nombreMunicipio(address = {}) {
         : null;
 }
 
+/** «Carrera 65» → «Cra. 65»: como se escriben las direcciones en Colombia. */
+const ABREVIATURAS = [
+    [/^carrera\b/i, 'Cra.'],
+    [/^calle\b/i, 'Cl.'],
+    [/^avenida\b/i, 'Av.'],
+    [/^transversal\b/i, 'Tv.'],
+    [/^diagonal\b/i, 'Dg.'],
+    [/^circular\b/i, 'Cir.'],
+];
+
 /**
- * El nombre del lugar a partir de las coordenadas, contra Nominatim (el
- * geocodificador de OpenStreetMap): unas cifras no le dicen nada a quien
- * después revisa la foto, «Medellín, Antioquia» sí. Si no hay red o tarda,
- * la foto sale igual con las coordenadas solas.
+ * La dirección a nivel de calle: «Cra. 65 #97-121, Castilla, Medellín,
+ * Antioquia». Lo que OpenStreetMap no sepa (el número, el barrio) se omite.
+ */
+export function direccionLegible(address = {}) {
+    let via = address.road || address.pedestrian || address.footway || '';
+
+    for (const [patron, corta] of ABREVIATURAS) {
+        via = via.replace(patron, corta);
+    }
+
+    const calle = via ? via + (address.house_number ? ' #' + address.house_number : '') : '';
+    const barrio = address.neighbourhood || address.suburb || address.quarter || address.hamlet;
+
+    return [calle, barrio, nombreMunicipio(address), address.state].filter(Boolean).join(', ') || null;
+}
+
+/**
+ * El lugar a partir de las coordenadas, contra Nominatim (el geocodificador
+ * de OpenStreetMap): unas cifras no le dicen nada a quien después revisa la
+ * foto, «Cra. 65 #97-121, Castilla, Medellín» sí. Si no hay red o tarda, la
+ * foto sale igual con las coordenadas solas.
  */
 async function resolverCiudad({ latitude, longitude }) {
-    const url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=12&accept-language=es'
+    // zoom=18: nivel de calle (con número y barrio). 'ciudad' sigue siendo
+    // municipio y departamento, que es lo que se guarda en la marcación.
+    const url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=es'
         + `&lat=${latitude}&lon=${longitude}`;
 
     try {
@@ -97,8 +140,10 @@ async function resolverCiudad({ latitude, longitude }) {
         const { address = {} } = await respuesta.json();
 
         ciudad = [nombreMunicipio(address), address.state].filter(Boolean).join(', ') || null;
+        direccion = direccionLegible(address);
     } catch {
         ciudad = null; // sin red, sin permiso de salida o demasiado lento
+        direccion = null;
     }
 }
 
@@ -154,6 +199,17 @@ export function ubicacionResuelta() {
 
 export function hayUbicacion() {
     return ultima !== null;
+}
+
+/**
+ * Las coordenadas para guardarlas en columnas (las marcaciones de turno se
+ * filtran por lugar; dibujadas en la foto no se pueden consultar).
+ * null si no hay ubicación.
+ */
+export function datosDeUbicacion() {
+    return ultima
+        ? { lat: ultima.latitude, lng: ultima.longitude, precision: ultima.accuracy, municipio: ciudad }
+        : null;
 }
 
 /** Pide la ubicación y espera la respuesta (o el tope de 20 s del propio navegador). */
@@ -229,71 +285,154 @@ export async function reducirImagen(archivo, ladoMaximo) {
     return escala === 1 ? archivo : aArchivo(aLienzo(imagen, escala), archivo);
 }
 
-export async function estamparFoto(archivo, ladoMaximo = 0) {
-    const [foto, coords, ...logos] = await Promise.all([
+/** Corta un texto en líneas que quepan en el ancho, como mucho 'maximo' líneas. */
+function enLineas(ctx, texto, ancho, maximo) {
+    const palabras = texto.split(' ');
+    const lineas = [];
+    let actual = '';
+
+    palabras.forEach((palabra) => {
+        const prueba = actual ? actual + ' ' + palabra : palabra;
+
+        if (ctx.measureText(prueba).width > ancho && actual) {
+            lineas.push(actual);
+            actual = palabra;
+        } else {
+            actual = prueba;
+        }
+    });
+
+    if (actual) {
+        lineas.push(actual);
+    }
+
+    if (lineas.length > maximo) {
+        lineas.length = maximo;
+        lineas[maximo - 1] = lineas[maximo - 1].replace(/,?\s*\S*$/, '') + '…';
+    }
+
+    return lineas;
+}
+
+function rectanguloRedondeado(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+/**
+ * @param {File} archivo
+ * @param {number} ladoMaximo  tope del lado largo (0 = sin tope)
+ * @param {string} etiqueta    lo que dice debajo de la hora: «Evidencia», «Turno»…
+ */
+export async function estamparFoto(archivo, ladoMaximo = 0, etiqueta = 'Evidencia') {
+    const [foto, coords] = await Promise.all([
         cargarImagen(URL.createObjectURL(archivo)),
         ubicacion(),
-        ...LOGOS.map(cargarImagen),
     ]);
 
     if (!foto) {
         return archivo;
     }
 
-    // Se dibuja ya a la escala del tope, y la franja se calcula sobre el
-    // lienzo reducido: así el sello conserva siempre las mismas proporciones.
+    // Se dibuja ya a la escala del tope, y el sello se calcula sobre el
+    // lienzo reducido: así conserva siempre las mismas proporciones.
     const lienzo = aLienzo(foto, escalaPara(foto.width, foto.height, ladoMaximo));
     const ctx = lienzo.getContext('2d');
     const { width: ancho, height: alto } = lienzo;
 
-    const alturaFranja = Math.max(70, Math.round(alto * 0.12));
-    const y0 = alto - alturaFranja;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.fillRect(0, y0, ancho, alturaFranja);
-
-    const logoAlto = alturaFranja * 0.6;
-    let x = 16;
-    logos.forEach((logo) => {
-        if (!logo) return;
-        const w = logoAlto * (logo.width / logo.height);
-        ctx.drawImage(logo, x, y0 + (alturaFranja - logoAlto) / 2, w, logoAlto);
-        x += w + 14;
-    });
+    // Todo se mide en «u», una centésima del lado corto: el sello se ve igual
+    // en una foto vertical u horizontal, grande o pequeña.
+    const u = Math.min(ancho, alto) / 100;
+    const m = 3.5 * u;
+    const fuente = (peso, tamano) => `${peso} ${Math.round(tamano)}px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
 
     // El mismo instante que se estampa viaja en lastModified, para que el
     // servidor guarde exactamente la fecha que se lee en la foto.
     const momento = new Date();
-    const hora = new Intl.DateTimeFormat('es-CO', { dateStyle: 'short', timeStyle: 'medium' }).format(momento);
-    const nombreLugar = coords ? await esperarCiudad() : null;
-    const lugar = coords
-        ? [nombreLugar, `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`].filter(Boolean).join(' · ')
-        : 'Ubicación no disponible';
+    // En 12 h, como en la aplicación: «5:09 p. m.».
+    const hora = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit', hour12: true }).format(momento).replace(/\s+/g, ' ');
+    const partesFecha = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+        .formatToParts(momento)
+        .reduce((p, { type, value }) => ({ ...p, [type]: value.replace('.', '') }), {});
+    const fecha = `${partesFecha.weekday.charAt(0).toUpperCase()}${partesFecha.weekday.slice(1)}, ${partesFecha.day} de ${partesFecha.month} ${partesFecha.year}`;
 
-    // El texto va a la derecha y solo puede ocupar lo que dejan los logos. En
-    // una foto angosta, o con un municipio de nombre largo, a su tamaño normal
-    // se montaba encima de ellos: si no cabe, la letra se achica hasta caber.
-    const margen = 16;
-    const disponible = ancho - margen - (x + margen);
+    if (coords) {
+        await esperarCiudad();
+    }
 
-    const escribir = (texto, peso, proporcion, altura) => {
-        let tamano = Math.round(alturaFranja * proporcion);
-        ctx.font = `${peso} ${tamano}px sans-serif`;
+    const lugar = coords ? (direccion || ciudad) : null;
+    const cifras = coords ? `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}` : 'Ubicación no disponible';
 
-        const medido = ctx.measureText(texto).width;
+    // Las líneas del pie, de arriba abajo, para saber cuánto miden antes de pintar.
+    const anchoTexto = Math.min(ancho * 0.72, ancho - 2 * m - 6 * u);
+    ctx.font = fuente(500, 3.4 * u);
+    const lineasLugar = lugar ? enLineas(ctx, lugar, anchoTexto, 2) : [];
+    const pie = [
+        { texto: etiqueta, font: fuente(700, 4.6 * u), alto: 6 * u },
+        { texto: fecha, font: fuente(500, 3.6 * u), alto: 5 * u },
+        ...lineasLugar.map((texto) => ({ texto, font: fuente(500, 3.4 * u), alto: 4.6 * u })),
+        { texto: cifras, font: fuente(400, 2.6 * u), alto: 4 * u },
+    ];
+    const altoPie = pie.reduce((suma, linea) => suma + linea.alto, 0);
 
-        if (medido > disponible && disponible > 0) {
-            tamano = Math.max(8, Math.floor(tamano * disponible / medido));
-            ctx.font = `${peso} ${tamano}px sans-serif`;
-        }
+    // El recuadro de la hora, encima del pie.
+    const altoCaja = 14 * u;
+    ctx.font = fuente(700, 10 * u);
+    const anchoHora = ctx.measureText(hora).width;
+    const radioCheck = 3.2 * u;
+    const anchoCaja = 3 * u + anchoHora + 2.5 * u + radioCheck * 2 + 3 * u;
 
-        ctx.fillText(texto, ancho - margen, y0 + alturaFranja * altura);
-    };
+    const yPie = alto - m - altoPie;
+    const yCaja = yPie - 2 * u - altoCaja;
 
-    ctx.textAlign = 'right';
+    // Recuadro de la hora, con el check.
+    rectanguloRedondeado(ctx, m, yCaja, anchoCaja, altoCaja, 1.6 * u);
+    ctx.fillStyle = 'rgba(52, 26, 18, 0.92)';
+    ctx.fill();
+
     ctx.fillStyle = '#fff';
-    escribir(hora, 'bold', 0.26, 0.45);
-    escribir(lugar, 'normal', 0.22, 0.78);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = fuente(700, 10 * u);
+    ctx.fillText(hora, m + 3 * u, yCaja + altoCaja / 2);
+
+    const cx = m + 3 * u + anchoHora + 2.5 * u + radioCheck;
+    const cy = yCaja + altoCaja / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radioCheck, 0, Math.PI * 2);
+    ctx.fillStyle = AMARILLO;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - radioCheck * 0.42, cy + radioCheck * 0.02);
+    ctx.lineTo(cx - radioCheck * 0.1, cy + radioCheck * 0.34);
+    ctx.lineTo(cx + radioCheck * 0.45, cy - radioCheck * 0.3);
+    ctx.strokeStyle = '#2a1a10';
+    ctx.lineWidth = 0.75 * u;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // El pie, con la barra amarilla a la izquierda.
+    ctx.fillStyle = AMARILLO;
+    ctx.fillRect(m, yPie + 0.6 * u, 0.7 * u, altoPie - 1.2 * u);
+
+    // Sin fondo: el texto se lee por la sombra, sobre cualquier foto.
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 1.2 * u;
+    ctx.fillStyle = '#fff';
+    let y = yPie;
+    pie.forEach((linea) => {
+        ctx.font = linea.font;
+        ctx.fillText(linea.texto, m + 2.6 * u, y + linea.alto / 2, anchoTexto);
+        y += linea.alto;
+    });
+
+    ctx.shadowBlur = 0;
 
     return aArchivo(lienzo, archivo, momento.getTime());
 }

@@ -70,6 +70,9 @@
     </script>
 
     @vite(['resources/css/app.css', 'resources/css/loader.css', 'resources/js/app.js'])
+
+    {{-- Lo que una página necesita solo para ella (p. ej. los estilos de Filament). --}}
+    @stack('estilos')
 </head>
 <body class="h-full antialiased">
 
@@ -260,8 +263,10 @@
     // Bubbling: si un formulario ya manejó su propio envío por AJAX y llamó a
     // preventDefault() (como el interruptor de tema), defaultPrevented llega
     // en true aquí y este overlay no se muestra para algo que no navega.
+    // Tampoco para un botón con data-descarga: la respuesta es un archivo y
+    // la página se queda, así que nadie lo ocultaría.
     document.addEventListener('submit', (evento) => {
-        if (!evento.defaultPrevented) {
+        if (!evento.defaultPrevented && !evento.submitter?.hasAttribute('data-descarga')) {
             mostrarCargando();
         }
     });
@@ -275,6 +280,8 @@
     });
 })();
 </script>
+
+@stack('scripts')
 
 </body>
 </html>

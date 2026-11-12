@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flujos de Documenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f7; --card: #ffffff; --soft: #f8fafb; --border: #dfe4e8; --text: #1f2933; --muted: #66727d;
+    --primary: #1f4e79; --success: #198754; --warning: #b7791f; --danger: #c53030; --nuevo: #6d4bc4; --campo: #0f766e;
+    --c-usuario: #e8f0f8; --c-sistema: #e9f6ef; --c-campo: #e6f4f2; --c-prop: #f1ecfb; --c-decision: #fff8eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101417; --card: #171d21; --soft: #1d252a; --border: #303a40; --text: #edf2f4; --muted: #aab5bc;
+      --primary: #4d8ac4; --success: #48bb78; --warning: #ecc94b; --nuevo: #a78bfa; --campo: #2dd4bf;
+      --c-usuario: #1a2a3a; --c-sistema: #16291f; --c-campo: #12302c; --c-prop: #241d38; --c-decision: #2e2715;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101417; --card: #171d21; --soft: #1d252a; --border: #303a40; --text: #edf2f4; --muted: #aab5bc;
+    --primary: #4d8ac4; --success: #48bb78; --warning: #ecc94b; --nuevo: #a78bfa; --campo: #2dd4bf;
+    --c-usuario: #1a2a3a; --c-sistema: #16291f; --c-campo: #12302c; --c-prop: #241d38; --c-decision: #2e2715;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: 'Instrument Sans', system-ui, sans-serif; display: flex; overflow: hidden; }
+
+  /* Índice */
+  aside { width: 300px; flex-shrink: 0; height: 100%; overflow-y: auto; background: var(--card); border-right: 1px solid var(--border); padding: 22px 14px 40px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .marca { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding: 0 10px; }
+  aside h1 { font-size: 20px; padding: 4px 10px 16px; }
+  .buscar { width: calc(100% - 20px); margin: 0 10px 14px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--soft); color: var(--text); font: inherit; font-size: 14px; }
+  .modulo { margin-top: 10px; }
+  .modulo > p { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 8px 10px 4px; }
+  aside a { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 8px; color: var(--text); text-decoration: none; font-size: 14px; line-height: 1.3; }
+  aside a:hover { background: var(--soft); }
+  aside a.activo { background: var(--primary); color: #fff; }
+  aside a .n { font-size: 11px; color: var(--muted); min-width: 18px; }
+  aside a.activo .n { color: #fff; opacity: .8; }
+
+  /* Escenario */
+  main { flex: 1; height: 100%; overflow-y: auto; overflow-x: hidden; position: relative; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  .barra { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 12px 24px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .progreso { flex: 1; height: 6px; border-radius: 999px; background: var(--soft); border: 1px solid var(--border); overflow: hidden; }
+  .progreso div { height: 100%; background: var(--primary); border-radius: 999px; transition: width .45s cubic-bezier(.2,.8,.2,1); }
+  .boton { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 10px; padding: 8px 14px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .boton:hover { background: var(--soft); }
+  .boton:disabled { opacity: .4; cursor: default; }
+  .contador { font-size: 13px; color: var(--muted); min-width: 64px; text-align: center; }
+  .menu-movil { display: none; }
+
+  .pagina { max-width: 980px; margin: 0 auto; padding: 32px 24px 80px; }
+  .pagina.sale { animation: sale .22s ease-in forwards; }
+  .pagina.entra-der { animation: entraDer .38s cubic-bezier(.2,.8,.2,1); }
+  .pagina.entra-izq { animation: entraIzq .38s cubic-bezier(.2,.8,.2,1); }
+  @keyframes sale { to { opacity: 0; transform: translateY(-8px) scale(.99); } }
+  @keyframes entraDer { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+  @keyframes entraIzq { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .pagina.sale, .pagina.entra-der, .pagina.entra-izq, .nodo { animation: none !important; } }
+
+  .cabecera { margin-bottom: 26px; }
+  .cabecera .mod { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--primary); font-weight: 600; }
+  .cabecera h2 { font-size: 30px; line-height: 1.15; margin-top: 6px; }
+  .cabecera p { color: var(--muted); margin-top: 8px; max-width: 760px; line-height: 1.5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--card); color: var(--muted); }
+
+  .leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--muted); margin-bottom: 22px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+  .leyenda i { display: inline-block; width: 13px; height: 13px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; }
+
+  /* Diagrama */
+  .flujo { display: flex; flex-direction: column; align-items: center; }
+  .nodo { animation: aparece .45s cubic-bezier(.2,.8,.2,1) backwards; animation-delay: calc(min(var(--i, 0), 14) * 35ms); }
+  @keyframes aparece { from { opacity: 0; transform: translateY(10px); } }
+  .caja { position: relative; width: min(580px, 100%); border-radius: 14px; padding: 13px 18px; text-align: center; font-size: 14.5px; line-height: 1.4; border: 2px solid; }
+  .caja b { display: block; font-size: 15.5px; margin-bottom: 2px; }
+  .caja small { color: var(--muted); font-size: 13px; display: block; }
+  .usuario { background: var(--c-usuario); border-color: var(--primary); }
+  .sistema { background: var(--c-sistema); border-color: var(--success); }
+  .campo { background: var(--c-campo); border-color: var(--campo); }
+  .prop { background: var(--c-prop); border-color: var(--nuevo); border-style: dashed; }
+  .alerta { background: var(--c-decision); border-color: var(--danger); }
+  .inicio, .fin { width: auto; max-width: 100%; border-radius: 999px; padding: 11px 26px; font-weight: 600; color: #fff; border: 0; }
+  .inicio { background: var(--text); color: var(--bg); }
+  .fin { background: var(--success); }
+  .fin.mal { background: var(--danger); }
+  .etq { position: absolute; top: -10px; right: 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  .etq.nuevo { background: var(--nuevo); }
+  .etq.campo { background: var(--campo); }
+  .ir { display: inline-block; margin-top: 7px; font-size: 12.5px; font-weight: 600; color: var(--primary); text-decoration: none; border-bottom: 1px dashed currentColor; cursor: pointer; }
+  .ir:hover { opacity: .8; }
+
+  .flecha { width: 2px; height: 24px; background: var(--muted); position: relative; margin: 2px 0 9px; opacity: .7; }
+  .flecha::after { content: ''; position: absolute; left: -5px; bottom: -7px; border: 6px solid transparent; border-top: 8px solid var(--muted); }
+
+  .decision { display: flex; align-items: center; gap: 10px; width: fit-content; max-width: min(480px, 100%); padding: 11px 18px 11px 14px; border-radius: 14px; background: var(--c-decision); border: 2px solid var(--warning); }
+  .decision::before { content: ''; flex-shrink: 0; width: 13px; height: 13px; transform: rotate(45deg); background: var(--warning); border-radius: 3px; }
+  .decision span { font-weight: 700; font-size: 14px; line-height: 1.3; }
+  .ramas { display: grid; gap: 16px; width: 100%; margin-top: 4px; }
+  .rama { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .rama .caja { width: 100%; }
+  .rama > .etq-rama { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--warning); margin-bottom: 6px; text-align: center; }
+  .grupo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(780px, 100%); }
+  .grupo .caja { width: 100%; text-align: left; }
+
+  .pie { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .pie a { flex: 1; text-decoration: none; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--card); }
+  .pie a:hover { background: var(--soft); }
+  .pie a small { display: block; font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+  .pie a.sig { text-align: right; }
+  .nota { margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    body { display: block; overflow-x: hidden; overflow-y: auto; }
+    aside { position: fixed; inset: 0 auto 0 0; z-index: 20; transform: translateX(-100%); transition: transform .25s; width: min(320px, 88vw); }
+    aside.abierto { transform: none; box-shadow: 0 0 60px rgba(0,0,0,.35); }
+    main { height: auto; overflow: visible; }
+    .menu-movil { display: inline-block; }
+    .pagina { padding: 22px 16px 60px; }
+    .cabecera h2 { font-size: 23px; }
+    .grupo { grid-template-columns: 1fr; }
+    .ramas { grid-template-columns: 1fr !important; }
+    .barra { padding: 10px 16px; gap: 8px; }
+    .barra .txt { display: none; }
+    .barra .boton { padding: 8px 12px; }
+    .contador { min-width: 0; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<aside id="indice">
+  <p class="marca">Documenta · Comité de Estudios Médicos</p>
+  <h1>Flujos de cada proceso</h1>
+  <input class="buscar" id="buscar" type="search" placeholder="Buscar proceso…" aria-label="Buscar proceso">
+  <nav id="lista"></nav>
+</aside>
+
+<main id="principal">
+  <div class="barra">
+    <button class="boton menu-movil" id="abrirIndice" aria-label="Abrir índice">☰<span class="txt"> Procesos</span></button>
+    <button class="boton" id="anterior" aria-label="Proceso anterior">←<span class="txt"> Anterior</span></button>
+    <div class="progreso" aria-hidden="true"><div id="avance"></div></div>
+    <span class="contador" id="contador"></span>
+    <button class="boton" id="siguiente" aria-label="Proceso siguiente"><span class="txt">Siguiente </span>→</button>
+  </div>
+  <article class="pagina" id="pagina"></article>
+</main>
+
+<script>
+/*
+ * Cada proceso es un dato: el diagrama se dibuja a partir de él.
+ * Tipos de nodo:
+ *   ['inicio', texto] · ['fin', texto] · ['finMal', texto]
+ *   [tipo, título, detalle, idDeOtroProceso?]   tipo: usuario · sistema · campo · prop · alerta
+ *   ['grupo', [nodos]]                           pasos que pasan a la vez
+ *   ['decision', pregunta, [[etiqueta, [nodos]], …]]
+ */
+const MODULOS = [
+  ['Entrar y usuarios', [
+    { id: 'ingresar', titulo: 'Ingresar a Documenta', quien: ['Todos los usuarios'],
+      resumen: 'Cada persona entra con su cuenta y trabaja en una dependencia a la vez; lo que ve depende de su rol.',
+      pasos: [
+        ['inicio', 'Abre documenta.comitedeestudiosmedicos.com.co'],
+        ['usuario', 'Inicia sesión', 'Con Authentik (cuenta institucional) o con su documento y contraseña'],
+        ['decision', '¿La cuenta está activa y tiene acceso a una dependencia?', [
+          ['No', [['finMal', 'No entra · lo resuelve Coordinación']]],
+          ['Sí', [
+            ['sistema', 'Abre su dependencia', 'Si tiene varias, cambia entre ellas con el selector de arriba. Nunca ve datos de otra dependencia'],
+            ['sistema', 'Arma el menú según su rol', 'Lectura · Edición · Coordinación · Administración'],
+            ['fin', 'Trabaja con lo que su rol permite'],
+          ]],
+        ]],
+      ] },
+    { id: 'dar-acceso', titulo: 'Dar acceso a un usuario', quien: ['Coordinación', 'Administración'],
+      resumen: 'Se crea la cuenta (o se suma el acceso si la persona ya tiene una en otra dependencia) y se crea igual en Authentik.',
+      pasos: [
+        ['inicio', 'Llega alguien nuevo al equipo'],
+        ['usuario', 'Administración → Usuarios → «Dar acceso»', 'Datos de la persona, rol, contraseña y, si es de Edición, la casilla «Aprueba novedades de turno»'],
+        ['decision', '¿Ya tiene cuenta con ese documento?', [
+          ['Sí', [['sistema', 'Le suma el acceso a esta dependencia', 'No cambia su nombre ni su contraseña']]],
+          ['No', [['sistema', 'Crea la cuenta', 'Y la crea en Authentik con la misma contraseña']]],
+        ]],
+        ['decision', '¿Authentik respondió?', [
+          ['Sí', [['fin', 'Puede entrar']]],
+          ['No', [['alerta', 'Queda «Falta en Authentik»', 'Se reintenta editando la ficha y poniéndole contraseña']]],
+        ]],
+      ] },
+    { id: 'editar-usuario', titulo: 'Editar, desactivar o revocar un usuario', quien: ['Coordinación', 'Administración'],
+      resumen: 'Nadie gestiona a quien tiene un rol mayor que el suyo; todo cambio queda en la auditoría.',
+      pasos: [
+        ['inicio', 'Hay que cambiar algo de una cuenta'],
+        ['usuario', 'Usuarios → buscar (nombre, correo o documento) → Editar', 'Ficha por secciones con panel lateral'],
+        ['decision', '¿Qué cambia?', [
+          ['Datos o rol', [['usuario', 'Guarda los cambios', 'Rol, cargo, «Aprueba novedades», contraseña']]],
+          ['Apagar la cuenta', [['usuario', 'Apaga «Cuenta activa»', 'No puede entrar a ninguna dependencia']]],
+          ['Quitar de esta dependencia', [['usuario', '«Revocar» en la lista', 'Pide confirmación; la cuenta sigue existiendo']]],
+        ]],
+        ['sistema', 'Actualiza Authentik y registra la auditoría'],
+        ['fin', 'Listo'],
+      ] },
+  ]],
+  ['Documentos', [
+    { id: 'subir', titulo: 'Subir documentos', quien: ['Edición', 'Coordinación', 'Administración'],
+      resumen: 'Hasta 300 archivos de una vez; el navegador los envía por tandas de 50 para que una falla no tumbe todo.',
+      pasos: [
+        ['inicio', 'Hay archivos para guardar'],
+        ['usuario', 'Documentos → carpeta → Subir', 'Elige los archivos; a cada uno le puede poner nombre'],
+        ['sistema', 'Revisa formato y tamaño', 'PDF, fotos y hojas de cálculo; máximo 25 MB cada uno'],
+        ['sistema', 'Envía por tandas de 50', '«Paso 2 de 6», con barra de progreso. Si una tanda falla, se reintenta solo esa'],
+        ['decision', '¿El servidor recibió todos los de la tanda?', [
+          ['No', [['alerta', 'No guarda esa tanda y avisa', '«El servidor recibió 20 de 50 archivos…»: nada a medias']]],
+          ['Sí', [['sistema', 'Cada archivo es un documento, versión 1', 'Con autor y fecha; queda en la auditoría']]],
+        ]],
+        ['fin', 'Documentos en la carpeta'],
+      ] },
+    { id: 'version', titulo: 'Nueva versión de un documento', quien: ['Edición en adelante'],
+      resumen: 'Subir encima nunca borra: se crea una versión nueva y el historial completo sigue descargable.',
+      pasos: [
+        ['inicio', 'El documento cambió'],
+        ['usuario', 'Abre el documento → «Nueva versión»', 'Archivo nuevo y un comentario de qué cambió'],
+        ['sistema', 'Guarda la versión 2, 3…', 'La anterior queda intacta, con su autor'],
+        ['fin', 'Historial completo, descargable versión por versión'],
+      ] },
+    { id: 'lote', titulo: 'Copiar o mover varios a la vez', quien: ['Edición en adelante'],
+      resumen: 'Se marcan documentos y carpetas con su check y se copian o mueven de una vez, sin descargar y volver a subir.',
+      pasos: [
+        ['inicio', 'Hay que reorganizar'],
+        ['usuario', 'Marca documentos (check) y carpetas (menú ⋮ → Seleccionar)', 'Hasta 200 documentos'],
+        ['usuario', 'Elige la carpeta de destino', 'Se ve la ruta completa («Calle / Nodo 2 / Octubre») y hay buscador'],
+        ['decision', '¿Copiar o mover?', [
+          ['Copiar', [['sistema', 'Duplica en el servidor', 'El archivo no pasa por el navegador']]],
+          ['Mover', [['sistema', 'Solo cambia de carpeta', 'Pide confirmación']]],
+        ]],
+        ['sistema', 'Todo o nada', 'Si uno falla no queda la mitad hecha; una entrada de auditoría por pieza'],
+        ['fin', 'Reorganizado'],
+      ] },
+    { id: 'inactivar', titulo: 'Inactivar y reactivar', quien: ['Edición (inactiva)', 'Administración (reactiva documentos)', 'Coordinación (reactiva carpetas)'],
+      resumen: 'Nada se borra: se retira de la vista con un motivo y se puede devolver.',
+      pasos: [
+        ['inicio', 'Algo no debería verse'],
+        ['usuario', 'Documento o carpeta → Inactivar', 'El motivo es obligatorio'],
+        ['sistema', 'Deja de verse; el registro sigue intacto', 'Queda en la auditoría con autor, fecha e IP'],
+        ['decision', '¿Hay que devolverlo?', [
+          ['Documento', [['usuario', 'Administración lo reactiva', 'Es la única que ve lo inactivo']]],
+          ['Carpeta', [['usuario', 'Coordinación la reactiva']]],
+          ['No', [['fin', 'Queda inactivo, sin perderse']]],
+        ]],
+      ] },
+    { id: 'custodia', titulo: 'Carpetas bajo custodia', quien: ['Coordinación asigna', 'El grupo la trabaja'],
+      resumen: 'Una carpeta queda solo para un grupo (por ejemplo, los líderes de un nodo), bajo la dirección de Coordinación.',
+      pasos: [
+        ['inicio', 'Una carpeta es de un equipo'],
+        ['usuario', 'Administración → Grupos de custodia', 'Crea el grupo con sus miembros'],
+        ['usuario', 'Editar carpeta → asigna el grupo', 'Solo Coordinación en adelante; las subcarpetas lo heredan'],
+        ['grupo', [
+          ['sistema', 'Solo el grupo la ve y la trabaja', 'Y Coordinación y Administración'],
+          ['sistema', 'Los de Lectura del grupo revisan', 'Sin modificar'],
+          ['sistema', 'Los demás no la ven', 'Ni en el explorador, ni en la búsqueda, ni por enlace'],
+          ['sistema', 'Abrir un documento queda registrado', 'En la auditoría'],
+        ]],
+        ['fin', 'Carpeta protegida'],
+      ] },
+    { id: 'comentar', titulo: 'Ver, navegar y comentar archivos', quien: ['Todos los que ven el archivo'],
+      resumen: 'Cada descarga pasa por un control de permisos; los comentarios avisan a quien corresponde.',
+      pasos: [
+        ['inicio', 'Revisar los archivos de una carpeta'],
+        ['usuario', 'Abre un archivo', 'Pasa al siguiente con las flechas (botones o teclas ← →): «3 de 25»'],
+        ['sistema', 'Cada vista y descarga pasa por permisos', 'Nunca por enlace directo; queda registrada'],
+        ['usuario', 'Escribe un comentario', '«La foto está mal tomada»'],
+        ['sistema', 'Avisa por la campana', 'A quien subió el archivo y a quienes ya comentaron; nunca al autor'],
+        ['fin', 'Conversación sobre el archivo, con enlace directo'],
+      ] },
+    { id: 'enlace-carga', titulo: 'Recibir documentos de fuera (enlace de carga)', quien: ['Edición crea los suyos', 'Coordinación todos', 'Externo envía'],
+      resumen: 'Un enlace temporal para que alguien sin cuenta envíe documentos, con cadena de custodia.',
+      pasos: [
+        ['inicio', 'Hay que recibir documentos de alguien de fuera'],
+        ['usuario', 'Enlaces de carga → Nuevo', 'Carpeta de destino, vencimiento, tope de usos; puede ser de un componente (por cédula)'],
+        ['usuario', 'Comparte el enlace', 'Por correo o WhatsApp'],
+        ['decision', '¿Es de un componente (por cédula)?', [
+          ['No (externo)', [['campo', 'El remitente declara quién es', 'Nombre, correo, entidad']]],
+          ['Sí', [
+            ['campo', 'Escribe su cédula', 'Tiene que estar registrada'],
+            ['decision', '¿Está en turno?', [
+              ['No', [['finMal', '«Marca tu entrada primero»']]],
+              ['Sí', [['campo', 'Sus datos salen de su ficha']]],
+            ]],
+          ]],
+        ]],
+        ['campo', 'Adjunta archivos o toma fotos', 'Las fotos llevan sello de hora y lugar'],
+        ['sistema', 'Guarda con su cadena de custodia', 'IP, navegador, huella del archivo, si fue en horario hábil, cuánto tardó'],
+        ['fin', 'Llega a la carpeta y avisa por la campana'],
+      ] },
+  ]],
+  ['Turnos', [
+    { id: 'registrar-persona', titulo: 'Registrar personas de campo', quien: ['Edición en adelante', 'La propia persona por el QR'],
+      resumen: 'Las personas de campo no tienen cuenta: se identifican solo con su cédula.',
+      pasos: [
+        ['inicio', 'Llega alguien al equipo de campo'],
+        ['decision', '¿Cómo se registra?', [
+          ['Un líder', [['usuario', 'Personas de campo → Registrar persona', 'Queda verificada']]],
+          ['Muchas a la vez', [['usuario', '«Descargar Excel de carga» → llenar → «Carga masiva»', 'Todo o nada: si una fila falla, dice cuál y no carga ninguna']]],
+          ['Ella misma', [['campo', 'Primera marca por el QR', 'Llena sus datos una vez; queda «por verificar»']]],
+        ]],
+        ['usuario', 'Completa lo habitual', 'Turno, punto crítico y días de descanso: con eso el sistema sabe cuándo esperarla'],
+        ['fin', 'Lista para marcar'],
+      ] },
+    { id: 'marcar-entrada', titulo: 'Marcar entrada', quien: ['Persona de campo'],
+      resumen: 'Por el QR, solo con la cédula. El sistema decide si es entrada o salida y reconoce el turno por la hora.',
+      pasos: [
+        ['inicio', 'Llega a su punto y escanea el QR'],
+        ['campo', 'Escribe su cédula', 'Solo ve su saludo recortado: «Hola, Ana…»'],
+        ['campo', '¿Recibiste los EPP? Sí / No', 'Solo al entrar'],
+        ['campo', '«Tomar foto»', 'Solo con la cámara; lleva sello de hora y lugar'],
+        ['decision', '¿Cómo llega la ubicación?', [
+          ['Exacta', [['sistema', 'Juzga si está en su zona', 'Lejos del nodo: novedad «Fuera de zona»']]],
+          ['Aproximada', [
+            ['alerta', 'Avisa cómo activar «Ubicación exacta»', 'iPhone: Ajustes → Privacidad y seguridad → Localización → Sitios web de Safari'],
+            ['campo', '«Registrar de todos modos»'],
+            ['sistema', 'Novedad «Ubicación imprecisa»', 'Sin «fuera de zona» falso'],
+          ]],
+          ['Sin ubicación', [['decision', '¿El turno la exige?', [
+            ['Sí', [['finMal', 'No envía; conserva la foto']]],
+            ['No', [['sistema', 'Marca igual', 'Novedad «Sin ubicación»']]],
+          ]]]],
+        ]],
+        ['sistema', 'Reconoce el turno por la hora', 'El de inicio más cercano (90 min antes a 180 después); gana el habitual'],
+        ['grupo', [
+          ['sistema', 'Llegó tarde: novedad «Tardanza»', 'Pasada la tolerancia', 'novedades'],
+          ['sistema', 'Dijo «No» a los EPP: «Sin EPP»', '', 'novedades'],
+          ['sistema', 'Cierra «No registró entrada»', 'Si ya había salido el aviso', 'no-entrada'],
+          ['sistema', 'Queda en «En turno ahora»'],
+        ]],
+        ['fin', 'Entrada registrada · «Entrada registrada Ana… · 06:02»'],
+      ] },
+    { id: 'marcar-salida', titulo: 'Marcar salida', quien: ['Persona de campo'],
+      resumen: 'Con el mismo QR y la misma cédula; el sistema calcula el trabajo real del turno.',
+      pasos: [
+        ['inicio', 'Termina su turno'],
+        ['campo', 'Cédula → foto → «Registrar salida»', 'El botón ya dice salida: lo decide el sistema'],
+        ['sistema', 'Trabajo real = tiempo en el sitio − descanso', 'Descanso por tramos del componente (p. ej. hasta 4 h nada, hasta 6 h 30 min, más de 6 h 1 h)'],
+        ['decision', '¿Comparado con la jornada (± tolerancia)?', [
+          ['Más', [['sistema', 'Novedad «Horas extra»', '', 'novedades']]],
+          ['Menos', [['sistema', 'Novedad «Turno corto»', '', 'novedades']]],
+          ['Igual', [['sistema', 'Sin novedad']]],
+        ]],
+        ['sistema', 'Cumplidos los turnos del día, el enlace ya no deja marcar', '«Ya registraste tu turno de hoy»'],
+        ['fin', 'Turno cerrado · entra al reporte'],
+      ] },
+    { id: 'cierre-automatico', titulo: 'Cierre automático (sin salida)', quien: ['El sistema, cada hora'],
+      resumen: 'Una entrada que nunca tuvo salida no queda abierta para siempre.',
+      pasos: [
+        ['inicio', 'Alguien marcó entrada y no salida'],
+        ['sistema', 'Cada hora revisa las entradas abiertas'],
+        ['decision', '¿Pasó la duración máxima del turno?', [
+          ['No', [['fin', 'Sigue en turno']]],
+          ['Sí', [
+            ['sistema', 'Cierra el turno', 'Origen «Cierre automático»'],
+            ['sistema', 'Novedad «Sin salida»', 'Se corrige la hora real', 'corregir'],
+          ]],
+        ]],
+      ] },
+    { id: 'no-entrada', titulo: '«No registró entrada»', quien: ['El sistema, cada 15 minutos'],
+      resumen: 'Con el turno habitual de cada persona, el sistema sabe a quién esperaba y avisa si no llegó.',
+      pasos: [
+        ['inicio', 'Empieza el turno de una persona'],
+        ['decision', '¿Hoy le toca? (turno habitual que aplica, no es su descanso, no tiene ausencia)', [
+          ['No', [['fin', 'No se la espera']]],
+          ['Sí', [
+            ['decision', '¿Marcó entrada 30 min después del inicio?', [
+              ['Sí', [['fin', 'Todo bien']]],
+              ['No', [
+                ['sistema', 'Novedad «No registró entrada»', 'Aviso a Edición, Coordinación y Administración'],
+                ['decision', '¿Qué pasó?', [
+                  ['Marcó tarde', [['sistema', 'El aviso se cierra solo', 'Queda la tardanza']]],
+                  ['Estaba de VAC, I…', [['usuario', '«Justificar» con su código', '', 'ausencias']]],
+                  ['Sí vino', [['usuario', 'Agregar la entrada que faltó', '', 'corregir']]],
+                ]],
+              ]],
+            ]],
+          ]],
+        ]],
+      ] },
+    { id: 'ausencias', titulo: 'Ausencias (D, VAC, I, P…)', quien: ['Edición en adelante'],
+      resumen: 'Los días en que la persona no trabaja se registran para no esperarla ni avisar en falso.',
+      pasos: [
+        ['inicio', 'Alguien no va a trabajar'],
+        ['decision', '¿Desde dónde?', [
+          ['Su ficha', [['usuario', 'Ficha → Ausencia', 'Código (D, VAC, I, P, PNR, F, EVENT) y fechas']]],
+          ['Una novedad', [['usuario', 'Novedades → «Justificar»', 'Sobre un «No registró entrada»']]],
+        ]],
+        ['sistema', 'Esos días no se la espera', 'Sin avisos de «No registró entrada»'],
+        ['fin', 'Queda en su ficha y en el reporte'],
+      ] },
+    { id: 'novedades', titulo: 'Revisar novedades de turno', quien: ['Coordinación', 'Administración', 'Edición con «Aprueba novedades»'],
+      resumen: 'Lo que se salió de lo esperado se valida; las marcaciones nunca se tocan.',
+      pasos: [
+        ['inicio', 'Llega una novedad por la campana (pestaña Turnos)'],
+        ['usuario', 'Turnos → Novedades', 'Pendientes primero; filtro por tipo; «Descargar Excel»'],
+        ['decision', '¿Puede aprobar?', [
+          ['No (Edición sin casilla)', [['finMal', 'La ve, pero la aprueba otro']]],
+          ['Sí', [
+            ['decision', '¿Qué hace?', [
+              ['Aprobar', [['sistema', 'Aprobada', 'Con autor y fecha']]],
+              ['Rechazar', [['sistema', 'Rechazada', 'El comentario es obligatorio']]],
+              ['La hora estaba mal', [['usuario', 'Corregir hora', '', 'corregir']]],
+              ['Estaba ausente', [['usuario', 'Justificar con código', '', 'ausencias']]],
+            ]],
+          ]],
+        ]],
+        ['fin', 'Resuelta · va al reporte de Nómina'],
+      ] },
+    { id: 'corregir', titulo: 'Corregir una hora', quien: ['Edición en adelante'],
+      resumen: 'Para quien revisa es «editar»; por debajo, la marca original se anula y la reemplaza otra.',
+      pasos: [
+        ['inicio', 'Una hora quedó mal (o faltó una marca)'],
+        ['usuario', '«Corregir hora» (o «Agregar la entrada que faltó»)', 'Hora correcta y motivo'],
+        ['decision', '¿Es válida?', [
+          ['No', [['finMal', 'Rechaza: salida antes de su entrada, hora futura o ya corregida']]],
+          ['Sí', [
+            ['sistema', 'Anula la original y crea la nueva', 'Tachada, con quién y por qué'],
+            ['sistema', 'Vuelve a juzgar el turno', 'Las novedades viejas pasan a «Corregida»; si ahora hay horas extra, nace la nueva'],
+          ]],
+        ]],
+        ['fin', 'Turno con la hora buena'],
+      ] },
+    { id: 'reporte-turnos', titulo: 'Reporte de turnos para Nómina', quien: ['Edición en adelante'],
+      resumen: 'El Excel trae el detalle de cada turno y el resumen mensual contra 42 horas semanales.',
+      pasos: [
+        ['inicio', 'Cierre de mes'],
+        ['usuario', 'Turnos → Marcaciones y reporte', 'Filtra por fechas, componente, nodo o cédula'],
+        ['usuario', '«Descargar reporte (Excel)»'],
+        ['grupo', [
+          ['sistema', 'Hoja «Turnos»', 'Cada turno: permanencia, descanso, horas trabajadas, ordinarias, extra, aprobadas, EPP'],
+          ['sistema', 'Hoja «Resumen mensual»', 'Por persona: días, horas por semana (rojo si pasa de 42), extras, turnos cortos'],
+        ]],
+        ['sistema', 'Documenta no calcula pesos', 'Nómina aplica valores y porcentajes'],
+        ['fin', 'Excel para Nómina'],
+      ] },
+  ]],
+  ['Atención territorial', [
+    { id: 'derivacion-reportar', titulo: 'Reportar una derivación', quien: ['Persona de campo'],
+      resumen: 'Una entidad (Policía, Línea 123…) pide atender un caso: se reporta por el QR y empieza a correr el tiempo.',
+      pasos: [
+        ['inicio', 'Llega un requerimiento en territorio'],
+        ['campo', 'Abre el enlace de derivaciones y escribe su cédula'],
+        ['decision', '¿Registrada, activa y en turno?', [
+          ['No', [['finMal', '«Marca tu entrada primero» (o no registrada)']]],
+          ['Sí', [
+            ['campo', 'Requerimiento', 'Nodo, fecha y hora (no futura), entidad, soporte opcional, descripción, ubicación'],
+            ['campo', 'Tres evidencias con la cámara', 'Obligatorias, con sello'],
+            ['sistema', 'Queda PENDIENTE', 'El tiempo corre desde la hora del requerimiento'],
+            ['sistema', 'Avisa a los líderes', 'Al llegar y cada 30 min', 'derivacion-responder'],
+          ]],
+        ]],
+        ['fin', '«Derivación #N registrada · respondan antes de las …»'],
+      ] },
+    { id: 'derivacion-responder', titulo: 'Responder una derivación', quien: ['Edición en adelante'],
+      resumen: 'La meta es responder en 3 horas; mientras tanto el contador corre y los avisos se repiten.',
+      pasos: [
+        ['inicio', 'Aviso «Nueva derivación» (pestaña Derivaciones)'],
+        ['sistema', 'Cada 30 min, mientras siga pendiente', 'El aviso nuevo reemplaza al anterior; pasadas 3 h dice «VENCIDA»'],
+        ['usuario', 'Abre la derivación', 'Ve el contador en vivo y las evidencias'],
+        ['usuario', '«Dar respuesta»', 'Qué se hizo'],
+        ['decision', '¿Pasaron más de 3 horas?', [
+          ['Sí', [['usuario', 'Escribe la justificación', 'Obligatoria']]],
+          ['No', [['sistema', 'A tiempo']]],
+        ]],
+        ['sistema', 'Queda SOLUCIONADA', 'Se detiene el tiempo; queda quién y cuándo; se retiran sus avisos'],
+        ['fin', 'Cuenta para la trazabilidad', 'derivacion-seguimiento'],
+      ] },
+    { id: 'derivacion-seguimiento', titulo: 'Seguimiento de derivaciones', quien: ['Edición en adelante', 'Coordinación elimina'],
+      resumen: 'Quién ha respondido y quién no, con el tiempo desde la solicitud.',
+      pasos: [
+        ['inicio', 'Revisar cómo va la atención'],
+        ['usuario', 'Atención territorial → Derivaciones', 'Pendientes primero, con su tiempo corriendo'],
+        ['grupo', [
+          ['sistema', 'Sin respuesta y vencidas'],
+          ['sistema', 'Cumplimiento y tiempo promedio'],
+          ['sistema', 'Nodos con casos sin responder'],
+          ['sistema', 'Quién ha respondido', 'Con sus respuestas a tiempo'],
+        ]],
+        ['decision', '¿Qué necesita?', [
+          ['Reporte', [['usuario', 'Excel (fotos en sus celdas) o Excel + ZIP']]],
+          ['Un dato mal', [['usuario', 'Corregir', 'Queda en la auditoría']]],
+          ['Sobra', [['usuario', 'Eliminar (Coordinación)', 'Sale del reporte; las fotos se conservan']]],
+        ]],
+        ['fin', 'Seguimiento al día'],
+      ] },
+    { id: 'supervision', titulo: 'Registrar una supervisión', quien: ['Apoyo al control territorial'],
+      resumen: 'Reemplaza el Forms «Registros de supervisión»: se califica a una dupla de dinamizadores en su punto.',
+      pasos: [
+        ['inicio', 'Visita a una dupla en un punto crítico'],
+        ['campo', 'Abre el enlace de supervisión y escribe su cédula'],
+        ['decision', '¿Su cargo supervisa y está en turno?', [
+          ['No', [['finMal', '«Solo para el Apoyo al control territorial» / «marca tu entrada»']]],
+          ['Sí', [
+            ['campo', 'La visita', 'Punto (u «Otro»), nodo, turno, fecha y hora, cédulas de los dinamizadores, descripción'],
+            ['decision', '¿Los dinamizadores están registrados y en turno?', [
+              ['No', [['finMal', '«Esta persona no está en turno»']]],
+              ['Sí', [
+                ['campo', 'Califica de 1 a 5', 'Nueve criterios y la calificación global'],
+                ['campo', 'Hallazgos y evidencias', 'Incidencias, casos escalados, recomendaciones; fotos con la cámara («Apoyo Territorial»)'],
+                ['decision', '¿Algo importante? (relevante o crítica, escalados, global 1–2)', [
+                  ['Sí', [['sistema', 'Aviso a líderes y Coordinación', 'Pestaña Supervisión']]],
+                  ['No', [['sistema', 'Sin aviso']]],
+                ]],
+              ]],
+            ]],
+          ]],
+        ]],
+        ['fin', '«Supervisión #N registrada»', 'supervision-analitica'],
+      ] },
+    { id: 'supervision-analitica', titulo: 'Analítica de supervisión', quien: ['Edición en adelante'],
+      resumen: 'Cómo va cada dinamizador, cada criterio, cada supervisor y cada nodo, con los filtros aplicados.',
+      pasos: [
+        ['inicio', 'Revisar el desempeño en territorio'],
+        ['usuario', 'Atención territorial → Supervisión', 'Filtros: cédula del dinamizador, supervisor, nodo, punto, fechas'],
+        ['grupo', [
+          ['sistema', 'Resumen', 'Total, promedios, incidencias, escalados'],
+          ['sistema', 'Por criterio', 'Del más bajo al más alto'],
+          ['sistema', 'Dinamizadores con promedio más bajo', 'Tocando uno, se filtra'],
+          ['sistema', 'Por supervisor y por nodo'],
+        ]],
+        ['usuario', '«Descargar Excel»', 'Detalle con fotos + hojas por dinamizador, criterio, supervisor y nodo'],
+        ['fin', 'Decisiones con datos'],
+      ] },
+  ]],
+  ['Administración', [
+    { id: 'componentes', titulo: 'Componentes, nodos y reglas', quien: ['Coordinación en adelante'],
+      resumen: 'Calle, Básica, Estabilización: lo que cambia entre ellos es dato, no código.',
+      pasos: [
+        ['inicio', 'Nuevo componente o un ajuste'],
+        ['usuario', 'Administración → Componentes y nodos → Nuevo / Editar', 'Panel lateral por secciones'],
+        ['grupo', [
+          ['usuario', 'Componente', 'Nombre, cargos, cargos que supervisan, activo'],
+          ['usuario', 'Jornada y descanso', 'Jornada, tolerancia, duración máxima, turnos por día, tramos de descanso'],
+          ['usuario', 'Turno automático', 'Ventanas de reconocimiento y aviso de «no registró entrada»'],
+          ['usuario', 'Al marcar', 'Foto y ubicación obligatorias, autorregistro, precisión mínima'],
+          ['usuario', 'Nodos', 'Se agregan, ordenan arrastrando y desactivan; zona con centro y radio'],
+        ]],
+        ['sistema', 'Valida reglas entre sí y audita'],
+        ['fin', 'El componente funciona sin tocar código'],
+      ] },
+    { id: 'catalogo', titulo: 'Catálogo de la malla', quien: ['Edición en adelante'],
+      resumen: 'Tipos de turno (N1, T3, N7, C13…) y puntos críticos, en tablas dentro de Documenta.',
+      pasos: [
+        ['inicio', 'Cambió la malla'],
+        ['decision', '¿Qué se ajusta?', [
+          ['Tipos de turno', [['usuario', 'Personas de campo → Tipos de turno', 'Código, horario, días, festivos, horas de nómina; o códigos de ausencia']]],
+          ['Puntos críticos', [['usuario', 'En turno ahora → Puntos críticos', 'Con ubicación y «Ver en el mapa»']]],
+        ]],
+        ['sistema', 'Se usa al reconocer turnos y en los formularios'],
+        ['fin', 'Malla al día'],
+      ] },
+    { id: 'notificaciones', titulo: 'Notificaciones', quien: ['Todos'],
+      resumen: 'La campana se divide por tipo para que nada importante se pierda.',
+      pasos: [
+        ['inicio', 'Llega algo nuevo'],
+        ['sistema', 'Suena la campana y sube el contador', 'Se entera aunque tenga la página abierta'],
+        ['usuario', 'Notificaciones', 'Pestañas: Derivaciones · Supervisión · Turnos · Documentos · Avisos'],
+        ['usuario', 'Toca una', 'Va directo a lo que avisa'],
+        ['decision', '¿Ya la atendió?', [
+          ['Sí', [['usuario', 'La marca como leída (X o «todas»)']]],
+          ['Era un recordatorio', [['sistema', 'Se reemplaza o se retira sola', 'P. ej. al responder la derivación']]],
+        ]],
+        ['fin', 'Campana limpia'],
+      ] },
+    { id: 'avisos', titulo: 'Avisos y versiones', quien: ['Administración', 'El sistema al desplegar'],
+      resumen: 'Los cambios de cada versión llegan solos; los avisos libres los envía Administración.',
+      pasos: [
+        ['inicio', 'Hay algo que comunicar'],
+        ['decision', '¿Qué es?', [
+          ['Una versión nueva', [['sistema', 'Al desplegar, lee CHANGELOG.md', 'Anuncia una vez la sección de esa versión a todos']]],
+          ['Un mensaje', [['usuario', 'Administración → Enviar aviso', 'A toda la dependencia o a ciertos roles']]],
+        ]],
+        ['fin', 'Llega por la campana (pestaña Avisos)'],
+      ] },
+    { id: 'auditoria', titulo: 'Auditoría', quien: ['Coordinación en adelante'],
+      resumen: 'Quién hizo qué, cuándo, desde qué IP y con qué navegador.',
+      pasos: [
+        ['inicio', 'Hay que saber qué pasó'],
+        ['usuario', 'Administración → Auditoría', 'Filtra por acción, usuario, fechas; busca por nombre de archivo'],
+        ['sistema', 'Cada acción que cambia datos quedó', 'Subir, descargar, mover, inactivar, corregir, responder, revocar…'],
+        ['sistema', 'Las cargas dicen por dónde entraron', 'Aplicación o enlace de carga, y a qué carpeta'],
+        ['fin', 'Trazabilidad completa'],
+      ] },
+    { id: 'manual', titulo: 'Manual de usuario', quien: ['Todos'],
+      resumen: 'El manual vive dentro de Documenta y se descarga en PDF para compartir.',
+      pasos: [
+        ['inicio', 'Alguien tiene una duda'],
+        ['usuario', 'Menú de la cuenta (o Administración) → Manual de usuario', 'Por capítulos, según el rol'],
+        ['usuario', '«Descargar PDF»', 'Con la imagen del Comité, listo para compartir'],
+        ['fin', 'Duda resuelta'],
+      ] },
+    { id: 'retiro', titulo: 'Retiro de una persona de campo', quien: ['Edición en adelante'], propuesta: true,
+      resumen: 'Hoy: «Desactivar». Propuesta DOC-16: motivo y fecha de retiro.',
+      pasos: [
+        ['inicio', 'Renuncia, terminación o traslado'],
+        ['usuario', 'Ficha de la persona'],
+        ['prop', '«Retirar»: motivo y fecha de retiro', 'Renuncia · Terminación · Traslado · Abandono · Otro'],
+        ['grupo', [
+          ['sistema', 'Los enlaces no la reconocen'],
+          ['sistema', 'No se la espera en turno'],
+          ['sistema', 'Su historia se conserva'],
+          ['prop', 'Reportes con la fecha de retiro', 'Filtro «Retiradas»; el resumen no cuenta días después'],
+        ]],
+        ['decision', '¿Tiene cuenta en Documenta?', [
+          ['Sí', [['usuario', 'Revocar en Usuarios', '', 'editar-usuario']]],
+          ['No', [['sistema', 'Nada más']]],
+        ]],
+        ['fin', 'Retiro trazable · se puede reactivar si vuelve'],
+      ] },
+  ]],
+  ['Cómo se construye', [
+    { id: 'sdd', titulo: 'De una idea a producción', quien: ['Edwar', 'José', 'Claude'],
+      resumen: 'Primero la spec aprobada, después el código; nada llega a producción sin pasar por pruebas.',
+      pasos: [
+        ['inicio', 'Se pide algo nuevo'],
+        ['decision', '¿Cambia una regla o un flujo?', [
+          ['No (texto, estilo, error evidente)', [['usuario', 'Se ajusta directo']]],
+          ['Sí', [
+            ['usuario', 'spec.md con criterios de aceptación', 'documentacion/specs/<funcionalidad>/'],
+            ['usuario', 'Edwar la aprueba'],
+            ['usuario', 'Pruebas (test_caNN) y código'],
+          ]],
+        ]],
+        ['sistema', 'Todas las pruebas en verde y CHANGELOG al día'],
+        ['usuario', 'PR de eduDev / josedev → develop', 'GitHub Actions despliega a pruebas'],
+        ['usuario', 'Se revisa en pruebas → PR a main', 'Revisar extensiones de PHP y cron del servidor'],
+        ['sistema', 'Despliega a producción', 'Migraciones, versión y aviso por la campana'],
+        ['fin', 'En manos del equipo'],
+      ] },
+  ]],
+];
+
+const PROCESOS = MODULOS.flatMap(([modulo, lista]) => lista.map((p) => ({ ...p, modulo })));
+const indicePorId = Object.fromEntries(PROCESOS.map((p, i) => [p.id, i]));
+const $ = (s) => document.querySelector(s);
+let actual = -1;
+let contadorNodos = 0;
+
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const enlace = (id) => (id && indicePorId[id] !== undefined)
+    ? `<a class="ir" data-ir="${id}">Ver: ${esc(PROCESOS[indicePorId[id]].titulo)} →</a>` : '';
+const flecha = () => '<div class="flecha nodo" style="--i:' + (contadorNodos++) + '"></div>';
+
+function nodo(n) {
+    const [tipo, a, b, c] = n;
+    const i = contadorNodos++;
+    if (tipo === 'inicio') return `<div class="caja inicio nodo" style="--i:${i}">${esc(a)}</div>`;
+    if (tipo === 'fin' || tipo === 'finMal') return `<div class="caja fin ${tipo === 'finMal' ? 'mal' : ''} nodo" style="--i:${i}">${esc(a)}${b ? '<br>' + enlace(b).replace('class="ir"', 'class="ir" style="color:#fff"') : ''}</div>`;
+    if (tipo === 'grupo') return `<div class="grupo nodo" style="--i:${i}">${a.map((x) => nodo(x)).join('')}</div>`;
+    if (tipo === 'decision') {
+        const ramas = b.map(([etq, hijos]) => `<div class="rama"><p class="etq-rama">${esc(etq)}</p>${dibujar(hijos)}</div>`).join('');
+        return `<div class="decision nodo" style="--i:${i}"><span>${esc(a)}</span></div>
+                <div class="ramas" style="grid-template-columns:repeat(auto-fit, minmax(min(100%, 170px), 1fr))">${ramas}</div>`;
+    }
+    const etiqueta = tipo === 'prop' ? '<span class="etq nuevo">Propuesta</span>' : tipo === 'campo' ? '<span class="etq campo">Por el enlace</span>' : '';
+    return `<div class="caja ${tipo} nodo" style="--i:${i}">${etiqueta}<b>${esc(a)}</b>${b ? `<small>${esc(b)}</small>` : ''}${enlace(c)}</div>`;
+}
+
+function dibujar(nodos) {
+    return nodos.map((n, k) => (k ? flecha() : '') + nodo(n)).join('');
+}
+
+function pintar(i, direccion) {
+    const p = PROCESOS[i];
+    const pagina = $('#pagina');
+    contadorNodos = 0;
+    const anterior = PROCESOS[i - 1], siguiente = PROCESOS[i + 1];
+
+    pagina.innerHTML = `
+        <header class="cabecera">
+            <p class="mod">${esc(p.modulo)}${p.propuesta ? ' · propuesta' : ''}</p>
+            <h2>${esc(p.titulo)}</h2>
+            <p>${esc(p.resumen)}</p>
+            <div class="chips">${p.quien.map((q) => `<span class="chip">${esc(q)}</span>`).join('')}</div>
+        </header>
+        <div class="leyenda">
+            <span><i style="background:var(--c-campo);border:2px solid var(--campo)"></i>Persona de campo (enlace / QR)</span>
+            <span><i style="background:var(--c-usuario);border:2px solid var(--primary)"></i>Usuario con cuenta</span>
+            <span><i style="background:var(--c-sistema);border:2px solid var(--success)"></i>Lo hace el sistema</span>
+            <span><i style="background:var(--c-decision);border:2px solid var(--warning)"></i>Decisión / aviso</span>
+            <span><i style="background:var(--c-prop);border:2px dashed var(--nuevo)"></i>Propuesta</span>
+        </div>
+        <section class="flujo">${dibujar(p.pasos)}</section>
+        <nav class="pie">
+            ${anterior ? `<a data-ir="${anterior.id}"><small>← Anterior</small>${esc(anterior.titulo)}</a>` : '<span style="flex:1"></span>'}
+            ${siguiente ? `<a class="sig" data-ir="${siguiente.id}"><small>Siguiente →</small>${esc(siguiente.titulo)}</a>` : '<span style="flex:1"></span>'}
+        </nav>
+        <p class="nota">Refleja Documenta al 27 de octubre de 2026 (documentacion/docs/context/domain.md). Teclas ← → para moverse.</p>`;
+
+    pagina.className = 'pagina ' + (direccion < 0 ? 'entra-izq' : 'entra-der');
+    $('#principal').scrollTo({ top: 0 });
+    window.scrollTo({ top: 0 });
+}
+
+function ir(i, desdeHistorial = false) {
+    if (i < 0 || i >= PROCESOS.length || i === actual) return;
+    const direccion = actual === -1 ? 1 : Math.sign(i - actual);
+    const pagina = $('#pagina');
+    const cambiar = () => {
+        actual = i;
+        pintar(i, direccion);
+        document.querySelectorAll('#lista a').forEach((a) => a.classList.toggle('activo', a.dataset.ir === PROCESOS[i].id));
+        document.querySelector('#lista a.activo')?.scrollIntoView({ block: 'nearest' });
+        $('#avance').style.width = ((i + 1) / PROCESOS.length * 100) + '%';
+        $('#contador').textContent = `${i + 1} de ${PROCESOS.length}`;
+        $('#anterior').disabled = i === 0;
+        $('#siguiente').disabled = i === PROCESOS.length - 1;
+        document.title = PROCESOS[i].titulo + ' · Flujos de Documenta';
+        if (!desdeHistorial) history.replaceState(null, '', '#' + PROCESOS[i].id);
+        $('#indice').classList.remove('abierto');
+    };
+    if (actual === -1 || matchMedia('(prefers-reduced-motion: reduce)').matches) return cambiar();
+    pagina.className = 'pagina sale';
+    setTimeout(cambiar, 200);
+}
+
+// Índice
+$('#lista').innerHTML = MODULOS.map(([modulo, lista]) => `
+    <div class="modulo"><p>${esc(modulo)}</p>
+    ${lista.map((p) => `<a href="#${p.id}" data-ir="${p.id}" data-buscar="${esc((p.titulo + ' ' + p.resumen + ' ' + modulo).toLowerCase())}"><span class="n">${indicePorId[p.id] + 1}</span><span>${esc(p.titulo)}</span></a>`).join('')}
+    </div>`).join('');
+
+document.addEventListener('click', (e) => {
+    const destino = e.target.closest('[data-ir]');
+    if (destino) { e.preventDefault(); ir(indicePorId[destino.dataset.ir]); }
+});
+$('#anterior').addEventListener('click', () => ir(actual - 1));
+$('#siguiente').addEventListener('click', () => ir(actual + 1));
+$('#abrirIndice').addEventListener('click', () => $('#indice').classList.toggle('abierto'));
+document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input')) return;
+    if (e.key === 'ArrowRight') ir(actual + 1);
+    if (e.key === 'ArrowLeft') ir(actual - 1);
+});
+$('#buscar').addEventListener('input', (e) => {
+    const t = e.target.value.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    document.querySelectorAll('#lista a').forEach((a) => {
+        a.style.display = !t || a.dataset.buscar.normalize('NFD').replace(/[̀-ͯ]/g, '').includes(t) ? '' : 'none';
+    });
+    document.querySelectorAll('.modulo').forEach((m) => {
+        m.style.display = [...m.querySelectorAll('a')].some((a) => a.style.display !== 'none') ? '' : 'none';
+    });
+});
+addEventListener('hashchange', () => { const i = indicePorId[location.hash.slice(1)]; if (i !== undefined) ir(i, true); });
+
+ir(indicePorId[location.hash.slice(1)] ?? 0);
+</script>
+</body>
+</html>

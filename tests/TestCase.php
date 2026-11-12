@@ -85,6 +85,39 @@ abstract class TestCase extends BaseTestCase
         return new UploadedFile($ruta, $nombre, $mimeDeclarado, null, true);
     }
 
+    /**
+     * Las filas de una hoja de un .xlsx descargado (App\Support\Xlsx), por
+     * nombre de pestaña: listas de valores en orden de columna (texto o número).
+     *
+     * @return list<list<string|float|null>>
+     */
+    protected function hojaXlsx(TestResponse $respuesta, string $hoja): array
+    {
+        $zip = new \ZipArchive();
+        $zip->open($respuesta->baseResponse->getFile()->getPathname());
+
+        $libro = simplexml_load_string($zip->getFromName('xl/workbook.xml'));
+        $numero = null;
+        foreach ($libro->sheets->sheet as $i => $s) {
+            $numero ??= (string) $s['name'] === $hoja ? (int) $s['sheetId'] : null;
+        }
+        $this->assertNotNull($numero, "No hay una pestaña «{$hoja}».");
+
+        $filas = [];
+        foreach (simplexml_load_string($zip->getFromName("xl/worksheets/sheet{$numero}.xml"))->sheetData->row as $row) {
+            $fila = [];
+            foreach ($row->c as $c) {
+                preg_match('/^[A-Z]+/', (string) $c['r'], $col);
+                $indice = array_reduce(str_split($col[0]), fn ($n, $l) => $n * 26 + ord($l) - 64, 0) - 1;
+                $fila[$indice] = isset($c->is) ? (string) $c->is->t : (isset($c->v) ? ((string) $c['t'] === 'str' ? (string) $c->v : (float) $c->v) : null);
+            }
+            $filas[] = $fila === [] ? [] : array_replace(array_fill(0, max(array_keys($fila)) + 1, null), $fila);
+        }
+        $zip->close();
+
+        return $filas;
+    }
+
     protected function archivoPdf(string $nombre = 'acta.pdf', string $contenido = 'Acta de prueba'): UploadedFile
     {
         return $this->archivo($nombre, "%PDF-1.4\n% {$contenido}\n%%EOF\n", 'application/pdf');

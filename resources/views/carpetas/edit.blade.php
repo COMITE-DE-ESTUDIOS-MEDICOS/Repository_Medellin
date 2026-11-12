@@ -24,15 +24,38 @@
 
         <div>
             <label for="carpeta_id" class="{{ $etiqueta }}">Dentro de</label>
-            <select id="carpeta_id" name="carpeta_id" class="{{ $campo }}">
+            <select id="carpeta_id" name="carpeta_id" data-buscable class="{{ $campo }}">
                 <option value="">Raíz de la dependencia</option>
-                @foreach($carpetas as $opcion)
-                    <option value="{{ $opcion->id }}" @selected(old('carpeta_id', $carpeta->carpeta_id) == $opcion->id)>
-                        {{ $opcion->nombre }}
-                    </option>
-                @endforeach
+                <x-opciones-carpeta :carpetas="$carpetas" :seleccionada="old('carpeta_id', $carpeta->carpeta_id)" />
             </select>
         </div>
+
+        {{--
+            Custodia: solo Coordinación en adelante la asigna. Quien no puede,
+            solo ve si la carpeta está custodiada (y por quién).
+        --}}
+        @if($grupos->isNotEmpty())
+            <div>
+                <label for="grupo_custodia_id" class="{{ $etiqueta }}">Custodia</label>
+                <select id="grupo_custodia_id" name="grupo_custodia_id" class="{{ $campo }}">
+                    <option value="">Sin custodia: la ve toda la dependencia</option>
+                    @foreach($grupos as $grupo)
+                        <option value="{{ $grupo->id }}" @selected(old('grupo_custodia_id', $carpeta->grupo_custodia_id) == $grupo->id)>{{ $grupo->nombre }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-[var(--muted)]">
+                    Bajo custodia, solo los miembros del grupo (y Coordinación y Administración) ven y trabajan esta carpeta
+                    y todo lo que tiene dentro.
+                    @if($custodia && ! $carpeta->grupo_custodia_id)
+                        Ahora la custodia «{{ $custodia->nombre }}» desde una carpeta superior.
+                    @endif
+                </p>
+            </div>
+        @elseif($custodia)
+            <p class="rounded-md bg-[var(--card-soft)] px-3 py-2 text-sm text-[var(--text)]">
+                Bajo custodia de <strong>{{ $custodia->nombre }}</strong>.
+            </p>
+        @endif
 
         <div>
             <label for="descripcion" class="{{ $etiqueta }}">Descripción</label>
@@ -57,11 +80,9 @@
                 Para moverla, usa «Dentro de» arriba.
             </p>
             <div class="flex gap-2">
-                <select id="copiar_carpeta" name="carpeta_id" class="liquid-input min-w-0 flex-1 text-sm">
+                <select id="copiar_carpeta" name="carpeta_id" data-buscable class="liquid-input min-w-0 flex-1 text-sm">
                     <option value="">Raíz de la dependencia</option>
-                    @foreach($carpetas as $opcion)
-                        <option value="{{ $opcion->id }}">{{ $opcion->nombre }}</option>
-                    @endforeach
+                    <x-opciones-carpeta :carpetas="$carpetas" />
                 </select>
                 <button class="rounded-md bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
                     Copiar

@@ -23,6 +23,7 @@ class Carpeta extends Model
     protected $fillable = [
         'dependencia_id',
         'carpeta_id',
+        'grupo_custodia_id',
         'nombre',
         'descripcion',
         'activa',
@@ -81,25 +82,6 @@ class Carpeta extends Model
         return $this->lideres()->whereKey($usuario->id)->exists();
     }
 
-    /** ¿Hay, en ella o en sus subcarpetas, algo que no creó este usuario? */
-    public function tieneContenidoAjenoA(User $usuario): bool
-    {
-        $pendientes = [$this->id];
-
-        while ($pendientes) {
-            $ajeno = fn ($q) => $q->where(fn ($q) => $q->whereNull('creado_por')->orWhere('creado_por', '!=', $usuario->id));
-
-            if (Documento::whereIn('carpeta_id', $pendientes)->where($ajeno)->exists()
-                || self::whereIn('carpeta_id', $pendientes)->where($ajeno)->exists()) {
-                return true;
-            }
-
-            $pendientes = self::whereIn('carpeta_id', $pendientes)->pluck('id')->all();
-        }
-
-        return false;
-    }
-
     /**
      * Ids de las carpetas retiradas de la vista: las inactivas y todo lo que
      * cuelga de ellas. Sin heredar, una subcarpeta activa dentro de una
@@ -130,6 +112,44 @@ class Carpeta extends Model
         return array_values(array_unique($retiradas));
     }
 
+    /**
+     * Las carpetas a las que se puede copiar o mover, con su ruta completa
+     * («Evidencias / Octubre»): dos «Octubre» en carpetas distintas se
+     * distinguen. Una sola consulta, sin una por carpeta.
+     *
+     * @return array<int, string> id => ruta, en orden alfabético
+     */
+    public static function destinosLegibles(): array
+    {
+        $todas = self::query()->get(['id', 'carpeta_id', 'nombre', 'activa', 'dependencia_id'])->keyBy('id');
+        $dependenciaId = app(\App\Services\ContextoDependencia::class)->id();
+        $retiradas = array_flip([
+            ...self::idsRetiradas($dependenciaId),
+            ...self::idsVedadasPara(auth()->user(), $dependenciaId),
+        ]);
+        $rutas = [];
+
+        foreach ($todas as $carpeta) {
+            if (isset($retiradas[$carpeta->id])) {
+                continue;
+            }
+
+            $partes = [];
+            $actual = $carpeta;
+
+            for ($saltos = 0; $actual && $saltos < 50; $saltos++) {
+                array_unshift($partes, $actual->nombre);
+                $actual = $todas->get($actual->carpeta_id);
+            }
+
+            $rutas[$carpeta->id] = implode(' / ', $partes);
+        }
+
+        asort($rutas, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $rutas;
+    }
+
     public function estaRetirada(): bool
     {
         return in_array($this->id, self::idsRetiradas($this->dependencia_id), true);
@@ -153,7 +173,78 @@ class Carpeta extends Model
             return $query;
         }
 
-        return $query->where('activa', true)->whereNotIn('id', self::idsRetiradas($dependenciaId));
+        return $query->where('activa', true)->whereNotIn('id', [
+            ...self::idsRetiradas($dependenciaId),
+            ...self::idsVedadasPara($usuario, $dependenciaId),
+        ]);
+    }
+
+    /**
+     * El grupo que custodia cada carpeta: el suyo o, si no tiene, el de la
+     * carpeta más cercana hacia arriba. Lo que cuelga de una carpeta
+     * custodiada queda custodiado sin marcarlo una por una.
+     *
+     * @return array<int, int> id de carpeta => id del grupo que la custodia
+     */
+    public static function custodiaEfectiva(?int $dependenciaId): array
+    {
+        $todas = self::withoutGlobalScopes()->where('dependencia_id', $dependenciaId)
+            ->get(['id', 'carpeta_id', 'grupo_custodia_id'])->keyBy('id');
+        $custodia = [];
+
+        foreach ($todas as $carpeta) {
+            $actual = $carpeta;
+
+            for ($saltos = 0; $actual && $saltos < 50; $saltos++) {
+                if ($actual->grupo_custodia_id) {
+                    $custodia[$carpeta->id] = $actual->grupo_custodia_id;
+                    break;
+                }
+
+                $actual = $todas->get($actual->carpeta_id);
+            }
+        }
+
+        return $custodia;
+    }
+
+    /**
+     * Las carpetas custodiadas por grupos a los que esa persona no pertenece:
+     * no las ve, no las toca y no puede meter nada en ellas. Coordinación y
+     * Administración no tienen vedada ninguna.
+     *
+     * @return list<int>
+     */
+    public static function idsVedadasPara(?User $usuario, ?int $dependenciaId): array
+    {
+        if ($usuario?->puedeGestionarEn($dependenciaId)) {
+            return [];
+        }
+
+        $custodia = self::custodiaEfectiva($dependenciaId);
+
+        if ($custodia === []) {
+            return [];
+        }
+
+        $suyos = $usuario
+            ? \Illuminate\Support\Facades\DB::table('grupo_custodia_usuario')->where('user_id', $usuario->id)->pluck('grupo_custodia_id')->all()
+            : [];
+
+        return array_keys(array_filter($custodia, fn (int $grupo) => ! in_array($grupo, $suyos)));
+    }
+
+    /** El grupo que custodia esta carpeta (el suyo o el heredado), o null. */
+    public function custodiaDe(): ?GrupoCustodia
+    {
+        $grupoId = self::custodiaEfectiva($this->dependencia_id)[$this->id] ?? null;
+
+        return $grupoId ? GrupoCustodia::withoutGlobalScopes()->find($grupoId) : null;
+    }
+
+    public function grupoCustodia(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(GrupoCustodia::class);
     }
 
     /**
@@ -174,6 +265,12 @@ class Carpeta extends Model
         }
 
         return $ruta;
+    }
+
+    /** La ruta como se lee: «Calle / Nodo 2 / Octubre». */
+    public function rutaTexto(): string
+    {
+        return $this->ruta()->pluck('nombre')->join(' / ');
     }
 
     /** Evita mover una carpeta dentro de sí misma o de una descendiente. */

@@ -36,7 +36,7 @@ class EnlaceTurnoController extends Controller
 
         return view('admin.turnos.enlaces.index', [
             'enlaces' => EnlaceTurno::with(['componente', 'nodo', 'creador'])
-                ->withCount('marcaciones')
+                ->withCount(['marcaciones', 'derivaciones', 'supervisiones'])
                 ->latest()
                 ->paginate(config('repositorio.por_pagina')),
         ]);
@@ -47,7 +47,10 @@ class EnlaceTurnoController extends Controller
         $this->authorize('create', EnlaceTurno::class);
 
         return view('admin.turnos.enlaces.create', [
-            'componentes' => Componente::activos()->with(['nodos' => fn ($q) => $q->activos()])->orderBy('nombre')->get(),
+            'componentes' => Componente::activos()->with([
+                'nodos' => fn ($q) => $q->activos(),
+                'puntosCriticos' => fn ($q) => $q->activos(),
+            ])->orderBy('nombre')->get(),
         ]);
     }
 
@@ -61,8 +64,10 @@ class EnlaceTurnoController extends Controller
             'token_hash' => EnlaceTurno::hashDe($token),
             'token_cifrado' => $token,
             'dependencia_id' => $this->contexto->requerida()->id,
+            'tipo' => $request->input('tipo') ?: 'turno',
             'componente_id' => $request->integer('componente_id'),
             'nodo_id' => $request->input('nodo_id'),
+            'punto_critico_id' => $request->input('punto_critico_id'),
             'nombre' => $request->input('nombre'),
             'expira_at' => $request->filled('expira_at') ? Carbon::parse($request->input('expira_at'))->endOfDay() : null,
             'creado_por' => $request->user()->id,
@@ -71,7 +76,7 @@ class EnlaceTurnoController extends Controller
         $this->auditor->registrar(
             AccionAuditoria::EnlaceTurnoCreado,
             $enlace,
-            "Creó un enlace de turno para {$this->dondeDe($enlace)}",
+            "Creó un enlace ({$enlace->etiquetaTipo()}) para {$this->dondeDe($enlace)}",
         );
 
         return redirect()
@@ -119,6 +124,8 @@ class EnlaceTurnoController extends Controller
 
     protected function dondeDe(EnlaceTurno $enlace): string
     {
-        return $enlace->componente->nombre.($enlace->nodo ? ' · '.$enlace->nodo->nombre : '');
+        return $enlace->componente->nombre
+            .($enlace->nodo ? ' · '.$enlace->nodo->nombre : '')
+            .($enlace->puntoCritico ? ' · '.$enlace->puntoCritico->nombre : '');
     }
 }

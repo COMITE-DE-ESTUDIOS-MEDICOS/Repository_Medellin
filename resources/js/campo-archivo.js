@@ -33,6 +33,27 @@ function sinExtension(nombre) {
 }
 
 /**
+ * ¿Se puede reescribir la lista de archivos de un input? Hay navegadores con
+ * DataTransfer pero sin 'items' (el WebKit de pruebas lo tiene a medias):
+ * mirar solo si existe dejaba pasar y el script se caía al primer archivo.
+ * Se prueba de verdad, una vez.
+ */
+let reescribible = null;
+function puedeReescribirArchivos() {
+    if (reescribible === null) {
+        try {
+            const prueba = new DataTransfer();
+            prueba.items.add(new File([''], 'prueba.txt', { type: 'text/plain' }));
+            reescribible = prueba.files.length === 1;
+        } catch {
+            reescribible = false;
+        }
+    }
+
+    return reescribible;
+}
+
+/**
  * Copia el nombre del archivo al campo indicado, sin extensión. Solo con un
  * archivo y solo si está vacío: lo que ya escribió la persona manda.
  */
@@ -61,7 +82,7 @@ function iniciar(campo) {
     // Sin DataTransfer no se puede reescribir la lista del input, así que
     // tampoco se podría quitar un archivo suelto. Mejor dejar el campo
     // nativo tal cual que ofrecer una X que no funciona.
-    if (typeof DataTransfer === 'undefined') {
+    if (!puedeReescribirArchivos()) {
         return;
     }
 
@@ -247,9 +268,19 @@ function iniciar(campo) {
 
         seleccion = seleccion.concat(sinRepetir.slice(0, hueco));
 
-        avisar(descartados > 0
-            ? 'Solo se pueden enviar ' + maximo + ' archivos. ' + (descartados === 1 ? 'Se dejó 1 fuera.' : 'Se dejaron ' + descartados + ' fuera.')
-            : '');
+        const excedido = descartados > 0
+            ? 'Has excedido la capacidad de carga: máximo ' + maximo + ' archivos por vez. '
+                + (descartados === 1 ? 'Se dejó 1 fuera;' : 'Se dejaron ' + descartados + ' fuera;')
+                + ' cárgalos en otro envío.'
+            : '';
+
+        avisar(excedido);
+
+        // Además del aviso junto al campo, un toast: con cientos de tarjetas
+        // en pantalla, el aviso puede quedar lejos de donde se está mirando.
+        if (excedido) {
+            window.mostrarToast?.('error', excedido);
+        }
 
         sincronizarEntrada();
         pintar();
@@ -347,7 +378,7 @@ function iniciar(campo) {
                     return archivo;
                 }
 
-                return deCamara ? estamparFoto(archivo, ladoMaximo) : reducirImagen(archivo, ladoMaximo);
+                return deCamara ? estamparFoto(archivo, ladoMaximo, campo.dataset.sello || 'Evidencia') : reducirImagen(archivo, ladoMaximo);
             }),
         );
 
