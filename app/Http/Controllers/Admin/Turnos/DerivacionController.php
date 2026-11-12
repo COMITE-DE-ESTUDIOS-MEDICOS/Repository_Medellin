@@ -47,7 +47,11 @@ class DerivacionController extends Controller
         'ESTADO', 'RESPUESTA', 'RESPONDIDA POR', 'FECHA Y HORA DE RESPUESTA',
         'CÓDIGO DEL CASO', 'QUIÉN LO CREÓ', 'FECHA Y HORA DE CREACIÓN', 'FECHA Y HORA DE ATENCIÓN',
         '¿SE CUMPLIÓ EL REQUERIMIENTO?', 'OBSERVACIÓN',
+        'COMUNA', 'GESTIÓN REALIZADA',
     ];
+
+    /** DOC-23: cuántos casos se ven por página. */
+    public const POR_PAGINA = [25, 50, 100];
 
     /** Cuánto dura el enlace a un PDF de soporte dentro del Excel. */
     public const DIAS_ENLACE = 30;
@@ -66,10 +70,19 @@ class DerivacionController extends Controller
         $this->authorize('viewAny', Derivacion::class);
 
         return view('admin.turnos.derivaciones.index', [
-            'derivaciones' => $this->consulta($request)->paginate(config('repositorio.por_pagina'))->withQueryString(),
+            'derivaciones' => $this->consulta($request)->paginate($this->porPagina($request))->withQueryString(),
+            'porPagina' => $this->porPagina($request),
             'nodos' => Nodo::whereHas('componente')->with('componente')->orderBy('nombre')->get(),
             'traza' => $this->trazabilidad($request),
         ]);
+    }
+
+    /** 25, 50 o 100; cualquier otro valor, lo de la plataforma. */
+    protected function porPagina(Request $request): int
+    {
+        $pedido = $request->integer('por_pagina');
+
+        return in_array($pedido, self::POR_PAGINA, true) ? $pedido : (int) config('repositorio.por_pagina');
     }
 
     /**
@@ -147,11 +160,17 @@ class DerivacionController extends Controller
                 'remitente' => ['required', Rule::in(array_keys(Derivacion::REMITENTES))],
                 'remitente_otra' => ['nullable', 'required_if:remitente,otra', 'string', 'max:255'],
                 'ubicacion' => ['required', 'string', 'max:500'],
-            ] + ($atendida ? ['observacion' => ['nullable', 'string', 'max:5000']] : [])
+            ] + ($atendida ? [
+                'observacion' => ['nullable', 'string', 'max:5000'],
+                // DOC-23: la que ya tiene gestión no se queda sin ella; los anteriores pueden seguir en «—».
+                'gestion_realizada' => [$derivacion->gestion_realizada === null ? 'nullable' : 'required', 'string', 'min:10', 'max:2000'],
+            ] : [])
             : array_diff_key(Derivacion::reglas($derivacion->componente_id), array_flip(['fecha_requerimiento', 'hora_requerimiento']))
                 + ($atendida ? ['respuesta' => ['nullable', 'string', 'max:5000']] : []);
 
         $reglas += $atendida ? ['justificacion' => ['nullable', 'string', 'max:5000']] : [];
+        // DOC-23: la comuna la corrige Edición en adelante; un anterior puede seguir sin ella.
+        $reglas['comuna'] = ['nullable', 'integer', Rule::in(array_keys(config('repositorio.comunas')))];
 
         if ($horas) {
             $reglas += [
@@ -175,6 +194,7 @@ class DerivacionController extends Controller
 
         $datos = $request->validate($reglas, ['remitente_otra.required_if' => 'Escribe quién envía el caso.'], Derivacion::ATRIBUTOS + [
             'remitente' => 'quién lo envía', 'remitente_otra' => '¿cuál?', 'observacion' => 'observación',
+            'comuna' => 'comuna', 'gestion_realizada' => 'atención o gestión realizada',
             'atendida_at' => 'hora de cierre', 'cumplio_requerimiento' => '¿se cumplió el requerimiento?', 'motivo' => 'motivo',
         ]);
 
@@ -243,11 +263,18 @@ class DerivacionController extends Controller
                 ->where('dependencia_id', $derivacion->dependencia_id)->where('componente_id', $derivacion->componente_id)->where('activo', 1)],
             'nodo_id' => ['required', Rule::exists('nodos', 'id')->where('componente_id', $derivacion->componente_id)->where('activo', 1)],
             'atendida_at' => ['required', 'date', 'before_or_equal:now'],
+            'gestion_realizada' => ['required', 'string', 'min:10', 'max:2000'],
             'cumplio_requerimiento' => ['required', 'boolean'],
             'observacion' => ['nullable', 'required_if:cumplio_requerimiento,0', 'string', 'max:5000'],
             'justificacion' => ['nullable', 'string', 'max:5000'],
             'motivo' => ['required', 'string', 'max:1000'],
-        ], ['observacion.required_if' => 'Si no se cumplió el requerimiento, escribe la observación.'], [
+        ], [
+            'observacion.required_if' => 'Si no se cumplió el requerimiento, escribe la observación.',
+            'gestion_realizada.required' => 'Escribe la atención o gestión realizada.',
+            'gestion_realizada.min' => 'La atención o gestión realizada debe tener al menos 10 caracteres.',
+            'gestion_realizada.max' => 'La atención o gestión realizada no puede pasar de 2000 caracteres.',
+        ], [
+            'gestion_realizada' => 'atención o gestión realizada',
             'colaborador_id' => 'persona de campo', 'nodo_id' => 'nodo que atiende', 'atendida_at' => 'hora de cierre',
             'cumplio_requerimiento' => '¿se cumplió el requerimiento?', 'observacion' => 'observación', 'justificacion' => 'justificación',
         ]);
@@ -270,6 +297,7 @@ class DerivacionController extends Controller
                 'hora_respuesta' => $cierre->format('H:i'),
                 'cumplio_requerimiento' => (bool) $datos['cumplio_requerimiento'],
                 'observacion' => $datos['observacion'] ?? null,
+                'gestion_realizada' => $datos['gestion_realizada'],
                 'justificacion' => $datos['justificacion'] ?? null,
                 'actualizado_por' => $request->user()->id,
             ]);
@@ -283,7 +311,7 @@ class DerivacionController extends Controller
                 [
                     'motivo' => $datos['motivo'],
                     'antes' => ['estado' => Derivacion::PENDIENTE],
-                    'despues' => $caso->only(['estado', 'colaborador_id', 'nodo_id', 'hora_respuesta', 'tiempo_respuesta_min', 'cumplio_requerimiento', 'observacion'])
+                    'despues' => $caso->only(['estado', 'colaborador_id', 'nodo_id', 'hora_respuesta', 'tiempo_respuesta_min', 'cumplio_requerimiento', 'observacion', 'gestion_realizada'])
                         + ['atendida_at' => $cierre->toDateTimeString()],
                 ],
             );
@@ -425,6 +453,8 @@ class DerivacionController extends Controller
                     $d->atendida_at?->format('d/m/Y H:i'),
                     $d->cumplio_requerimiento === null ? null : ($d->cumplio_requerimiento ? 'Sí' : 'No'),
                     $d->observacion,
+                    $d->nombreComuna(),
+                    $d->gestion_realizada ?? '—',
                 ];
             });
 
@@ -474,7 +504,7 @@ class DerivacionController extends Controller
     }
 
     /**
-     * Filtros: estado, fechas del requerimiento, nodo, cumplimiento y texto
+     * Filtros: estado, fechas del requerimiento, nodo, comuna, cumplimiento y texto
      * libre (también el código: «DC-12» o «12»). Los abiertos, primero.
      */
     protected function consulta(Request $request): Builder
@@ -485,6 +515,10 @@ class DerivacionController extends Controller
             ->when($request->filled('hasta'), fn ($q) => $q->whereDate('fecha_requerimiento', '<=', $request->date('hasta')))
             ->when(in_array($request->input('estado'), [Derivacion::PENDIENTE, Derivacion::SOLUCIONADA], true), fn ($q) => $q->where('estado', $request->input('estado')))
             ->when($request->filled('nodo'), fn ($q) => $q->where('nodo_id', $request->integer('nodo')))
+            // DOC-23: una comuna de la lista, o «sin» para los que no tienen.
+            ->when($request->input('comuna') === 'sin', fn ($q) => $q->whereNull('comuna'))
+            ->when(ctype_digit((string) $request->input('comuna')) && isset(config('repositorio.comunas')[(int) $request->input('comuna')]),
+                fn ($q) => $q->where('comuna', (int) $request->input('comuna')))
             ->when($request->input('cumplio') === 'si', fn ($q) => $q->where('tiempo_respuesta_min', '<=', Derivacion::META_MINUTOS))
             ->when($request->input('cumplio') === 'no', fn ($q) => $q->where('tiempo_respuesta_min', '>', Derivacion::META_MINUTOS))
             ->when($request->filled('q'), function ($q) use ($request) {

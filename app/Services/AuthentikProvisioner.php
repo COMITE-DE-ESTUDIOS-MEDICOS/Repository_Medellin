@@ -189,8 +189,30 @@ class AuthentikProvisioner
      * Deja el rastro del fallo en el log y en la auditoría, sin propagarlo.
      * En la auditoría porque quien administra usuarios no lee logs.
      */
+    /** Estado HTTP del último fallo; 0 si Authentik no contestó; null si no hubo llamada (p. ej. sin documento). */
+    protected ?int $ultimoEstado = null;
+
+    /** La causa del último fallo en palabras fijas, sin nada de la respuesta de Authentik. */
+    public function causaDelFallo(): string
+    {
+        return match (true) {
+            $this->ultimoEstado === null => 'Le falta el usuario (su cédula), que es su nombre de usuario en Authentik.',
+            in_array($this->ultimoEstado, [401, 403], true) => 'El token no tiene permiso en Authentik.',
+            $this->ultimoEstado === 404 => 'Authentik no encuentra el grupo: revisa AUTHENTIK_GRUPO_ID.',
+            $this->ultimoEstado === 400 => 'Authentik rechazó los datos de la cuenta.',
+            $this->ultimoEstado === 0 => 'Authentik no contestó. Inténtalo en un momento.',
+            default => 'Authentik respondió con un error. El detalle quedó en la auditoría.',
+        };
+    }
+
     protected function anotarFallo(string $operacion, User $usuario, ?Throwable $e = null): void
     {
+        $this->ultimoEstado = match (true) {
+            $e instanceof \Illuminate\Http\Client\RequestException => $e->response->status(),
+            $e !== null => 0,
+            default => null,
+        };
+
         Log::error("Authentik: no se pudo {$operacion}", [
             'usuario_id' => $usuario->id,
             'authentik_id' => $usuario->authentik_id,

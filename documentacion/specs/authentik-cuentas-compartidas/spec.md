@@ -146,13 +146,25 @@ nuevo es el reintento.
   username de Authentik (cuentas creadas a mano con correo)? Antes de quitar el respaldo por
   correo hay que listarlos. Propuesta: un comando que lo diga, sin cambiar nada.
 
+## v1.4 · Botón «Sincronizar con Authentik» por persona (Edwar, 2026-11-12)
+
+Como en MedTech: en Administración → Usuarios, cada fila tiene «Sincronizar con Authentik», para
+Coordinación en adelante y solo sobre quien no esté por encima (la misma regla de editar).
+
+- Activa → la deja en el grupo de Documenta (crea la cuenta sin contraseña si no existe y guarda
+  su `pk`). Inactiva → la saca del grupo. Es el mismo código que corre al guardar la ficha: nunca
+  cambia, desactiva ni borra la cuenta.
+- Pide confirmar, y el modal dice qué va a pasar. Si está inactiva: «se retira del grupo de
+  Documenta en Authentik. Su cuenta sigue activa para las demás aplicaciones».
+- Si falla, una causa corta y fija: 401/403 → el token no tiene permiso; 404 → revisar el grupo;
+  400 → datos rechazados; sin respuesta → Authentik no contestó. Nunca el cuerpo de la respuesta;
+  el log guarda solo el estado HTTP.
+- El comando `authentik:sincronizar-grupo` sigue para la puesta en marcha de un entorno (todos
+  los activos, con `--simular`).
+
 ## Candidatos para la siguiente versión
 
-- **Botón «Sincronizar con Authentik»** en Administración → Usuarios, solo para el
-  superadministrador. Hace lo mismo que `authentik:sincronizar-grupo`: primero muestra la
-  simulación, después pide confirmar y lo deja en la auditoría. Hoy no hace falta, porque se usa
-  una vez por entorno y lo demás ya es automático (dar acceso, desactivar, guardar la ficha como
-  reintento). Edwar, 2026-11-11.
+- ~~Botón «Sincronizar con Authentik»~~ → construido en la v1.4 (ver abajo).
 - Retirar lo viejo cuando los tres entornos usen `repository-sync`: sacar a `adminDocumenta` del
   grupo `documenta-api`, borrar `documenta-api-token` y retirar el grupo `documenta-api` y el rol
   `documenta-api-role`.
@@ -162,6 +174,7 @@ nuevo es el reintento.
 | Versión | Fecha | Cambio |
 |---|---|---|
 | 0.1 | 2026-11-11 | Borrador con la propuesta de MedTech y las respuestas de Edwar transmitidas desde esa sesión |
+| 1.4 | 2026-11-12 | Botón «Sincronizar con Authentik» por persona; aviso cuando no se puede sacar del grupo |
 | 1.3 | 2026-11-11 | Candidatos: el botón de sincronizar y retirar lo viejo. Guía en `docs/AUTHENTIK.md` |
 | 1.2 | 2026-11-11 | Norma de usuarios: personas solo números; el superadministrador con letras, tal cual |
 | 1.1 | 2026-11-11 | El documento se llama «Usuario» en pantalla; el alias pasa a ser «Alias de emergencia» |

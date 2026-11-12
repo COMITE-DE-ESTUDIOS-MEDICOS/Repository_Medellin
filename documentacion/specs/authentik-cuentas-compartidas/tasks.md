@@ -8,6 +8,7 @@ Authentik real.
 | AUT-01 | Aprovisionamiento: buscar por documento, crear sin contraseña, agregar al grupo o sacarlo de él, sin tocar cuentas existentes; quitar la contraseña del formulario de usuarios; `AUTHENTIK_GRUPO_ID`; comandos `authentik:sincronizar-grupo` y `authentik:revisar` | CA-01 a CA-05, CA-08 | Hecha |
 | AUT-02 | Ingreso: columna `authentik_sub`, primer ingreso por documento y después por `sub`, sin correo, sin `preferred_username` no entra; formulario propio solo para el superadministrador; Mi perfil sin cambio de contraseña para los demás | CA-06, CA-07 | Hecha |
 | AUT-03 | Manual (enlace de recuperación, ingreso), CHANGELOG, `.env.example`, suite completa | — | Hecha (533 pruebas) |
+| AUT-04 | v1.4: acción «Sincronizar con Authentik» por fila (`Usuarios`), `quitarAcceso` devuelve si pudo, `causaDelFallo()` con texto fijo, aviso al no poder sacar del grupo, log sin cuerpo de respuesta | CA-04, CA-08 | Hecha |
 
 ## Plan
 

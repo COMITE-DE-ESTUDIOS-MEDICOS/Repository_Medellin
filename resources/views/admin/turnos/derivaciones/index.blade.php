@@ -41,6 +41,16 @@
         </select>
     </div>
     <div>
+        <label class="block text-xs font-medium text-[var(--muted)]">Comuna</label>
+        <select name="comuna" class="{{ $campo }}">
+            <option value="">Todas</option>
+            <option value="sin" @selected(request('comuna') === 'sin')>Sin comuna</option>
+            @foreach(config('repositorio.comunas') as $numero => $nombre)
+                <option value="{{ $numero }}" @selected((string) request('comuna') === (string) $numero)>{{ $numero }} · {{ $nombre }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div>
         <label class="block text-xs font-medium text-[var(--muted)]">Estado</label>
         <select name="estado" class="{{ $campo }}">
             <option value="">Todos</option>
@@ -64,6 +74,7 @@
         <label class="block text-xs font-medium text-[var(--muted)]">Hasta</label>
         <input type="date" name="hasta" value="{{ request('hasta') }}" class="{{ $campo }}">
     </div>
+    <input type="hidden" name="por_pagina" value="{{ $porPagina }}">
     <button class="liquid-button-primary rounded-md px-3 py-1.5 text-sm">Filtrar</button>
     <a href="{{ route('admin.turnos.derivaciones.index') }}" class="text-sm text-[var(--muted)] hover:text-[var(--text)]">Limpiar</a>
 </form>
@@ -129,13 +140,15 @@
     </details>
 @endif
 
+
 <div class="overflow-x-auto rounded-lg bg-[var(--card)] ring-1 ring-[var(--border)]">
-    <table class="w-full min-w-[56rem] divide-y divide-[var(--border)] text-sm">
+    <table class="w-full min-w-[60rem] divide-y divide-[var(--border)] text-sm">
         <thead class="bg-[var(--card-soft)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
             <tr>
                 <th class="px-4 py-3 font-medium">Código</th>
                 <th class="px-4 py-3 font-medium">Inicio</th>
                 <th class="px-4 py-3 font-medium">Quién lo envía</th>
+                <th class="px-4 py-3 font-medium">Comuna</th>
                 <th class="px-4 py-3 font-medium">Persona de campo</th>
                 <th class="px-4 py-3 font-medium">Nodo</th>
                 <th class="px-4 py-3 font-medium">Estado y tiempo</th>
@@ -154,6 +167,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-[var(--muted)]">{{ $derivacion->entidad }}</td>
+                    <td class="px-4 py-3 text-[var(--muted)]">{{ $derivacion->nombreComuna() }}</td>
                     <td class="px-4 py-3 text-[var(--text)]">
                         @unless($abierto)
                             {{ $derivacion->nombre }}
@@ -181,7 +195,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-10 text-center text-[var(--muted)]">
+                    <td colspan="8" class="px-4 py-10 text-center text-[var(--muted)]">
                         No hay casos con este filtro. La oficina los crea con «Nuevo caso».
                     </td>
                 </tr>
@@ -190,6 +204,21 @@
     </table>
 </div>
 
-<div class="mt-4">{{ $derivaciones->links() }}</div>
+{{-- DOC-23: la paginación de siempre, y al lado cuántos por página. --}}
+<div class="mt-4 flex flex-wrap items-center gap-3">
+    <div class="min-w-0 flex-1">{{ $derivaciones->links() }}</div>
+    <form method="GET" class="flex items-center gap-2 text-sm text-[var(--muted)]">
+        @foreach(request()->except('por_pagina', 'page') as $nombre => $valor)
+            @if(is_scalar($valor))<input type="hidden" name="{{ $nombre }}" value="{{ $valor }}">@endif
+        @endforeach
+        <label for="por_pagina">Ver</label>
+        <select id="por_pagina" name="por_pagina" class="liquid-input text-sm" onchange="this.form.submit()">
+            @foreach(\App\Http\Controllers\Admin\Turnos\DerivacionController::POR_PAGINA as $n)
+                <option value="{{ $n }}" @selected($porPagina === $n)>{{ $n }}</option>
+            @endforeach
+        </select>
+        <noscript><button class="text-[var(--primary)]">Ver</button></noscript>
+    </form>
+</div>
 
 @endsection

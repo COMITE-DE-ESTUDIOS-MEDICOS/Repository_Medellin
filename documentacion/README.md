@@ -1,4 +1,4 @@
-# Documentación de Documenta (SDD)
+﻿# Documentación de Documenta (SDD)
 
 Documenta se documenta y se sigue construyendo con **Spec-Driven Development**: primero
 se escribe qué debe hacer (spec), se aprueba, y después se construye. Como el sistema ya
@@ -73,4 +73,5 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Casos de derivación creados por la oficina (DC-001) | DOC-20 | [Aprobada](specs/casos-de-derivacion/spec.md) | Construida |
 | Turno por entrada y salida · cierre sin salida por cargo | DOC-21 | [Aprobada](specs/turno-por-entrada-y-salida/spec.md) | Construida |
 | Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
+| Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

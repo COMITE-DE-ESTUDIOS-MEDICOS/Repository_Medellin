@@ -140,7 +140,8 @@ class CasosDerivacionPanelTest extends TestCase
     {
         $caso = $this->caso();
         $cierre = ['colaborador_id' => $this->jose->id, 'nodo_id' => $this->nodo->id, 'atendida_at' => now()->format('Y-m-d').'T10:40',
-            'cumplio_requerimiento' => '1', 'motivo' => 'El celular de José se quedó sin batería'];
+            'cumplio_requerimiento' => '1', 'motivo' => 'El celular de José se quedó sin batería',
+            'gestion_realizada' => 'Se trasladó al hogar de paso con la móvil.'];
 
         foreach ([RolDependencia::Edicion, RolDependencia::Coordinacion, RolDependencia::Administracion] as $rol) {
             $usuario = $this->usuarioCon($rol, $this->dependencia);
@@ -194,7 +195,7 @@ class CasosDerivacionPanelTest extends TestCase
 
         $filas = $this->hojaXlsx($this->actingAs($this->edicion)->get(route('admin.turnos.derivaciones.exportar'))->assertOk(), 'Derivaciones');
         $encabezados = $filas[0];
-        $this->assertSame(['CÓDIGO DEL CASO', 'QUIÉN LO CREÓ', 'FECHA Y HORA DE CREACIÓN', 'FECHA Y HORA DE ATENCIÓN', '¿SE CUMPLIÓ EL REQUERIMIENTO?', 'OBSERVACIÓN'], array_slice($encabezados, 21));
+        $this->assertSame(['CÓDIGO DEL CASO', 'QUIÉN LO CREÓ', 'FECHA Y HORA DE CREACIÓN', 'FECHA Y HORA DE ATENCIÓN', '¿SE CUMPLIÓ EL REQUERIMIENTO?', 'OBSERVACIÓN'], array_slice($encabezados, 21, 6));
         $col = array_flip($encabezados);
         $porCodigo = collect(array_slice($filas, 1))->keyBy(fn ($f) => $f[$col['CÓDIGO DEL CASO']]);
 
@@ -291,6 +292,7 @@ class CasosDerivacionPanelTest extends TestCase
         $this->comoSuperadmin()->patch(route('admin.turnos.derivaciones.contingencia', $pendiente), [
             'colaborador_id' => $this->jose->id, 'nodo_id' => $this->nodo->id, 'atendida_at' => now()->format('Y-m-d').'T10:30',
             'cumplio_requerimiento' => '1', 'justificacion' => 'Sin móvil', 'motivo' => 'No se respondió a tiempo en Documenta',
+            'gestion_realizada' => 'Se atendió en el sitio y se remitió al hogar de paso.',
         ])->assertSessionHasNoErrors();
         $this->assertSame(['solucionada', 155], [$pendiente->fresh()->estado, $pendiente->fresh()->tiempo_respuesta_min]);
         $this->assertSame(0, $this->edicion->notifications()->where('type', DerivacionPendiente::class)->count());

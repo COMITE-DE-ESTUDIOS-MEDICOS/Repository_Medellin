@@ -44,6 +44,7 @@ class CasosDerivacionCrearTest extends TestCase
             'descripcion' => 'Habitante de calle requiere traslado.',
             'remitente' => 'alcaldia',
             'ubicacion' => 'Cra. 65 #97-121, Castilla '.Str::random(4),
+            'comuna' => 5,
             'soporte' => $this->archivoPdf('oficio.pdf'),
         ]);
     }

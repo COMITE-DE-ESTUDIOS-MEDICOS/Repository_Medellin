@@ -45,7 +45,7 @@ function iniciar(form) {
     const limpiar = () => {
         turno++;
         detalle.classList.add('hidden');
-        detalle.querySelectorAll('[data-caso-codigo], [data-caso-mensaje], [data-caso-entidad], [data-caso-ubicacion]')
+        detalle.querySelectorAll('[data-caso-codigo], [data-caso-mensaje], [data-caso-entidad], [data-caso-ubicacion], [data-caso-comuna]')
             .forEach((el) => { el.textContent = ''; });
         imagen.removeAttribute('src');
         pdf.removeAttribute('href');
@@ -60,6 +60,7 @@ function iniciar(form) {
         detalle.querySelector('[data-caso-mensaje]').textContent = caso.mensaje || '';
         detalle.querySelector('[data-caso-entidad]').textContent = caso.entidad || '';
         detalle.querySelector('[data-caso-ubicacion]').textContent = caso.ubicacion || '';
+        detalle.querySelector('[data-caso-comuna]').textContent = caso.comuna || '—';
 
         soporte.classList.toggle('hidden', !caso.soporte);
         imagen.classList.toggle('hidden', caso.soporte?.tipo !== 'imagen');
