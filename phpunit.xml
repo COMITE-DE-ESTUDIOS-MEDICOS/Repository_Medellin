@@ -32,5 +32,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Las pruebas nunca hablan con el Authentik real: sin esto toman el token del .env y crean cuentas de verdad. -->
+        <env name="AUTHENTIK_BASE_URL" value="" force="true"/>
+        <env name="AUTHENTIK_API_TOKEN" value="" force="true"/>
+        <env name="AUTHENTIK_GRUPO_ID" value="" force="true"/>
     </php>
 </phpunit>

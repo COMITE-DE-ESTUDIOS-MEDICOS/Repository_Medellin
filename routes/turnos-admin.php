@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\Turnos\AusenciaController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaColaboradoresController;
 use App\Http\Controllers\Admin\Turnos\ColaboradorController;
 use App\Http\Controllers\Admin\Turnos\CasoDerivacionController;
+use App\Http\Controllers\Admin\Turnos\ComentarioDerivacionController;
 use App\Http\Controllers\Admin\Turnos\DerivacionController;
 use App\Http\Controllers\Admin\Turnos\EnlaceTurnoController;
 use App\Http\Controllers\Admin\Turnos\EnTurnoController;
@@ -78,6 +79,11 @@ Route::patch('derivaciones/{derivacion}/contingencia', [DerivacionController::cl
 Route::get('supervisiones', [SupervisionController::class, 'index'])->name('supervisiones.index');
 Route::get('supervisiones/exportar', [SupervisionController::class, 'exportar'])->name('supervisiones.exportar');
 Route::get('supervisiones/{supervision}', [SupervisionController::class, 'show'])->name('supervisiones.show');
+// DOC-23: comentarios en la ficha del caso.
+Route::post('derivaciones/{derivacion}/comentarios', [ComentarioDerivacionController::class, 'store'])
+    ->middleware('throttle:30,1')->name('derivaciones.comentarios.store');
+Route::delete('derivaciones/{derivacion}/comentarios/{comentario}', [ComentarioDerivacionController::class, 'destroy'])
+    ->name('derivaciones.comentarios.destroy');
 Route::get('derivaciones/fotos', [DerivacionController::class, 'fotos'])->name('derivaciones.fotos');
 Route::resource('derivaciones', DerivacionController::class)
     ->only(['index', 'show', 'edit', 'update', 'destroy'])

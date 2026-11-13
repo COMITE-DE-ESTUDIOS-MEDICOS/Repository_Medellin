@@ -21,7 +21,7 @@ class FichasTest extends TestCase
 
         $this->actingAs($yo)->get(route('perfil.edit'))
             ->assertOk()
-            ->assertSee(['Mis datos', 'Apariencia', 'Cambiar contraseña', $yo->name, 'Edición']);
+            ->assertSee(['Mis datos', 'Apariencia', 'Tu contraseña se cambia en Authentik', $yo->name, 'Edición']);
     }
 
     public function test_la_ficha_de_persona_de_campo_carga_al_registrar_y_al_editar(): void

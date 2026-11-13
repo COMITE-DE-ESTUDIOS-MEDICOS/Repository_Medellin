@@ -16,8 +16,17 @@ class GuardarUsuarioRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
+        // DOC-22: el de una persona es su cédula (se le quitan puntos y
+        // espacios); el del superadministrador («adminDocumenta») va tal cual,
+        // solo sin espacios a los lados: con sus mayúsculas y minúsculas.
         if ($this->has('documento')) {
-            $this->merge(['documento' => User::normalizarDocumento($this->input('documento'))]);
+            $this->merge(['documento' => $this->esSuperadmin()
+                ? trim((string) $this->input('documento'))
+                : User::normalizarDocumento($this->input('documento'))]);
+        }
+
+        if ($this->filled('usuario')) {
+            $this->merge(['usuario' => User::normalizarUsuario($this->input('usuario'))]);
         }
 
     }
@@ -27,8 +36,10 @@ class GuardarUsuarioRequest extends FormRequest
         $usuario = $this->route('usuario');
         $esEdicion = $usuario !== null;
 
+        // En pantalla se llama «Usuario»: por norma interna, la cédula. Es el
+        // username de la cuenta de Authentik (DOC-22).
         $documento = [
-            'required', 'string', 'min:5', 'max:20', 'regex:/^[0-9A-Z]+$/',
+            'required', 'string', $this->esSuperadmin() ? 'regex:/^[A-Za-z0-9]{3,30}$/' : 'regex:/^[0-9]{3,20}$/',
             $this->noChocarConOtraColumna('usuario', $usuario?->id),
         ];
 
@@ -71,17 +82,14 @@ class GuardarUsuarioRequest extends FormRequest
             'rol' => ['required', Rule::in($this->rolesQuePuedeAsignar())],
             'activo' => ['boolean'],
 
-            // Sin exigencias de composición: la clave la elige libremente
-            // quien da de alta, y la escribe tal cual en los dos lados. Queda
-            // el largo mínimo, que es lo único que separa una contraseña de
-            // no tener ninguna.
-            'password' => [
-                // Solo hace falta cuando de verdad se está creando la cuenta:
-                // a quien ya la tiene no se le toca la suya.
-                $esEdicion || $this->cuentaExistente() !== null ? 'nullable' : 'required',
-                'confirmed',
-                'string', 'max:255',
-            ],
+            // El alias corto del formulario de emergencia: solo existe para
+            // el superadministrador (PA-01). A los demás ni se les valida ni
+            // se les guarda.
+            ...($usuario?->es_superadmin ? ['usuario' => [
+                'nullable', 'string', 'max:50', 'regex:/^(?=.*[a-z])[a-z0-9._-]+$/',
+                Rule::unique('users', 'usuario')->ignore($usuario->id),
+                $this->noChocarConOtraColumna('documento', $usuario->id),
+            ]] : []),
         ];
     }
 
@@ -108,8 +116,8 @@ class GuardarUsuarioRequest extends FormRequest
 
             if ($chocan) {
                 $falla($columna === 'usuario'
-                    ? 'Ese documento ya lo usa otra persona como nombre de usuario.'
-                    : 'Ese nombre de usuario coincide con el documento de otra persona.');
+                    ? 'Ese usuario ya lo usa otra persona como alias de emergencia.'
+                    : 'Ese alias coincide con el usuario de otra persona.');
             }
         };
     }
@@ -120,6 +128,12 @@ class GuardarUsuarioRequest extends FormRequest
         $suyo = $this->user()?->rolEn(app(\App\Services\ContextoDependencia::class)->id());
 
         return array_map(fn (RolDependencia $rol) => $rol->value, $suyo?->asignables() ?? []);
+    }
+
+    /** DOC-22: solo el superadministrador tiene un usuario con letras (p. ej. «adminDocumenta»). */
+    protected function esSuperadmin(): bool
+    {
+        return (bool) $this->route('usuario')?->es_superadmin;
     }
 
     /** Cuenta que ya existe con el documento enviado, si la hay. */
@@ -136,18 +150,21 @@ class GuardarUsuarioRequest extends FormRequest
     {
         return [
             'name' => 'nombre',
-            'documento' => 'documento',
-            'usuario' => 'nombre de usuario',
+            'documento' => 'usuario',
+            'usuario' => 'alias de emergencia',
             'email' => 'correo',
-            'password' => 'contraseña',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'documento.regex' => 'El documento solo puede tener números y letras, sin puntos ni espacios.',
-            'usuario.regex' => 'El nombre de usuario usa minúsculas, números, puntos, guiones y guiones bajos, '
+            'documento.required' => 'El usuario es obligatorio con acceso web: por norma interna, la cédula de la persona.',
+            'documento.unique' => 'Ese usuario ya lo tiene otra persona con acceso web.',
+            'documento.regex' => $this->esSuperadmin()
+                ? 'El usuario del superadministrador solo admite letras y números, sin espacios.'
+                : 'El usuario solo admite números (la cédula), sin puntos ni espacios.',
+            'usuario.regex' => 'El alias usa minúsculas, números, puntos, guiones y guiones bajos, '
                 .'y debe llevar al menos una letra.',
             'rol.in' => 'No puedes otorgar un rol por encima del tuyo.',
         ];

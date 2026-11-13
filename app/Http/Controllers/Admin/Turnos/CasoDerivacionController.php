@@ -60,16 +60,20 @@ class CasoDerivacionController extends Controller
             'remitente' => ['required', Rule::in(array_keys(Derivacion::REMITENTES))],
             'remitente_otra' => ['nullable', 'required_if:remitente,otra', 'string', 'max:255'],
             'ubicacion' => ['required', 'string', 'max:500'],
+            'comuna' => ['required', 'integer', Rule::in(array_keys(config('repositorio.comunas')))],
             'soporte' => ['required', 'file', 'mimes:'.implode(',', config('repositorio.formatos.publico.extensiones')), 'max:'.config('repositorio.tamano_maximo_kb')],
             'confirmar_duplicado' => ['nullable', 'boolean'],
         ], [
             'remitente_otra.required_if' => 'Escribe quién envía el caso.',
+            'comuna.required' => 'Elige la comuna o el corregimiento del caso.',
+            'comuna.in' => 'Elige una comuna o un corregimiento de la lista.',
             'soporte.required' => 'Falta el soporte del caso: toma una foto o elige una imagen o un PDF.',
         ], [
             'descripcion' => 'mensaje para la atención',
             'remitente' => 'quién lo envía',
             'remitente_otra' => '¿cuál?',
             'ubicacion' => 'ubicación',
+            'comuna' => 'comuna',
             'soporte' => 'soporte del caso',
             'componente_id' => 'componente',
         ]);
@@ -111,6 +115,7 @@ class CasoDerivacionController extends Controller
                         'entidad' => $entidad,
                         'descripcion' => $datos['descripcion'],
                         'ubicacion' => $datos['ubicacion'],
+                        'comuna' => (int) $datos['comuna'],
                         'fecha_requerimiento' => $ahora->toDateString(),
                         'hora_requerimiento' => $ahora->format('H:i'),
                     ]);
@@ -123,7 +128,7 @@ class CasoDerivacionController extends Controller
                         AccionAuditoria::CasoCreado,
                         $caso,
                         "Creó el caso {$caso->codigo()} ({$caso->entidad})",
-                        ['codigo' => $caso->codigo(), 'ubicacion' => $caso->ubicacion],
+                        ['codigo' => $caso->codigo(), 'ubicacion' => $caso->ubicacion, 'comuna' => $caso->comuna],
                     );
 
                     return $caso;

@@ -100,6 +100,7 @@ class CasosDerivacionAtenderTest extends TestCase
             'cedula' => '1.017.000.111',
             'numero' => '1',
             'nodo_id' => $this->nodo->id,
+            'gestion_realizada' => 'Se habló con el ciudadano y se trasladó al hogar de paso.',
             'cumplio_requerimiento' => '1',
             'evidencia1' => $this->archivoJpg('uno.jpg'),
             'evidencia2' => $this->archivoJpg('dos.jpg'),
@@ -198,7 +199,7 @@ class CasosDerivacionAtenderTest extends TestCase
 
         $r = $this->consultar(7)->assertOk();
 
-        $this->assertSame(['codigo', 'mensaje', 'entidad', 'ubicacion', 'soporte', 'nodo_id', 'vencido'], array_keys($r->json()));
+        $this->assertSame(['codigo', 'mensaje', 'entidad', 'ubicacion', 'comuna', 'soporte', 'nodo_id', 'vencido'], array_keys($r->json()));
         $this->assertSame(['url', 'tipo'], array_keys($r->json('soporte')));
         $r->assertJson([
             'codigo' => 'DC-007', 'mensaje' => 'Ciudadano en riesgo en el parque.', 'entidad' => 'Policía',

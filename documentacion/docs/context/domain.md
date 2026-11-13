@@ -86,9 +86,20 @@ asigna por dependencia. Nadie gestiona a un usuario con rol mayor; la cuenta de
 plataforma solo la gestiona otro superadministrador.
 *Origen:* F-02 · *Código:* `RolDependencia`, `UsuarioController::verificarRango`, `Livewire\Usuarios::alcanza`.
 
-**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante; la
-entrada es por Authentik o el formulario propio.
-*Origen:* F-02 · *Código:* `UsuarioController`, `AuthentikProvisioner`.
+**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante. Desde
+DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
+
+- su usuario es la cédula (`^[0-9A-Z]{3,20}$`);
+- dar acceso la crea sin contraseña, o la agrega al grupo de Documenta si ya existía;
+- desactivar a la persona la saca del grupo, sin desactivar su cuenta;
+- Documenta nunca cambia el nombre, el correo, el usuario ni la contraseña de esa cuenta;
+- la contraseña la define cada persona en Authentik, con un enlace de recuperación de un solo
+  uso;
+- se entra por Authentik: la primera vez por el usuario, después por el `sub`, nunca por el
+  correo;
+- el formulario propio queda solo para el superadministrador, como acceso de emergencia.
+
+*Origen:* F-02, DOC-22 · *Código:* `UsuarioController`, `AuthentikProvisioner`, `Auth\AuthentikController`, `Auth\SesionController`.
 
 **RN-04. Todo cambio deja auditoría.** Quién, qué, cuándo, IP y navegador. Inactivar
 exige motivo.
@@ -240,11 +251,12 @@ aplica; los valores en pesos los calcula Nómina.
 
 **RN-29. El caso lo crea la oficina y lo atiende la persona de campo.** Edición en
 adelante crea el caso con el mensaje, quién lo envía (Alcaldía, Autoridades locales del
-sector u Otra), la ubicación y un soporte obligatorio. Recibe un código consecutivo por
+sector u Otra), la comuna de Medellín (lista en `config/repositorio.php` → `comunas`, DOC-23),
+la ubicación y un soporte obligatorio. Recibe un código consecutivo por
 dependencia (DC-001, DC-1000…), que nunca se repite ni se reinicia. La persona de campo lo
 atiende desde su enlace de derivaciones: cédula registrada, activa y en turno, código
-exacto, nodo que atiende, tres evidencias fotográficas y «¿Se cumplió?» (con No, la
-observación es obligatoria). Un caso se atiende una sola vez. Las derivaciones del flujo
+exacto, nodo que atiende, la atención o gestión realizada (obligatoria, DOC-23), tres
+evidencias fotográficas y «¿Se cumplió?» (con No, la observación es obligatoria). Un caso se atiende una sola vez. Las derivaciones del flujo
 anterior (sin código) se conservan como «registro anterior».
 *Origen:* D-16, D-17, DOC-20 · *Código:* `CasoDerivacionController`, `Publico\DerivacionController`.
 
@@ -271,8 +283,10 @@ y se retira el de vencido. Ya no hay recordatorio cada 30 min.
 lo atendió (persona de campo y nodo) y cuándo, el tiempo, la meta y el «¿Se cumplió?». Los
 indicadores, con los filtros aplicados, dan los abiertos y vencidos, el cumplimiento, los
 nodos con casos abiertos y los casos atendidos por cada persona de campo con su tiempo
-promedio.
-*Origen:* D-20, DOC-20 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`.
+promedio. Desde DOC-23 se filtra también por comuna, y la ficha trae la gestión realizada y
+los comentarios: escribe Edición en adelante, avisa por la campana a quien creó el caso y a
+quienes ya comentaron, y la vía pública no los ve.
+*Origen:* D-20, DOC-20, DOC-23 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`, `ComentarioDerivacionController`.
 
 **RN-35. Eliminar derivaciones.** Solo Coordinación en adelante, como borrado lógico: sale
 del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a «no borrar».
@@ -281,8 +295,9 @@ del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a
 **RN-36. Reporte de derivaciones.** Excel con encabezado negro y las columnas de la hoja
 original, las fotos dentro de sus celdas y el soporte en PDF como enlace firmado que vence
 a los 30 días; un ZIP con las fotos originales. Desde DOC-20, al final se agregan el
-código, quién lo creó, la creación, la atención, el «¿Se cumplió?» y la observación.
-*Origen:* D-16, DOC-20.
+código, quién lo creó, la creación, la atención, el «¿Se cumplió?» y la observación; desde
+DOC-23, la comuna y la gestión realizada.
+*Origen:* D-16, DOC-20, DOC-23.
 
 **RN-39. Quién supervisa.** Solo registran supervisiones las personas de campo activas
 cuyo cargo está en «Cargos que supervisan» del componente (en Calle: «Apoyo al control

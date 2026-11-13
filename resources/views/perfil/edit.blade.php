@@ -39,7 +39,7 @@
 
                 <dl class="mt-5 space-y-2 border-t border-[var(--border)] pt-4 text-xs">
                     <div class="flex justify-between gap-2">
-                        <dt class="text-[var(--muted)]">Documento</dt>
+                        <dt class="text-[var(--muted)]">Usuario</dt>
                         <dd class="text-[var(--text)]">{{ $yo->documento ?? '—' }}</dd>
                     </div>
                     <div class="flex justify-between gap-2">
@@ -57,7 +57,7 @@
                         <dd class="text-[var(--text)]">{{ $yo->ultimo_acceso_at?->fechaHora() ?? '—' }}</dd>
                     </div>
                 </dl>
-                <p class="mt-4 text-xs text-[var(--muted)]">El documento y el rol los cambia quien administra los usuarios.</p>
+                <p class="mt-4 text-xs text-[var(--muted)]">El usuario (tu cédula) y el rol los cambia quien administra los usuarios.</p>
             </div>
         </aside>
 
@@ -110,7 +110,9 @@
                 </form>
             </x-seccion-ficha>
 
-            <x-seccion-ficha icono="candado" titulo="Cambiar contraseña" descripcion="Sin largo mínimo ni más reglas.">
+            {{-- DOC-22: la contraseña la gestiona Authentik; aquí solo la de emergencia del superadministrador. --}}
+            @if($yo->es_superadmin)
+            <x-seccion-ficha icono="candado" titulo="Cambiar contraseña" descripcion="La del acceso de emergencia. Sin largo mínimo ni más reglas.">
                 <form method="POST" action="{{ route('perfil.password') }}">
                     @csrf @method('PUT')
                     <div class="grid gap-4 sm:grid-cols-2">
@@ -134,6 +136,15 @@
                     </div>
                 </form>
             </x-seccion-ficha>
+            @else
+            <x-seccion-ficha icono="candado" titulo="Contraseña" descripcion="Es la de tu cuenta institucional, la misma de las otras aplicaciones.">
+                <p class="text-sm text-[var(--text)]">Tu contraseña se cambia en Authentik.</p>
+                @if(filled(config('services.authentik.base_url')))
+                    <a href="{{ rtrim(config('services.authentik.base_url'), '/') }}/if/user/#/settings" target="_blank" rel="noopener"
+                       class="mt-3 inline-block text-sm font-semibold text-[var(--primary)] hover:underline">Ir a mi cuenta en Authentik</a>
+                @endif
+            </x-seccion-ficha>
+            @endif
         </div>
     </div>
 </div>

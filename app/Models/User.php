@@ -96,6 +96,8 @@ class User extends Authenticatable
 
         return static::query()
             ->where('documento', static::normalizarDocumento($valor))
+            // El usuario del superadministrador («adminDocumenta») va tal cual.
+            ->orWhere('documento', $valor)
             ->orWhere('usuario', static::normalizarUsuario($valor))
             ->orWhere('email', $valor)
             ->first();

@@ -70,8 +70,22 @@
             <input id="ubicacion" name="ubicacion" type="text" required maxlength="500" value="{{ old('ubicacion', $derivacion->ubicacion) }}" class="{{ $campo }}">
         </div>
 
+        <div>
+            <label for="comuna" class="{{ $etiqueta }}">Comuna</label>
+            <select id="comuna" name="comuna" class="{{ $campo }}">
+                <option value="">Sin comuna</option>
+                @foreach(config('repositorio.comunas') as $numero => $nombre)
+                    <option value="{{ $numero }}" @selected((string) old('comuna', $derivacion->comuna) === (string) $numero)>{{ $numero }} · {{ $nombre }}</option>
+                @endforeach
+            </select>
+        </div>
+
         @if($atendida)
             @if($derivacion->esCaso())
+                <div>
+                    <label for="gestion_realizada" class="{{ $etiqueta }}">Atención o gestión realizada{{ $derivacion->gestion_realizada === null ? '' : ' *' }}</label>
+                    <textarea id="gestion_realizada" name="gestion_realizada" rows="3" minlength="10" maxlength="2000" @required($derivacion->gestion_realizada !== null) class="{{ $campo }}">{{ old('gestion_realizada', $derivacion->gestion_realizada) }}</textarea>
+                </div>
                 <div>
                     <label for="observacion" class="{{ $etiqueta }}">Observación</label>
                     <textarea id="observacion" name="observacion" rows="3" maxlength="5000" class="{{ $campo }}">{{ old('observacion', $derivacion->observacion) }}</textarea>

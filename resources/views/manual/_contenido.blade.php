@@ -65,17 +65,18 @@
 
     <h3>Ingresar</h3>
     <ol class="pasos">
-        <li>Abre Documenta en el navegador y toca <strong>Ingresar</strong>.</li>
-        <li>Te lleva a la página de acceso del Comité (Authentik). Escribe tu <strong>número de documento</strong> como usuario y tu contraseña.</li>
+        <li>Abre Documenta en el navegador y toca <strong>Entrar con la cuenta institucional</strong>.</li>
+        <li>Te lleva a la página de acceso del Comité (Authentik). Es la <strong>misma cuenta</strong> de MedTech y de las otras aplicaciones: escribe tu <strong>usuario</strong> (por norma interna, tu cédula, sin puntos ni espacios), tu contraseña y, si te lo pide, tu segundo factor.</li>
         <li>Al entrar llegas a <strong>Documentos</strong>.</li>
     </ol>
+    <p>La <strong>contraseña la defines tú en Authentik</strong>; Documenta no la conoce ni la cambia. La primera vez, quien administra los usuarios te entrega un enlace para crearla (ver <span class="ruta">Administración → Usuarios</span>).</p>
     <div class="nota">
         <span class="nota-titulo">¿No puedes entrar?</span>
-        Las cuentas las crea Coordinación o Administración. Si dice que tu usuario no está registrado o que tu cuenta está desactivada, comunícate con ellos.
+        Las cuentas las crea Coordinación o Administración. Si dice que tu usuario no está registrado o que tu cuenta está desactivada, comunícate con ellos. El <strong>Acceso de emergencia (administración)</strong> de la pantalla de ingreso es solo para el superadministrador, por si Authentik no responde.
     </div>
 
     <h3>Mi perfil</h3>
-    <p>En el menú de tu cuenta → <strong>Mi perfil</strong>: tu nombre y cargo, la apariencia (claro, oscuro o la del sistema, que te acompaña en cualquier equipo) y el cambio de contraseña. El documento y el rol los cambia quien administra los usuarios.</p>
+    <p>En el menú de tu cuenta → <strong>Mi perfil</strong>: tu nombre y cargo, la apariencia (claro, oscuro o la del sistema, que te acompaña en cualquier equipo) y un enlace a tu cuenta de Authentik, que es donde se cambia la contraseña. El usuario y el rol los cambia quien administra los usuarios.</p>
 
     <h3>La pantalla</h3>
     <ul>
@@ -295,7 +296,7 @@
     <h3>1. Crear el caso (oficina)</h3>
     <ol class="pasos">
         <li><span class="ruta">Atención territorial → Derivaciones → Nuevo caso</span> (funciona bien desde el celular).</li>
-        <li>Escribe el <strong>mensaje para la atención</strong>, elige <strong>quién lo envía</strong> (Alcaldía, Autoridades locales del sector u Otra, y cuál), la <strong>ubicación</strong> y sube el <strong>soporte</strong>: una foto con la cámara, o una imagen o un PDF.</li>
+        <li>Escribe el <strong>mensaje para la atención</strong>, elige <strong>quién lo envía</strong> (Alcaldía, Autoridades locales del sector u Otra, y cuál), la <strong>comuna</strong> de Medellín, la <strong>ubicación</strong> y sube el <strong>soporte</strong>: una foto con la cámara, o una imagen o un PDF.</li>
         <li><strong>Crear caso.</strong> Aparece el código en grande: díctaselo a la persona de campo. Desde ese momento corre el tiempo.</li>
     </ol>
     <p>Si ya hay un caso abierto con la misma ubicación y el mismo «quién lo envía» de los últimos 30 minutos, Documenta avisa para no crearlo dos veces. Si es otro caso, marca <strong>Crear de todas formas</strong>. Tocar dos veces el botón no crea dos casos.</p>
@@ -304,8 +305,8 @@
     <p>Con el enlace por cédula de tipo <strong>Derivaciones</strong>, en <strong>Atender caso</strong>:</p>
     <ol class="pasos">
         <li>La cédula: tiene que estar registrada y <strong>en turno</strong>, con su entrada marcada.</li>
-        <li>El <strong>número del caso</strong>: solo los dígitos, porque el «DC-» ya está puesto. Aparece lo que subió la oficina: mensaje, quién lo envía, ubicación y soporte.</li>
-        <li>El <strong>nodo que atiende</strong> (sale su nodo habitual), <strong>¿Se cumplió con el requerimiento?</strong> Sí o No (con No, la observación es obligatoria) y, si pasaron más de 3 horas, la justificación.</li>
+        <li>El <strong>número del caso</strong>: solo los dígitos, porque el «DC-» ya está puesto. Aparece lo que subió la oficina: mensaje, quién lo envía, comuna, ubicación y soporte.</li>
+        <li>El <strong>nodo que atiende</strong> (sale su nodo habitual), la <strong>atención o gestión realizada</strong> (qué se hizo en el sitio, obligatoria), <strong>¿Se cumplió con el requerimiento?</strong> Sí o No (con No, la observación es obligatoria) y, si pasaron más de 3 horas, la justificación.</li>
         <li>Las <strong>tres evidencias</strong>: una foto con la cámara, que lleva el sello de hora y lugar, o una imagen del celular.</li>
         <li><strong>Enviar atención.</strong> Ahí se detiene el tiempo.</li>
     </ol>
@@ -313,13 +314,14 @@
 
     <h3>3. Seguimiento (oficina)</h3>
     <ul>
-        <li><span class="ruta">Atención territorial → Derivaciones</span>: lista con filtros por estado, fechas, nodo, cumplimiento y búsqueda (también por código: «DC-12» o «12»). Los abiertos van primero, con el tiempo que llevan corriendo.</li>
+        <li><span class="ruta">Atención territorial → Derivaciones</span>: lista con filtros por estado, fechas, nodo, <strong>comuna</strong>, cumplimiento y búsqueda (también por código: «DC-12» o «12»). Los abiertos van primero, con el tiempo que llevan corriendo. Abajo se cambia de página, y arriba se elige ver 25, 50 o 100.</li>
+        <li><strong>Comentarios:</strong> en la ficha del caso, Coordinación deja indicaciones y Edición responde. Quien creó el caso y quienes ya comentaron se enteran por la campana. Toca «Comentarios» para plegar o abrir la conversación. La persona de campo no los ve.</li>
         <li>En la ficha de cada caso se ve la <strong>trazabilidad</strong>: quién lo creó y cuándo, quién lo atendió (persona y nodo) y cuándo, el tiempo, si cumplió la meta, el «¿Se cumplió?», las observaciones, el soporte y las evidencias.</li>
         <li>Arriba de la lista: abiertos y vencidos, cumplimiento, nodos con casos sin atender y los <strong>casos atendidos por cada persona de campo</strong>, con su tiempo promedio.</li>
         <li><strong>Avisos:</strong> si un caso pasa 3 horas sin atención, Edición y Coordinación reciben un solo aviso de vencido. Cuando lo atienden, quien lo creó recibe el suyo y el de vencido desaparece.</li>
         <li><strong>Corregir:</strong> Edición y Coordinación corrigen solo los textos. Las horas, el «¿Se cumplió?» y el <strong>cierre a mano</strong> de un caso que se atendió y no se pudo enviar (plan de contingencia) los hace solo el superadministrador, con un motivo que queda en la auditoría.</li>
         <li><strong>Eliminar:</strong> solo Coordinación; las fotos se conservan.</li>
-        <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días. Al final van el código, quién lo creó, las horas de creación y de atención, el «¿Se cumplió?» y la observación.</li>
+        <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días. Al final van el código, quién lo creó, las horas de creación y de atención, el «¿Se cumplió?», la observación, la comuna y la gestión realizada.</li>
         <li><strong>Excel + fotos (ZIP):</strong> el Excel y una carpeta por caso con las fotos en tamaño original.</li>
         <li>Las derivaciones anteriores a este cambio siguen en la lista y en el Excel, marcadas «registro anterior».</li>
     </ul>
@@ -364,11 +366,25 @@
     <h3>Usuarios</h3>
     <ol class="pasos">
         <li>Ve a <span class="ruta">Administración → Usuarios</span> → <strong>Dar acceso</strong>.</li>
-        <li>Nombre, número de documento (es su usuario) y correo.</li>
+        <li>Nombre, <strong>usuario</strong> (por norma interna, la cédula de la persona: solo números, sin puntos ni espacios) y correo. El único usuario con letras es el del superadministrador de Documenta (por ejemplo, <code>adminDocumenta</code>), que se crea a mano en Authentik y se escribe tal cual, con sus mayúsculas y minúsculas.</li>
         <li>Asigna el <strong>rol</strong> en cada dependencia. Puedes desactivar a alguien sin borrarlo.</li>
         <li>Para un usuario de Edición, marca <strong>Aprueba novedades de turno</strong> si debe aprobarlas (Coordinación y Administración siempre pueden).</li>
     </ol>
-    <p>En la lista se busca por nombre, correo o documento (con o sin puntos) y se filtra por rol, estado o «Aprueba novedades». <strong>Revocar</strong> quita el acceso a esta dependencia sin borrar la cuenta; pide confirmación. Nadie gestiona a quien tiene un rol mayor que el suyo.</p>
+    <p>Dar acceso le abre Documenta con su <strong>cuenta institucional de Authentik</strong> (la misma de MedTech). Si ya la tenía por otra aplicación, se usa esa. Documenta <strong>no pone ni cambia contraseñas</strong>: cada persona define la suya en Authentik.</p>
+
+    <h4>Para que una persona nueva cree su contraseña</h4>
+    <ol class="pasos">
+        <li>En Authentik: <span class="ruta">Directorio → Usuarios</span> → la persona → <strong>Crear enlace de recuperación</strong>.</li>
+        <li>Entrégale esa URL, que sirve <strong>una sola vez</strong>: impresa, en persona o por mensaje.</li>
+        <li>Ella abre el enlace y define su contraseña y su segundo factor. Desde ahí entra con <strong>Entrar con la cuenta institucional</strong>.</li>
+    </ol>
+    <div class="nota">
+        <span class="nota-titulo">Tener en cuenta</span>
+        <strong>Desactivar</strong> a alguien en Documenta solo le quita Documenta: sigue entrando a las otras aplicaciones. Si se va de la institución, se desactiva en Authentik.
+        Si en la lista aparece <strong>«Falta en Authentik»</strong>, o quieres confirmar que quedó bien, usa <strong>Sincronizar con Authentik</strong> en su fila: si está activa le da el acceso y si está inactiva se lo quita.
+        Si el <strong>usuario</strong> (la cédula) quedó mal escrito, corregirlo en Documenta no lo cambia en Authentik: allá se corrige a mano.
+    </div>
+    <p>En la lista se busca por nombre, correo o usuario (la cédula, con o sin puntos) y se filtra por rol, estado o «Aprueba novedades». <strong>Revocar</strong> quita el acceso a esta dependencia sin borrar la cuenta; pide confirmación. Nadie gestiona a quien tiene un rol mayor que el suyo.</p>
 
     <h3>Tipos de documento</h3>
     <p>Las categorías para clasificar documentos (Acta, Informe, Contrato…) y filtrar en el explorador.</p>

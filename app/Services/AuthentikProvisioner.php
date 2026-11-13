@@ -10,30 +10,23 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Refleja en Authentik las cuentas que un administrador crea aquí.
+ * Da y quita el acceso a Documenta en Authentik (DOC-22).
  *
- * La idea es que la cuenta viaje tal como se creó: mismo documento, mismo
- * nombre, misma contraseña. Quien la da de alta no tiene que entrar a
- * Authentik a rematar nada, y quien la recibe entra con lo que le dijeron,
- * sin correos de por medio.
+ * Una persona tiene una sola cuenta de Authentik para todas las apps
+ * (MedTech, Documenta…). Documenta no es dueña de esa cuenta: solo la crea si
+ * no existe y la mete o la saca del grupo de Documenta de este entorno
+ * (`services.authentik.grupo_id`). Estar en el grupo es poder entrar.
  *
- * El documento es la identidad a los dos lados: es el `username` de allá y
- * es por donde se empareja al volver del ingreso. El correo no participa —
- * en esta casa es opcional y mucha gente no tiene.
+ * Reglas:
  *
- * Dos reglas gobiernan todo lo de abajo:
- *
- * 1. Documenta sigue decidiendo quién entra y con qué rol. Authentik solo
- *    guarda la identidad que hace falta para autenticarla.
- * 2. Nada de esto puede tumbar la gestión de usuarios. Si Authentik no
- *    contesta, la operación local se completa igual y el fallo queda anotado
- *    para reintentarlo. Por eso ningún método de aquí lanza.
- *
- * Sobre la contraseña: sí viaja, y es una decisión tomada a conciencia. El
- * camino alterno —que la persona la defina ella misma por un enlace— exige
- * un correo por usuario y un servidor de correo funcionando, dos cosas que
- * aquí no se dan. A cambio, la misma clave queda en dos sitios y Documenta
- * la ve al pasar; nunca se guarda en claro en ninguno de los dos.
+ * 1. Nunca se cambia una cuenta que ya existe: ni nombre, ni correo, ni
+ *    username, ni estado, ni contraseña. Nunca se desactiva ni se borra: la
+ *    persona perdería las otras apps.
+ * 2. La contraseña la gestiona Authentik. Documenta no la envía nunca, ni al
+ *    crear la cuenta.
+ * 3. Nada de esto puede tumbar la gestión de usuarios. Si Authentik no
+ *    contesta, la operación local se completa y el fallo queda en el log y en
+ *    la auditoría. Por eso ningún método público de escritura lanza.
  */
 class AuthentikProvisioner
 {
@@ -41,143 +34,148 @@ class AuthentikProvisioner
     {
     }
 
-    /**
-     * Da de alta la identidad con la contraseña que puso el administrador.
-     *
-     * Idempotente: quien ya tiene `authentik_id` no se vuelve a crear. Es lo
-     * que evita identidades gemelas si se reintenta un alta o si dos
-     * administradores guardan el mismo formulario a la vez.
-     */
-    public function crear(User $usuario, ?string $contrasena = null): void
+    /** Sin URL, sin token o sin grupo no se intenta nada contra Authentik. */
+    public function configurado(): bool
     {
-        if (! $this->configurado() || filled($usuario->authentik_id)) {
-            return;
+        return filled(config('services.authentik.base_url'))
+            && filled(config('services.authentik.api_token'))
+            && filled(config('services.authentik.grupo_id'));
+    }
+
+    /**
+     * Deja a la persona en el grupo de Documenta, creando su cuenta solo si
+     * no existe. Idempotente: guardar la ficha de nuevo es el reintento.
+     *
+     * @return bool true si quedó en el grupo
+     */
+    public function darAcceso(User $usuario): bool
+    {
+        if (! $this->configurado()) {
+            return false;
+        }
+
+        $mensaje = null;
+
+        if (blank($usuario->authentik_id)) {
+            if (blank($usuario->documento)) {
+                $this->anotarFallo("dar acceso a {$usuario->name} en Authentik: no tiene documento, que es su usuario allá", $usuario);
+
+                return false;
+            }
+
+            try {
+                $pk = $this->buscar($usuario->documento);
+
+                if ($pk === null) {
+                    $pk = $this->crearCuenta($usuario);
+                    $mensaje = "Creó la cuenta de {$usuario->name} en Authentik y la agregó al grupo de Documenta";
+                } else {
+                    $mensaje = "Agregó a Documenta la cuenta que ya existía en Authentik de {$usuario->name}";
+                }
+            } catch (Throwable $e) {
+                $this->anotarFallo("crear o encontrar la cuenta de {$usuario->name} en Authentik", $usuario, $e);
+
+                return false;
+            }
+
+            $usuario->forceFill(['authentik_id' => $pk])->save();
         }
 
         try {
-            $respuesta = $this->api()->post('/api/v3/core/users/', $this->datosDe($usuario))->throw();
+            $this->api()->post($this->grupo('add_user'), ['pk' => (int) $usuario->authentik_id])->throw();
         } catch (Throwable $e) {
-            $this->anotarFallo('crear la identidad', $usuario, $e);
+            $this->anotarFallo("agregar a {$usuario->name} al grupo de Documenta en Authentik", $usuario, $e);
 
-            return;
+            return false;
         }
 
-        $usuario->forceFill(['authentik_id' => (string) $respuesta->json('pk')])->save();
+        if ($mensaje !== null) {
+            $this->auditor->registrar(AccionAuditoria::AuthentikAprovisionado, $usuario, $mensaje);
+        }
+
+        return true;
+    }
+
+    /**
+     * Saca a la persona del grupo de Documenta. Su cuenta de Authentik queda
+     * intacta: nunca se desactiva ni se borra.
+     */
+    /** @return bool false solo si Authentik falló; sin configurar o sin cuenta no hay nada que quitar */
+    public function quitarAcceso(User $usuario): bool
+    {
+        if (! $this->configurado()) {
+            return true;
+        }
+
+        try {
+            // Sin pk guardado pudo entrar al grupo a mano (la migración): se busca.
+            $pk = $usuario->authentik_id ?: (filled($usuario->documento) ? $this->buscar($usuario->documento) : null);
+
+            if ($pk === null) {
+                return true;
+            }
+
+            $this->api()->post($this->grupo('remove_user'), ['pk' => (int) $pk])->throw();
+        } catch (Throwable $e) {
+            $this->anotarFallo("sacar a {$usuario->name} del grupo de Documenta en Authentik", $usuario, $e);
+
+            return false;
+        }
 
         $this->auditor->registrar(
             AccionAuditoria::AuthentikAprovisionado,
             $usuario,
-            "Creó la identidad de {$usuario->name} en Authentik",
+            "Sacó a {$usuario->name} del grupo de Documenta en Authentik (su cuenta sigue activa para las otras apps)",
         );
 
-        // Aparte del alta porque son dos llamadas distintas: la identidad
-        // puede quedar creada y la clave no. Mejor eso que ninguna de las
-        // dos, y el fallo queda anotado para ponérsela a mano.
-        $this->fijarContrasena($usuario, $contrasena);
+        return true;
     }
 
     /**
-     * Lleva allá los cambios de la ficha, y la clave nueva si la hubo.
+     * El pk de la cuenta cuyo username es exactamente ese documento, o null.
+     * Lanza si Authentik no contesta: quien llama decide.
      *
-     * Sin esto, corregir un documento aquí dejaría a la persona entrando con
-     * el anterior: el username de Authentik es el documento.
+     * La API filtra por username, pero no se confía en que la coincidencia
+     * sea exacta: se vuelve a comparar aquí.
      */
-    public function actualizar(User $usuario, ?string $contrasena = null): void
+    public function buscar(string $documento): ?string
     {
-        if (! $this->configurado() || blank($usuario->authentik_id)) {
-            return;
-        }
+        $resultados = $this->api()
+            ->get('/api/v3/core/users/', ['username' => $documento])
+            ->throw()
+            ->json('results', []);
 
-        try {
-            $this->api()
-                ->patch("/api/v3/core/users/{$usuario->authentik_id}/", $this->datosDe($usuario))
-                ->throw();
-        } catch (Throwable $e) {
-            $this->anotarFallo('actualizar la identidad', $usuario, $e);
-        }
+        $cuenta = collect($resultados)->first(fn ($c) => ($c['username'] ?? null) === $documento);
 
-        $this->fijarContrasena($usuario, $contrasena);
+        return $cuenta ? (string) $cuenta['pk'] : null;
     }
 
-    /**
-     * Apaga la identidad allá cuando aquí se pierde el acceso.
-     *
-     * Tan importante como crearla: una cuenta desactivada en Documenta cuya
-     * identidad sigue viva en Authentik es un ingreso huérfano esperando.
-     */
-    public function inactivar(User $usuario): void
-    {
-        $this->cambiarEstado($usuario, false);
-    }
-
-    /** El otro lado de lo mismo: reactivar aquí devuelve el ingreso allá. */
-    public function reactivar(User $usuario): void
-    {
-        $this->cambiarEstado($usuario, true);
-    }
-
-    /** Sin URL o sin token no hay integración que valga: se calla y sigue. */
-    public function configurado(): bool
-    {
-        return filled(config('services.authentik.base_url'))
-            && filled(config('services.authentik.api_token'));
-    }
-
-    /**
-     * La ficha tal como la conoce Authentik.
-     *
-     * El documento va de `username` —es con lo que la persona entra y lo que
-     * empareja al volver— y el correo solo si existe, que aquí es opcional.
-     */
-    protected function datosDe(User $usuario): array
+    /** Crea la cuenta sin contraseña: la define la persona en Authentik. */
+    protected function crearCuenta(User $usuario): string
     {
         $datos = [
             'username' => (string) $usuario->documento,
             'name' => (string) $usuario->name,
-            'is_active' => (bool) $usuario->activo,
+            'is_active' => true,
         ];
 
         if (filled($usuario->email)) {
             $datos['email'] = $usuario->email;
         }
 
-        return $datos;
+        $pk = $this->api()->post('/api/v3/core/users/', $datos)->throw()->json('pk');
+
+        return filled($pk) ? (string) $pk : throw new \RuntimeException('Authentik no devolvió el pk de la cuenta creada');
     }
 
-    protected function fijarContrasena(User $usuario, ?string $contrasena): void
+    protected function grupo(string $accion): string
     {
-        if (blank($contrasena) || blank($usuario->authentik_id)) {
-            return;
-        }
-
-        try {
-            $this->api()
-                ->post("/api/v3/core/users/{$usuario->authentik_id}/set_password/", ['password' => $contrasena])
-                ->throw();
-        } catch (Throwable $e) {
-            // El mensaje no lleva la clave, solo el hecho de que no se pudo.
-            $this->anotarFallo('fijar la contraseña', $usuario, $e);
-        }
-    }
-
-    protected function cambiarEstado(User $usuario, bool $activo): void
-    {
-        if (! $this->configurado() || blank($usuario->authentik_id)) {
-            return;
-        }
-
-        try {
-            $this->api()
-                ->patch("/api/v3/core/users/{$usuario->authentik_id}/", ['is_active' => $activo])
-                ->throw();
-        } catch (Throwable $e) {
-            $this->anotarFallo($activo ? 'reactivar la identidad' : 'inactivar la identidad', $usuario, $e);
-        }
+        return '/api/v3/core/groups/'.config('services.authentik.grupo_id')."/{$accion}/";
     }
 
     protected function api(): PendingRequest
     {
-        return Http::baseUrl($this->base())
+        return Http::baseUrl(rtrim((string) config('services.authentik.base_url'), '/'))
             ->withToken(config('services.authentik.api_token'))
             ->acceptJson()
             ->asJson()
@@ -187,32 +185,47 @@ class AuthentikProvisioner
             ->timeout(10);
     }
 
-    protected function base(): string
-    {
-        return rtrim((string) config('services.authentik.base_url'), '/');
-    }
-
     /**
      * Deja el rastro del fallo en el log y en la auditoría, sin propagarlo.
-     *
-     * En la auditoría porque quien administra usuarios no lee logs: necesita
-     * ver, en la pantalla que ya usa, que esa cuenta quedó a medias.
+     * En la auditoría porque quien administra usuarios no lee logs.
      */
-    protected function anotarFallo(string $operacion, User $usuario, Throwable $e): void
+    /** Estado HTTP del último fallo; 0 si Authentik no contestó; null si no hubo llamada (p. ej. sin documento). */
+    protected ?int $ultimoEstado = null;
+
+    /** La causa del último fallo en palabras fijas, sin nada de la respuesta de Authentik. */
+    public function causaDelFallo(): string
     {
+        return match (true) {
+            $this->ultimoEstado === null => 'Le falta el usuario (su cédula), que es su nombre de usuario en Authentik.',
+            in_array($this->ultimoEstado, [401, 403], true) => 'El token no tiene permiso en Authentik.',
+            $this->ultimoEstado === 404 => 'Authentik no encuentra el grupo: revisa AUTHENTIK_GRUPO_ID.',
+            $this->ultimoEstado === 400 => 'Authentik rechazó los datos de la cuenta.',
+            $this->ultimoEstado === 0 => 'Authentik no contestó. Inténtalo en un momento.',
+            default => 'Authentik respondió con un error. El detalle quedó en la auditoría.',
+        };
+    }
+
+    protected function anotarFallo(string $operacion, User $usuario, ?Throwable $e = null): void
+    {
+        $this->ultimoEstado = match (true) {
+            $e instanceof \Illuminate\Http\Client\RequestException => $e->response->status(),
+            $e !== null => 0,
+            default => null,
+        };
+
         Log::error("Authentik: no se pudo {$operacion}", [
             'usuario_id' => $usuario->id,
             'authentik_id' => $usuario->authentik_id,
-            'error' => $e->getMessage(),
+            // Solo el estado HTTP: el cuerpo de la respuesta puede traer datos de la cuenta.
+            'error' => $e instanceof \Illuminate\Http\Client\RequestException ? 'HTTP '.$e->response->status() : ($e ? class_basename($e) : null),
         ]);
 
-        // La auditoría escribe en base de datos: si eso también falla, el
-        // log ya guardó lo importante y la operación local sigue su curso.
+        // Si la auditoría también falla, el log ya guardó lo importante.
         try {
             $this->auditor->registrar(
                 AccionAuditoria::AuthentikFallo,
                 $usuario,
-                "No se pudo {$operacion} de {$usuario->name} en Authentik. Hay que reintentarlo a mano.",
+                "No se pudo {$operacion}. Hay que reintentarlo: guarda de nuevo su ficha.",
             );
         } catch (Throwable $otro) {
             Log::error('Authentik: tampoco se pudo auditar el fallo', ['error' => $otro->getMessage()]);
