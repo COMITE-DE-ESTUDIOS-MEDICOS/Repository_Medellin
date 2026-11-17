@@ -17,6 +17,17 @@
             <a href="{{ route('admin.turnos.derivaciones.create') }}"
                class="liquid-button-primary rounded-md px-3 py-1.5 text-sm font-medium">Nuevo caso</a>
         @endcan
+        @can('cargarMasivo', \App\Models\Derivacion::class)
+            {{-- DOC-24 (temporal): carga única de casos ya atendidos. --}}
+            <a href="{{ route('admin.turnos.derivaciones.carga.formato') }}" download class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Formato de casos atendidos</a>
+            <form method="POST" action="{{ route('admin.turnos.derivaciones.carga.importar') }}" enctype="multipart/form-data" data-carga-masiva>
+                @csrf
+                <label class="inline-block cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
+                    <span data-texto>Cargar casos atendidos</span>
+                    <input type="file" name="archivo" accept=".xlsx" class="sr-only" required>
+                </label>
+            </form>
+        @endcan
         <a href="{{ route('admin.turnos.derivaciones.exportar', request()->query()) }}" download
            class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Descargar Excel</a>
         <a href="{{ route('admin.turnos.derivaciones.fotos', request()->query()) }}" download
@@ -25,6 +36,32 @@
         </a>
     </div>
 </div>
+
+@error('archivo')
+    <div class="liquid-alert liquid-alert-error mb-4 text-sm">{{ $message }}</div>
+@enderror
+
+@if(session('carga_errores'))
+    <div class="mb-4 rounded-lg bg-[var(--card)] p-4 text-sm ring-1 ring-[var(--danger)]">
+        <p class="font-medium text-[var(--danger)]">La carga de casos no se hizo. Corrige estas filas del Excel y súbelo de nuevo:</p>
+        <ul class="mt-2 list-disc space-y-0.5 pl-5 text-[var(--text)]">
+            @foreach(session('carga_errores') as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
+@push('scripts')
+<script>
+    // Elegir el archivo ya lo envía. Con las fotos puede tardar: se avisa.
+    document.querySelector('[data-carga-masiva] input[type=file]')?.addEventListener('change', (e) => {
+        if (! e.target.files.length) return;
+        e.target.form.querySelector('[data-texto]').textContent = 'Subiendo y revisando…';
+        e.target.form.submit();
+    });
+</script>
+@endpush
 
 <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
     <div>

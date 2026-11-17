@@ -212,4 +212,19 @@ return [
         50 => 'Palmitas', 60 => 'San Cristóbal', 70 => 'Altavista', 80 => 'San Antonio de Prado', 90 => 'Santa Elena',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Carga única de casos ya atendidos (DOC-24)
+    |--------------------------------------------------------------------------
+    | Los casos represados de noviembre de 2026 entran por un Excel, con sus
+    | horas reales (cualquier fecha pasada). 'abierta_hasta': último día en
+    | que Coordinación ve la carga; después desaparece sola (null = sin
+    | fecha de cierre).
+    */
+
+    'casos_carga_masiva' => [
+        'abierta_hasta' => '2026-11-30',
+        'maximo_filas' => 50,
+    ],
+
 ];

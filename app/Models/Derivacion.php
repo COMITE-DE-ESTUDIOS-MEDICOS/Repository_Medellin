@@ -55,7 +55,7 @@ class Derivacion extends Model
         'respondida_at', 'respondida_por', 'ultimo_aviso_at',
         'numero', 'remitente', 'creado_por', 'clave_formulario', 'atendida_at', 'cumplio_requerimiento', 'observacion',
         'soporte_documento_id', 'evidencia1_documento_id', 'evidencia2_documento_id', 'evidencia3_documento_id',
-        'actualizado_por', 'comuna', 'gestion_realizada',
+        'actualizado_por', 'comuna', 'gestion_realizada', 'carga_masiva',
     ];
 
     protected function casts(): array
@@ -63,7 +63,7 @@ class Derivacion extends Model
         return [
             'fecha_requerimiento' => 'date', 'respondida_at' => 'datetime', 'ultimo_aviso_at' => 'datetime',
             'atendida_at' => 'datetime', 'cumplio_requerimiento' => 'boolean', 'numero' => 'integer',
-            'comuna' => 'integer',
+            'comuna' => 'integer', 'carga_masiva' => 'boolean',
         ];
     }
 
