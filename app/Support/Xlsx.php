@@ -11,6 +11,10 @@ use ZipArchive;
  * una foto incrustada (ver miniatura()), o ['alerta' => valor] para
  * resaltarla en rojo.
  *
+ * Una hoja puede llevar listas desplegables: un tercer elemento con
+ * [índice de columna => fórmula], p. ej. [0 => '"Sí,No"'] o
+ * [2 => "'Valores'!\$A\$2:\$A\$9"]. Valen de la fila 2 a la FILAS_CON_LISTA.
+ *
  * ponytail: escrito a mano sobre ZipArchive (ya en uso para los ZIP). Si un
  * reporte necesita fórmulas, varias hojas o gráficos, pasar a
  * phpoffice/phpspreadsheet.
@@ -19,6 +23,9 @@ class Xlsx
 {
     /** Pixeles a EMU, la unidad de los dibujos de Office. */
     protected const EMU = 9525;
+
+    /** Hasta qué fila llegan las listas desplegables. */
+    protected const FILAS_CON_LISTA = 1000;
 
     /** @param iterable<array<int, mixed>> $filas */
     public static function guardar(string $ruta, string $hoja, array $encabezados, iterable $filas): string
@@ -43,10 +50,11 @@ class Xlsx
         $filtros = '';
         $n = 0;
 
-        foreach ($hojas as $nombre => [$encabezados, $filas]) {
+        foreach ($hojas as $nombre => $hoja) {
+            [$encabezados, $filas] = $hoja;
             $n++;
             $nombre = $xml(mb_substr((string) $nombre, 0, 31));
-            [$ultimaFila, $conDibujo] = self::hoja($zip, $n, $encabezados, $filas);
+            [$ultimaFila, $conDibujo] = self::hoja($zip, $n, $encabezados, $filas, $hoja[2] ?? []);
             $ultima = self::columna(count($encabezados) - 1);
 
             $tipos .= "<Override PartName=\"/xl/worksheets/sheet{$n}.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>"
@@ -113,7 +121,7 @@ class Xlsx
      *
      * @return array{0: int, 1: bool} última fila escrita y si lleva dibujo
      */
-    protected static function hoja(ZipArchive $zip, int $n, array $encabezados, iterable $filas): array
+    protected static function hoja(ZipArchive $zip, int $n, array $encabezados, iterable $filas, array $listas = []): array
     {
         $xml = fn (string $texto) => htmlspecialchars($texto, ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $imagenes = [];
@@ -186,6 +194,11 @@ class Xlsx
             .'<cols>'.$columnas.'</cols>'
             .'<sheetData>'.$filasXml.'</sheetData>'
             .'<autoFilter ref="A1:'.$ultima.$numero.'"/>'
+            .($listas ? '<dataValidations count="'.count($listas).'">'.implode('', array_map(
+                fn ($i, $formula) => '<dataValidation type="list" allowBlank="1" showErrorMessage="1" errorTitle="Valor no válido" error="Elige un valor de la lista."'
+                    .' sqref="'.self::columna($i).'2:'.self::columna($i).self::FILAS_CON_LISTA.'"><formula1>'.$xml($formula).'</formula1></dataValidation>',
+                array_keys($listas), $listas,
+            )).'</dataValidations>' : '')
             .($imagenes ? '<drawing r:id="rId1"/>' : '')
             .'</worksheet>');
 

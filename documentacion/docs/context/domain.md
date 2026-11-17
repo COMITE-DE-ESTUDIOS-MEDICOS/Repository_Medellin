@@ -252,7 +252,7 @@ aplica; los valores en pesos los calcula Nómina.
 **RN-29. El caso lo crea la oficina y lo atiende la persona de campo.** Edición en
 adelante crea el caso con el mensaje, quién lo envía (Alcaldía, Autoridades locales del
 sector u Otra), la comuna de Medellín (lista en `config/repositorio.php` → `comunas`, DOC-23),
-la ubicación y un soporte obligatorio. Recibe un código consecutivo por
+la ubicación y un soporte opcional (DOC-24). Recibe un código consecutivo por
 dependencia (DC-001, DC-1000…), que nunca se repite ni se reinicia. La persona de campo lo
 atiende desde su enlace de derivaciones: cédula registrada, activa y en turno, código
 exacto, nodo que atiende, la atención o gestión realizada (obligatoria, DOC-23), tres
@@ -261,8 +261,11 @@ anterior (sin código) se conservan como «registro anterior».
 *Origen:* D-16, D-17, DOC-20 · *Código:* `CasoDerivacionController`, `Publico\DerivacionController`.
 
 **RN-30. El tiempo corre desde la creación.** La hora del servidor al crear el caso es el
-inicio. Nadie la escribe.
-*Origen:* D-19, DOC-20 · *Código:* `Derivacion::requeridaAt`, `minutos`.
+inicio. Nadie la escribe. **Excepción única (DOC-24, noviembre de 2026):** los casos
+represados, ya atendidos, entran por un Excel que sube Coordinación, con su hora de inicio
+y de cierre; quedan marcados «Carga masiva» y auditados. La carga se cierra sola el
+30/11/2026.
+*Origen:* D-19, DOC-20, DOC-24 · *Código:* `Derivacion::requeridaAt`, `minutos`, `CargaMasivaCasosController`, `DerivacionPolicy::cargarMasivo`.
 
 **RN-31. Meta de 3 horas.** Atender después de 3 h exige justificación.
 *Origen:* D-18 · *Código:* `Derivacion::META_MINUTOS`.
@@ -271,8 +274,9 @@ inicio. Nadie la escribe.
 marca de cierre, con la hora del servidor. Edición y Coordinación solo corrigen textos.
 Las horas, el «¿Se cumplió?» y el cierre a mano (plan de contingencia) son solo del
 superadministrador de la plataforma, con motivo y auditoría. Lo mismo vale para la hora
-de cierre de los registros anteriores.
-*Origen:* D-19, DOC-20 · *Código:* `DerivacionPolicy::corregirHoras`.
+de cierre de los registros anteriores. Los casos de la carga única (DOC-24, ver RN-30)
+nacen con las horas del archivo; corregirlas después sigue siendo del superadministrador.
+*Origen:* D-19, DOC-20, DOC-24 · *Código:* `DerivacionPolicy::corregirHoras`.
 
 **RN-33. Avisos de derivaciones.** Un solo aviso cuando el caso pasa 3 h sin atención,
 para Edición y Coordinación de la dependencia. Al atenderse, quien lo creó recibe el suyo
@@ -285,8 +289,9 @@ indicadores, con los filtros aplicados, dan los abiertos y vencidos, el cumplimi
 nodos con casos abiertos y los casos atendidos por cada persona de campo con su tiempo
 promedio. Desde DOC-23 se filtra también por comuna, y la ficha trae la gestión realizada y
 los comentarios: escribe Edición en adelante, avisa por la campana a quien creó el caso y a
-quienes ya comentaron, y la vía pública no los ve.
-*Origen:* D-20, DOC-20, DOC-23 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`, `ComentarioDerivacionController`.
+quienes ya comentaron, y la vía pública no los ve. La ficha de un caso de la carga única
+(DOC-24) dice «Carga masiva», quién lo cargó y cuándo.
+*Origen:* D-20, DOC-20, DOC-23, DOC-24 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`, `ComentarioDerivacionController`.
 
 **RN-35. Eliminar derivaciones.** Solo Coordinación en adelante, como borrado lógico: sale
 del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a «no borrar».
@@ -296,8 +301,8 @@ del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a
 original, las fotos dentro de sus celdas y el soporte en PDF como enlace firmado que vence
 a los 30 días; un ZIP con las fotos originales. Desde DOC-20, al final se agregan el
 código, quién lo creó, la creación, la atención, el «¿Se cumplió?» y la observación; desde
-DOC-23, la comuna y la gestión realizada.
-*Origen:* D-16, DOC-20, DOC-23.
+DOC-23, la comuna y la gestión realizada; desde DOC-24, el origen («Carga masiva»).
+*Origen:* D-16, DOC-20, DOC-23, DOC-24.
 
 **RN-39. Quién supervisa.** Solo registran supervisiones las personas de campo activas
 cuyo cargo está en «Cargos que supervisan» del componente (en Calle: «Apoyo al control

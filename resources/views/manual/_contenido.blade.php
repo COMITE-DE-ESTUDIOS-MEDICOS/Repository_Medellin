@@ -296,7 +296,7 @@
     <h3>1. Crear el caso (oficina)</h3>
     <ol class="pasos">
         <li><span class="ruta">Atención territorial → Derivaciones → Nuevo caso</span> (funciona bien desde el celular).</li>
-        <li>Escribe el <strong>mensaje para la atención</strong>, elige <strong>quién lo envía</strong> (Alcaldía, Autoridades locales del sector u Otra, y cuál), la <strong>comuna</strong> de Medellín, la <strong>ubicación</strong> y sube el <strong>soporte</strong>: una foto con la cámara, o una imagen o un PDF.</li>
+        <li>Escribe el <strong>mensaje para la atención</strong>, elige <strong>quién lo envía</strong> (Alcaldía, Autoridades locales del sector u Otra, y cuál), la <strong>comuna</strong> de Medellín, y la <strong>ubicación</strong>. El <strong>soporte</strong> es opcional: si lo tienes, sube una foto con la cámara, o una imagen o un PDF.</li>
         <li><strong>Crear caso.</strong> Aparece el código en grande: díctaselo a la persona de campo. Desde ese momento corre el tiempo.</li>
     </ol>
     <p>Si ya hay un caso abierto con la misma ubicación y el mismo «quién lo envía» de los últimos 30 minutos, Documenta avisa para no crearlo dos veces. Si es otro caso, marca <strong>Crear de todas formas</strong>. Tocar dos veces el botón no crea dos casos.</p>
@@ -321,6 +321,7 @@
         <li><strong>Avisos:</strong> si un caso pasa 3 horas sin atención, Edición y Coordinación reciben un solo aviso de vencido. Cuando lo atienden, quien lo creó recibe el suyo y el de vencido desaparece.</li>
         <li><strong>Corregir:</strong> Edición y Coordinación corrigen solo los textos. Las horas, el «¿Se cumplió?» y el <strong>cierre a mano</strong> de un caso que se atendió y no se pudo enviar (plan de contingencia) los hace solo el superadministrador, con un motivo que queda en la auditoría.</li>
         <li><strong>Eliminar:</strong> solo Coordinación; las fotos se conservan.</li>
+        <li><strong>Cargar casos ya atendidos (solo Coordinación, hasta el 30/11/2026):</strong> para los casos que se atendieron y no se habían subido. Descarga el <strong>Formato de casos atendidos</strong>, llena una fila por caso con su fecha y hora de inicio y de cierre, la cédula de quien atendió y las imágenes <strong>dentro de las celdas</strong> (Insertar → Imágenes → Colocar en la celda): las tres evidencias son obligatorias y el soporte, si lo hay. Súbelo con <strong>Cargar casos atendidos</strong>. El código lo pone Documenta. Si una fila tiene un error no se carga ninguna y se dice cuál corregir. Los casos quedan atendidos, marcados «Carga masiva», y cuentan para la meta de 3 horas con sus horas reales. Máximo 50 casos por archivo.</li>
         <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días. Al final van el código, quién lo creó, las horas de creación y de atención, el «¿Se cumplió?», la observación, la comuna y la gestión realizada.</li>
         <li><strong>Excel + fotos (ZIP):</strong> el Excel y una carpeta por caso con las fotos en tamaño original.</li>
         <li>Las derivaciones anteriores a este cambio siguen en la lista y en el Excel, marcadas «registro anterior».</li>

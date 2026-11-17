@@ -213,7 +213,7 @@ class CasosComunaYGestionTest extends TestCase
             ->assertSee('Atención o gestión realizada')->assertSee(self::GESTION);
         [$filas, $col] = $this->excel();
         $this->assertSame(self::GESTION, $filas['DC-001'][$col['GESTIÓN REALIZADA']]);
-        $this->assertSame(['COMUNA', 'GESTIÓN REALIZADA'], array_slice(array_keys($col), -2), 'Al final, sin mover las demás.');
+        $this->assertSame(['COMUNA', 'GESTIÓN REALIZADA', 'ORIGEN'], array_slice(array_keys($col), -3), 'Al final, sin mover las demás.');
 
         // Edición la corrige, sin dejarla vacía.
         $datos = ['descripcion' => 'x', 'remitente' => 'alcaldia', 'ubicacion' => 'Parque', 'comuna' => 3];

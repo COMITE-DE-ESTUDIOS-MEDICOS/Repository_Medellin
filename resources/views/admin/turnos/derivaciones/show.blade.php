@@ -37,7 +37,7 @@
 <div class="grid gap-6 lg:grid-cols-3">
     <dl class="divide-y divide-[var(--border)] rounded-lg bg-[var(--card)] px-6 py-2 ring-1 ring-[var(--border)] lg:col-span-2">
         @if($derivacion->esCaso())
-            <div class="{{ $fila }}"><dt class="{{ $dt }}">Creado por</dt><dd class="{{ $dd }}">{{ $derivacion->creador?->name ?? '—' }} · {{ $derivacion->created_at->fechaHora() }}</dd></div>
+            <div class="{{ $fila }}"><dt class="{{ $dt }}">{{ $derivacion->carga_masiva ? 'Carga masiva · lo cargó' : 'Creado por' }}</dt><dd class="{{ $dd }}">{{ $derivacion->creador?->name ?? '—' }} · {{ $derivacion->created_at->fechaHora() }}@if($derivacion->carga_masiva) · caso ya atendido, con las horas del archivo @endif</dd></div>
         @else
             <div class="{{ $fila }}"><dt class="{{ $dt }}">Marca temporal</dt><dd class="{{ $dd }}">{{ $derivacion->created_at->fechaHora(true) }} · registro anterior</dd></div>
         @endif

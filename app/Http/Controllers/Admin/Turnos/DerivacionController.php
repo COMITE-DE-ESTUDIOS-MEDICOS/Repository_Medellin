@@ -47,7 +47,7 @@ class DerivacionController extends Controller
         'ESTADO', 'RESPUESTA', 'RESPONDIDA POR', 'FECHA Y HORA DE RESPUESTA',
         'CÓDIGO DEL CASO', 'QUIÉN LO CREÓ', 'FECHA Y HORA DE CREACIÓN', 'FECHA Y HORA DE ATENCIÓN',
         '¿SE CUMPLIÓ EL REQUERIMIENTO?', 'OBSERVACIÓN',
-        'COMUNA', 'GESTIÓN REALIZADA',
+        'COMUNA', 'GESTIÓN REALIZADA', 'ORIGEN',
     ];
 
     /** DOC-23: cuántos casos se ven por página. */
@@ -455,6 +455,7 @@ class DerivacionController extends Controller
                     $d->observacion,
                     $d->nombreComuna(),
                     $d->gestion_realizada ?? '—',
+                    $d->carga_masiva ? 'Carga masiva' : null,
                 ];
             });
 

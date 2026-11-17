@@ -118,9 +118,18 @@ class CasosDerivacionCrearTest extends TestCase
         $this->assertSame(0, Derivacion::count());
     }
 
-    public function test_doc20_el_soporte_y_los_campos_son_obligatorios(): void
+    /** DOC-24: el caso puede llegar por una llamada; sin soporte también se crea. */
+    public function test_doc24_ca01_ca02_el_caso_se_crea_sin_soporte(): void
     {
-        $this->crear(['soporte' => null])->assertSessionHasErrors('soporte');
+        $this->crear(['soporte' => null])->assertSessionHasNoErrors();
+
+        $caso = Derivacion::sole();
+        $this->assertNull($caso->soporte_documento_id);
+        $this->actingAs($this->lider)->get(route('admin.turnos.derivaciones.show', $caso))->assertOk()->assertSee('Sin archivo');
+    }
+
+    public function test_doc20_los_campos_son_obligatorios(): void
+    {
         $this->crear(['remitente' => 'otra'])->assertSessionHasErrors('remitente_otra');
         $this->crear(['remitente' => 'cualquiera', 'descripcion' => '', 'ubicacion' => ''])
             ->assertSessionHasErrors(['remitente', 'descripcion', 'ubicacion']);
@@ -144,7 +153,7 @@ class CasosDerivacionCrearTest extends TestCase
 
         // Misma ubicación (sin importar mayúsculas ni espacios) y mismo remitente.
         $this->crear(['ubicacion' => '  parque   DE castilla '])
-            ->assertSessionHasErrors(['duplicado' => 'Ya hay un caso abierto con la misma ubicación y el mismo remitente: DC-001 (creado a las 2:05 p. m.). Si es otro caso, marca «Crear de todas formas» y vuelve a elegir el soporte.']);
+            ->assertSessionHasErrors(['duplicado' => 'Ya hay un caso abierto con la misma ubicación y el mismo remitente: DC-001 (creado a las 2:05 p. m.). Si es otro caso, marca «Crear de todas formas» y, si tenías soporte, vuelve a elegirlo.']);
         $this->assertSame(1, Derivacion::count());
 
         // Otro remitente no es duplicado.
