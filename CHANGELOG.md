@@ -17,6 +17,8 @@ Cada viñeta, corta y para quien no programa.
 - La ficha de cada caso muestra la trazabilidad: quién lo creó y cuándo, quién lo atendió (persona y nodo) y cuándo, el tiempo y si cumplió la meta. Arriba de la lista aparecen los casos atendidos por cada persona de campo, con su tiempo promedio. El Excel trae columnas nuevas al final.
 - Cada caso lleva su **comuna** de Medellín (las 16 comunas y los 5 corregimientos), obligatoria al crearlo. La lista de casos se filtra por comuna y se ve de a 25, 50 o 100.
 - Al atender, la persona de campo escribe la **atención o gestión realizada**, obligatoria. El Excel suma al final las columnas COMUNA y GESTIÓN REALIZADA.
+- Al crear un caso, el **soporte ya no es obligatorio**: se sube si lo hay.
+- **Carga de casos ya atendidos** (solo Coordinación, hasta el 30/11/2026): los casos que se atendieron y no se habían subido entran por un Excel, con su hora de inicio y de cierre y las imágenes dentro de las celdas. Quedan marcados «Carga masiva». El Excel de derivaciones suma al final la columna ORIGEN.
 - **Comentarios en el caso**, como en los documentos: Coordinación deja indicaciones y Edición responde; avisa por la campana. La conversación se pliega con un clic. La persona de campo no los ve.
 - Los avisos de derivaciones ya no llegan cada 30 minutos: llega uno solo cuando un caso pasa 3 horas sin atención, y otro a quien lo creó cuando lo atienden.
 - Las horas de los casos y el «¿Se cumplió?» los corrige solo el superadministrador (plan de contingencia), con motivo. Edición y Coordinación corrigen los textos. Las derivaciones anteriores siguen en la lista, marcadas «registro anterior».

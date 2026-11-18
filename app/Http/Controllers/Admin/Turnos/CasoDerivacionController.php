@@ -61,13 +61,12 @@ class CasoDerivacionController extends Controller
             'remitente_otra' => ['nullable', 'required_if:remitente,otra', 'string', 'max:255'],
             'ubicacion' => ['required', 'string', 'max:500'],
             'comuna' => ['required', 'integer', Rule::in(array_keys(config('repositorio.comunas')))],
-            'soporte' => ['required', 'file', 'mimes:'.implode(',', config('repositorio.formatos.publico.extensiones')), 'max:'.config('repositorio.tamano_maximo_kb')],
+            'soporte' => ['nullable', 'file', 'mimes:'.implode(',', config('repositorio.formatos.publico.extensiones')), 'max:'.config('repositorio.tamano_maximo_kb')],
             'confirmar_duplicado' => ['nullable', 'boolean'],
         ], [
             'remitente_otra.required_if' => 'Escribe quién envía el caso.',
             'comuna.required' => 'Elige la comuna o el corregimiento del caso.',
             'comuna.in' => 'Elige una comuna o un corregimiento de la lista.',
-            'soporte.required' => 'Falta el soporte del caso: toma una foto o elige una imagen o un PDF.',
         ], [
             'descripcion' => 'mensaje para la atención',
             'remitente' => 'quién lo envía',
@@ -120,9 +119,12 @@ class CasoDerivacionController extends Controller
                         'hora_requerimiento' => $ahora->format('H:i'),
                     ]);
 
-                    $documento = $this->guardarSoporte($caso, $peticion->file('soporte'));
-                    $rutas[] = $documento->versionActual->ruta;
-                    $caso->update(['soporte_documento_id' => $documento->id]);
+                    // DOC-24: el soporte es opcional (el caso puede llegar por una llamada).
+                    if ($peticion->hasFile('soporte')) {
+                        $documento = $this->guardarSoporte($caso, $peticion->file('soporte'));
+                        $rutas[] = $documento->versionActual->ruta;
+                        $caso->update(['soporte_documento_id' => $documento->id]);
+                    }
 
                     $this->auditor->registrar(
                         AccionAuditoria::CasoCreado,
@@ -172,7 +174,7 @@ class CasoDerivacionController extends Controller
 
         if ($igual !== null) {
             throw ValidationException::withMessages([
-                'duplicado' => "Ya hay un caso abierto con la misma ubicación y el mismo remitente: {$igual->codigo()} (creado a las {$igual->created_at->hora()}). Si es otro caso, marca «Crear de todas formas» y vuelve a elegir el soporte.",
+                'duplicado' => "Ya hay un caso abierto con la misma ubicación y el mismo remitente: {$igual->codigo()} (creado a las {$igual->created_at->hora()}). Si es otro caso, marca «Crear de todas formas» y, si tenías soporte, vuelve a elegirlo.",
             ]);
         }
     }

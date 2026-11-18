@@ -105,9 +105,9 @@
         </div>
 
         <div>
-            <p class="{{ $etiqueta }}">Soporte del caso *</p>
+            <p class="{{ $etiqueta }}">Soporte del caso (opcional)</p>
             <p class="{{ $ayuda }}">Una foto con la cámara, o una imagen o un PDF del dispositivo (el oficio, el correo o el pantallazo).</p>
-            <x-campo-archivo nombre="soporte" requerido camara formatos="publico" sello="Caso" />
+            <x-campo-archivo nombre="soporte" camara formatos="publico" sello="Caso" />
         </div>
 
         @error('duplicado')

@@ -12,6 +12,7 @@
 */
 
 use App\Http\Controllers\Admin\Turnos\AusenciaController;
+use App\Http\Controllers\Admin\Turnos\CargaMasivaCasosController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaColaboradoresController;
 use App\Http\Controllers\Admin\Turnos\ColaboradorController;
 use App\Http\Controllers\Admin\Turnos\CasoDerivacionController;
@@ -72,7 +73,10 @@ Route::post('novedades/{novedad}/justificar', [AusenciaController::class, 'justi
 // Derivaciones y respuesta territorial (Edición). DOC-20: la oficina crea el caso DC-NNN.
 Route::get('derivaciones/crear', [CasoDerivacionController::class, 'create'])->name('derivaciones.create');
 Route::post('derivaciones', [CasoDerivacionController::class, 'store'])->name('derivaciones.store');
-Route::get('derivaciones/exportar', [DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
+// DOC-24: carga única de casos ya atendidos (Coordinación). Temporal: se quita con su controlador.
+Route::get('derivaciones/carga-masiva/formato', [CargaMasivaCasosController::class, 'formato'])->name('derivaciones.carga.formato');
+Route::post('derivaciones/carga-masiva', [CargaMasivaCasosController::class, 'importar'])->name('derivaciones.carga.importar');
+Route::get('derivaciones/exportar',[DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
 // Plan de contingencia: el superadministrador cierra a mano un caso atendido que no se pudo enviar.
 Route::patch('derivaciones/{derivacion}/contingencia', [DerivacionController::class, 'contingencia'])->name('derivaciones.contingencia');
 // Supervisión territorial (DOC-11): consultar y descargar.

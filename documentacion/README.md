@@ -74,4 +74,5 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Turno por entrada y salida · cierre sin salida por cargo | DOC-21 | [Aprobada](specs/turno-por-entrada-y-salida/spec.md) | Construida |
 | Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
 | Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
+| Casos: soporte opcional y carga única de casos ya atendidos | DOC-24 | [Aprobada](specs/casos-soporte-opcional-y-carga-masiva/spec.md) | Construida · falta probar con un Excel real (PA-03) |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

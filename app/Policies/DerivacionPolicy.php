@@ -30,6 +30,18 @@ class DerivacionPolicy
     }
 
     /**
+     * DOC-24: la carga única de casos ya atendidos (con sus horas, excepción a
+     * RN-30). Coordinación en adelante, y solo mientras esté abierta.
+     */
+    public function cargarMasivo(User $usuario): bool
+    {
+        $hasta = config('repositorio.casos_carga_masiva.abierta_hasta');
+
+        return $usuario->puedeGestionarEn(app(ContextoDependencia::class)->id())
+            && ($hasta === null || today()->lte($hasta));
+    }
+
+    /**
      * DOC-20 (plan de contingencia): horas, ¿se cumplió?, cierre a mano y la
      * hora de cierre de los registros anteriores. Solo el superadministrador
      * de la plataforma; ningún rol de dependencia.
