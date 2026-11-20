@@ -36,6 +36,7 @@ Cada viñeta, corta y para quien no programa.
 - Desactivar a alguien en Documenta solo le quita Documenta, no las otras apps. Corregir su usuario en Documenta no lo cambia en Authentik: eso se hace allá.
 - Usuarios: cada persona tiene «Sincronizar con Authentik». Si está activa, la deja con acceso; si está inactiva, se lo quita. Si algo falla, dice la causa en palabras simples.
 - Al elegir carpeta («Dentro de», «Copiar», «Mover») hay un buscador: se escribe parte del nombre o de la ruta (varias palabras, sin tildes) y aparece una lista corta con el nombre de la carpeta y dónde está.
+- **En turno ahora** se ve por páginas de 25, 50 o 100, y se busca por nombre o cédula.
 
 ## v2.1
 

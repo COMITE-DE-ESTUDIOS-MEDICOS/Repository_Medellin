@@ -258,7 +258,7 @@
     <div class="roles">{!! $roles('Edición', 'Coordinación', 'Administración') !!}</div>
 
     <h3>En turno ahora</h3>
-    <p>Quién marcó entrada y aún no su salida: el turno reconocido, si llegó tarde, su punto crítico (con enlace al mapa) y cuánto lleva. Se puede filtrar por componente y nodo.</p>
+    <p>Quién marcó entrada y aún no su salida: el turno reconocido, si llegó tarde, su punto crítico (con enlace al mapa) y cuánto lleva. La lista se ve por páginas de 25, 50 o 100, se busca por nombre o cédula y se filtra por componente y nodo.</p>
 
     <h3>Novedades</h3>
     <p>Lo que se sale de lo esperado y debe revisarse. Llegan por la campana.</p>
