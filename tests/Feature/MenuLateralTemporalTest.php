@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\RolDependencia;
 use App\Enums\TemaInterfaz;
 use App\Models\Carpeta;
+use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\Documento;
 use App\Models\User;
@@ -31,7 +32,7 @@ class MenuLateralTemporalTest extends TestCase
     }
 
     /** Misma firma que el ayudante de Tests\TestCase; por defecto, Inclusión Social. */
-    protected function usuarioCon(RolDependencia $rol, ?Dependencia $dependencia = null): User
+    protected function usuarioCon(RolDependencia $rol, ?Dependencia $dependencia = null, ?Componente $componente = null): User
     {
         $usuario = User::create([
             'name' => 'Prueba '.$rol->value,
@@ -41,9 +42,7 @@ class MenuLateralTemporalTest extends TestCase
             'es_superadmin' => false,
         ]);
 
-        $usuario->dependencias()->attach(($dependencia ?? $this->inclusion)->id, ['rol' => $rol->value]);
-
-        return $usuario;
+        return $this->darRol($usuario, $rol, $dependencia ?? $this->inclusion, $componente);
     }
 
     protected function documentoDePrueba(User $autor): Documento

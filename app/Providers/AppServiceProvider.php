@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Http\Middleware\EstablecerDependencia;
 use App\Http\Middleware\VerificarUsuarioActivo;
+use App\Models\User;
 use App\Services\ContextoDependencia;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
@@ -11,6 +12,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
             VerificarUsuarioActivo::class,
             EstablecerDependencia::class,
         ]);
+
+        // DOC-25: ¿el componente donde está parado abre este módulo? (Componente::MODULOS)
+        Gate::define('modulo', fn (User $usuario, string $modulo) => app(ContextoDependencia::class)->tieneModulo($modulo));
 
         // Las piezas de Filament (tablas, ventanas) con el azul de Documenta.
         FilamentColor::register([
