@@ -264,6 +264,8 @@ class AdminMarcacionesYNovedadesTest extends TestCase
         $this->actingAs($lector)->get(route('admin.turnos.marcaciones.index'))->assertForbidden();
         $this->actingAs($lector)->get(route('admin.turnos.novedades.index'))->assertForbidden();
 
+        // DOC-25: se siembra fuera de una petición (el contexto quedó en el componente del lector).
+        app(\App\Services\ContextoDependencia::class)->establecer(null);
         $ajena = Colaborador::factory()->en(Componente::factory()->create())->create();
         $marca = Marcacion::factory()->de($ajena)->create();
         $novedad = NovedadTurno::withoutGlobalScopes()->create([

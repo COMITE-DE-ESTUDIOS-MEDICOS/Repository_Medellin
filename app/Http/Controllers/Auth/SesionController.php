@@ -78,7 +78,7 @@ class SesionController extends Controller
 
         $auditor->registrar(AccionAuditoria::Ingreso, $request->user());
 
-        return redirect()->intended(route('documentos.index'));
+        return redirect()->intended(route('inicio'));
     }
 
     public function destroy(Request $request, Auditor $auditor): RedirectResponse

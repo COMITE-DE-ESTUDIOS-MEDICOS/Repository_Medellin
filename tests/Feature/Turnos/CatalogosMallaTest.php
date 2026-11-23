@@ -11,6 +11,7 @@ use App\Models\Dependencia;
 use App\Models\PuntoCritico;
 use App\Models\TipoTurno;
 use App\Services\ContextoDependencia;
+use Database\Seeders\AccesoPorComponenteSeeder;
 use Database\Seeders\CalleSeeder;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
 use Filament\Actions\CreateAction;
@@ -38,6 +39,7 @@ class CatalogosMallaTest extends TestCase
 
         $this->inclusion = Dependencia::factory()->create(['slug' => 'inclusion-social']);
         (new CalleSeeder)->run();
+        (new AccesoPorComponenteSeeder)->run(); // DOC-25: Calle con sus módulos, como DatabaseSeeder
         (new CatalogoTurnosCalleSeeder)->run();
         $this->calle = Componente::withoutGlobalScopes()->where('slug', 'calle')->sole();
     }

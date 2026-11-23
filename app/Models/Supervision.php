@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DelComponente;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([DependenciaScope::class])]
 class Supervision extends Model
 {
+    use DelComponente;
+
     protected $table = 'supervisiones';
 
     /** Los nueve criterios del Forms, en su orden: columna => pregunta. */

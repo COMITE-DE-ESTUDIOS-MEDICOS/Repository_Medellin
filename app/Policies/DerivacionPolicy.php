@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\ComentarioDerivacion;
 use App\Models\Derivacion;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 use App\Services\ContextoDependencia;
 
 /**
@@ -13,6 +14,10 @@ use App\Services\ContextoDependencia;
  */
 class DerivacionPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'derivaciones';
+
     public function viewAny(User $usuario): bool
     {
         return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());

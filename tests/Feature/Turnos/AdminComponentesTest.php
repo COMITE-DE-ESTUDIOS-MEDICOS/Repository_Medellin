@@ -30,7 +30,9 @@ class AdminComponentesTest extends TestCase
         parent::setUp();
 
         $this->dependencia = Dependencia::factory()->create();
-        $this->admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
+        // Sin el «Calle» que el helper crea (ACC-04): cada prueba crea el suyo. Solo Livewire::test.
+        $this->admin = User::factory()->create();
+        $this->admin->dependencias()->attach($this->dependencia->id, ['rol' => RolDependencia::Administracion->value]);
     }
 
     /** Livewire::test no pasa por los middlewares: la dependencia se pone a mano. */

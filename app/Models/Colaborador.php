@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrigenColaborador;
+use App\Models\Concerns\DelComponente;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,6 +21,7 @@ use Illuminate\Support\Str;
 #[ScopedBy([DependenciaScope::class])]
 class Colaborador extends Model
 {
+    use DelComponente;
     use HasFactory;
 
     protected $table = 'colaboradores';

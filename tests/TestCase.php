@@ -64,13 +64,17 @@ abstract class TestCase extends BaseTestCase
      * Añade (o cambia) el rol de alguien en otra dependencia. DOC-25: Lectura,
      * Edición y Coordinación quedan en $componente o en el primero de la
      * dependencia (si no hay, se crea «Calle» con todos los módulos).
-     * Administración queda sin componente y no crea ninguno: lo elige por sesión.
+     * Administración queda sin componente (lo elige por sesión), pero la
+     * dependencia también recibe «Calle» si no tiene ninguno: sin componente
+     * no abriría ningún módulo (ACC-04).
      */
     protected function darRol(User $usuario, RolDependencia $rol, Dependencia $dependencia, ?Componente $componente = null): User
     {
+        $primero = Componente::withoutGlobalScopes()->where('dependencia_id', $dependencia->id)->orderBy('id')->first()
+            ?? Componente::factory()->create(['dependencia_id' => $dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle']);
+
         if ($rol !== RolDependencia::Administracion) {
-            $componente ??= Componente::withoutGlobalScopes()->where('dependencia_id', $dependencia->id)->orderBy('id')->first()
-                ?? Componente::factory()->create(['dependencia_id' => $dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle']);
+            $componente ??= $primero;
         }
 
         $usuario->dependencias()->syncWithoutDetaching([

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DelComponente;
 use App\Models\Concerns\TieneTokenSecreto;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Route;
 #[ScopedBy([DependenciaScope::class])]
 class EnlaceTurno extends Model
 {
+    use DelComponente;
     use HasFactory;
     use TieneTokenSecreto;
 

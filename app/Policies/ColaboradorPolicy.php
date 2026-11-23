@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Colaborador;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 use App\Services\ContextoDependencia;
 
 /**
@@ -13,6 +14,10 @@ use App\Services\ContextoDependencia;
  */
 class ColaboradorPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'turnos';
+
     public function viewAny(User $usuario): bool
     {
         return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());

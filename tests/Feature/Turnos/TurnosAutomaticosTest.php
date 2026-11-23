@@ -16,6 +16,7 @@ use App\Models\TipoTurno;
 use App\Notifications\NovedadTurnoDetectada;
 use App\Services\Turnos\Programacion;
 use App\Services\Turnos\RevisorEntradas;
+use Database\Seeders\AccesoPorComponenteSeeder;
 use Database\Seeders\CalleSeeder;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +48,7 @@ class TurnosAutomaticosTest extends TestCase
 
         $this->inclusion = Dependencia::factory()->create(['slug' => 'inclusion-social']);
         (new CalleSeeder)->run();
+        (new AccesoPorComponenteSeeder)->run(); // DOC-25: Calle con sus módulos, como DatabaseSeeder
         (new CatalogoTurnosCalleSeeder)->run();
         $this->calle = Componente::withoutGlobalScopes()->where('slug', 'calle')->sole();
         $this->calle->update(['config' => ['foto_obligatoria' => false] + ($this->calle->config ?? [])]);

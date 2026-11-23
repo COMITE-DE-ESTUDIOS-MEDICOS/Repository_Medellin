@@ -4,9 +4,14 @@ namespace App\Policies;
 
 use App\Models\Documento;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 
 class DocumentoPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'documentos';
+
     public function view(User $usuario, Documento $documento): bool
     {
         if (! $usuario->perteneceA($documento->dependencia_id)) {
