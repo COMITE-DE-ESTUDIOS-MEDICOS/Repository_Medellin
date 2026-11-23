@@ -29,7 +29,7 @@ class AutenticacionTest extends TestCase
         $usuario = $this->superadmin();
 
         $this->post(route('login'), ['identificador' => $usuario->documento, 'password' => 'password'])
-            ->assertRedirect(route('documentos.index'));
+            ->assertRedirect(route('inicio'));
 
         $this->assertAuthenticatedAs($usuario);
         $this->assertNotNull($usuario->fresh()->ultimo_acceso_at);
@@ -120,7 +120,7 @@ class AutenticacionTest extends TestCase
 
         foreach (['1234567890', '1.234.567.890', '1 234 567 890', ' 1234567890 '] as $comoLoEscribe) {
             $this->post(route('login'), ['identificador' => $comoLoEscribe, 'password' => 'password'])
-                ->assertRedirect(route('documentos.index'));
+                ->assertRedirect(route('inicio'));
 
             $this->assertAuthenticatedAs($usuario);
 
@@ -146,7 +146,7 @@ class AutenticacionTest extends TestCase
 
         foreach (['1234567890', 'jamaya', 'JAMAYA', 'jamaya@medellin.gov.co'] as $identificador) {
             $this->post(route('login'), ['identificador' => $identificador, 'password' => 'password'])
-                ->assertRedirect(route('documentos.index'));
+                ->assertRedirect(route('inicio'));
 
             $this->assertTrue(auth()->check(), "No entró con «{$identificador}».");
             $this->assertAuthenticatedAs($usuario);

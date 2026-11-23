@@ -5,7 +5,7 @@
 | Historia | DOC-25 |
 | Tipo | Historia de usuario · cambia RN-01, RN-02, RN-03 y a quién avisan RN-23, RN-25, RN-33 y RN-45; agrega RN-49 a RN-51 |
 | Estado | **Aprobada** |
-| Versión | 1.0 |
+| Versión | 1.1 |
 | Fuentes | Pedido y decisiones de Edwar, 2026-11-20 y 2026-11-23. Documento «Sistema_HC_Especificacion_v1_6» (de otra persona; **aún no está en `fuentes/`**, se propone F-12), secciones 1, 7 y 8, de las que aquí solo se usan las decisiones que Edwar tomó. F-06 (reunión del 9-10-2026: componentes Calle, Básica, Estabilización) |
 | Redactó | Claude |
 | Aprobó (Dueño de Producto) | Edwar, 2026-11-23 |
@@ -247,6 +247,12 @@ Esta spec no modifica `docs/context/`; al aprobarse, el contexto debe recibir:
   líder. Da los permisos y lleva el soporte de cuentas y accesos, para que no recaiga en el
   superadministrador («no quiero estar brindando soporte dentro del sistema»).
 - No hay marca aparte de coordinador líder.
+- **Los módulos que existen hoy (Documentos, Turnos, Derivaciones, Supervisión) son de Calle,**
+  incluidos sus enlaces públicos: por cédula (turnos, derivaciones, supervisión) y de carga de
+  documentos.
+  Los casos DC siguen con su numeración de siempre, porque Derivaciones es solo de Calle. Si
+  Básica o Estabilización necesitan algo parecido, se hace un módulo nuevo con su spec,
+  reutilizando la lógica (Edwar, 2026-11-24).
 - El rol **Administración lo da solo el superadministrador**.
 - **Los usuarios actuales** de Lectura, Edición y Coordinación **pasan a Calle**.
 - **Un solo componente por usuario.**
@@ -270,6 +276,7 @@ Esta spec no modifica `docs/context/`; al aprobarse, el contexto debe recibir:
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.1 | 2026-11-24 | Aclaración de Edwar: los módulos de hoy son de Calle y la numeración DC no cambia; otro componente que necesite algo así tendrá su propio módulo |
 | 1.0 | 2026-11-23 | Aprobada por Edwar: Administración la da solo el superadministrador, usuarios actuales a Calle, un componente por usuario, componentes y módulos solo del superadministrador; PA-05 y PA-06 con la propuesta |
 | 0.3 | 2026-11-23 | Decisiones de Edwar: Coordinación atada a su componente; Administración es el coordinador líder (sin componente, acceso total, da los permisos); sin marca aparte. PA-01 resuelta; PA-03 y PA-04 reformuladas |
 | 0.2 | 2026-11-20 | Leído el documento v1.6: se enlazan DOC-26 a DOC-31 y el plan de trabajo; se anota la excepción de búsqueda entre componentes y la contradicción sobre el alcance del coordinador general (PA-03) |

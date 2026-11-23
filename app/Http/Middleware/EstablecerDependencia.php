@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Enums\RolDependencia;
 use App\Models\Componente;
 use App\Models\Dependencia;
+use App\Models\Scopes\ComponenteScope;
 use App\Models\User;
 use App\Services\ContextoDependencia;
 use Closure;
@@ -60,8 +61,9 @@ class EstablecerDependencia
      */
     protected function establecerComponente(Request $request, User $usuario, ?Dependencia $dependencia): void
     {
-        // Una sola consulta. Va después de establecer(): el contexto aún no filtra por componente.
-        $activos = $dependencia === null ? collect() : Componente::where('dependencia_id', $dependencia->id)
+        // Una sola consulta. Sin el scope de componente: aquí se decide cuál es (salto a propósito).
+        $activos = $dependencia === null ? collect() : Componente::withoutGlobalScope(ComponenteScope::class)
+            ->where('dependencia_id', $dependencia->id)
             ->where('activo', true)->orderBy('id')->get();
 
         $elige = $usuario->es_superadmin || $usuario->rolEn($dependencia) === RolDependencia::Administracion;

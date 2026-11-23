@@ -176,6 +176,9 @@ class AdminEnlacesYEnTurnoTest extends TestCase
         $this->actingAs($lector)->get(route('admin.turnos.enlaces.index'))->assertForbidden();
         $this->actingAs($lector)->get(route('admin.turnos.en-turno'))->assertForbidden();
 
+        // DOC-25: los datos de la otra dependencia se siembran fuera de una petición
+        // (el contexto quedó en el componente del lector y rechazaría guardarlos).
+        app(\App\Services\ContextoDependencia::class)->establecer(null);
         $ajeno = EnlaceTurno::factory()->create(['nombre' => 'Enlace de Beta']);
         $this->assertNoDejaVer(
             $this->actingAs($this->coordinador)->get(route('admin.turnos.enlaces.show', $ajeno)),
@@ -183,6 +186,7 @@ class AdminEnlacesYEnTurnoTest extends TestCase
             'Ver el link de otra dependencia',
         );
 
+        app(\App\Services\ContextoDependencia::class)->establecer(null);
         $deBeta = Colaborador::factory()->en(Componente::factory()->create())->create(['nombre' => 'Persona Beta']);
         Marcacion::factory()->de($deBeta)->create();
         $this->actingAs($this->coordinador)->get(route('admin.turnos.en-turno'))->assertDontSee('Persona Beta');

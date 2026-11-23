@@ -27,8 +27,8 @@ class FichasTest extends TestCase
     public function test_la_ficha_de_persona_de_campo_carga_al_registrar_y_al_editar(): void
     {
         $dependencia = Dependencia::factory()->create();
-        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $dependencia);
         $calle = Componente::factory()->create(['dependencia_id' => $dependencia->id, 'nombre' => 'Calle']);
+        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $dependencia, $calle);
         Nodo::factory()->create(['componente_id' => $calle->id]);
         $persona = Colaborador::factory()->en($calle)->create(['nombre' => 'Ana Restrepo']);
 

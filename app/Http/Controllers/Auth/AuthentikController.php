@@ -74,7 +74,7 @@ class AuthentikController extends Controller
 
         $auditor->registrar(AccionAuditoria::Ingreso, $local, 'Ingreso por Authentik');
 
-        return redirect()->intended(route('documentos.index'));
+        return redirect()->intended(route('inicio'));
     }
 
     /**

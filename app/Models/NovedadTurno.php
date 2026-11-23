@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EstadoNovedad;
 use App\Enums\TipoNovedad;
+use App\Models\Concerns\DelComponente;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[ScopedBy([DependenciaScope::class])]
 class NovedadTurno extends Model
 {
+    use DelComponente;
+
     protected $table = 'novedades_turno';
 
     protected $fillable = [

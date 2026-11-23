@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\EnlaceCarga;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 use App\Services\ContextoDependencia;
 
 /**
@@ -15,6 +16,10 @@ use App\Services\ContextoDependencia;
  */
 class EnlaceCargaPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'documentos';
+
     public function viewAny(User $usuario): bool
     {
         $dependenciaId = app(ContextoDependencia::class)->id();

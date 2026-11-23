@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DelComponente;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** Una zona a la que se asigna personal en la malla («Parque de Berrío – Plaza Botero»). */
 class PuntoCritico extends Model
 {
+    use DelComponente;
+
     protected $table = 'puntos_criticos';
 
     protected $fillable = ['componente_id', 'nodo_id', 'nombre', 'lat', 'lng', 'activo'];

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\ComponenteScope;
 use App\Models\Scopes\DependenciaScope;
+use App\Services\ContextoDependencia;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +26,16 @@ class Ausencia extends Model
     protected function casts(): array
     {
         return ['desde' => 'date', 'hasta' => 'date'];
+    }
+
+    /** DOC-25: no tiene componente; es el de su persona de campo (hereda su scope). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(ComponenteScope::class, function (Builder $query) {
+            if (app(ContextoDependencia::class)->filtraComponente()) {
+                $query->whereHas('colaborador');
+            }
+        });
     }
 
     public function colaborador(): BelongsTo

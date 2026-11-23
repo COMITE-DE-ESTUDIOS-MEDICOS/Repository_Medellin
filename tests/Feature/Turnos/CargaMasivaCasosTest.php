@@ -259,4 +259,22 @@ class CargaMasivaCasosTest extends TestCase
 
         $this->assertSame(1, Derivacion::withoutGlobalScopes()->count());
     }
+
+    public function test_doc25_ca06_la_huella_de_repetidos_no_cruza_componentes(): void
+    {
+        $this->cargar($this->excel([$this->fila()]))->assertSessionHas('exito');
+
+        // Básica, sembrado fuera de una petición (el contexto quedó en Calle).
+        app(\App\Services\ContextoDependencia::class)->establecer(null);
+        $basica = Componente::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Básica']);
+        $nodo = Nodo::factory()->create(['componente_id' => $basica->id, 'nombre' => 'Nodo 2']);
+        Colaborador::factory()->en($basica, $nodo)->create(['documento' => '1017000222', 'cargo' => 'Monitor de ruta']);
+        $deBasica = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia, $basica);
+
+        // La misma entidad, ubicación y hora que DC-001 de Calle: en Básica no es repetida ni lo nombra.
+        $this->cargar($this->excel([$this->fila([0 => 'Básica', 9 => 1017000222])]), $deBasica)
+            ->assertSessionHas('exito')->assertSessionMissing('carga_errores');
+
+        $this->assertSame(1, Derivacion::withoutGlobalScopes()->where('componente_id', $basica->id)->count());
+    }
 }

@@ -176,7 +176,7 @@ class AislamientoTest extends TestCase
 
         $this->actingAs($usuario)
             ->put(route('dependencia.cambiar', $this->beta))
-            ->assertRedirect(route('documentos.index'));
+            ->assertRedirect(route('inicio'));
 
         $this->actingAs($usuario)
             ->get(route('documentos.index'))

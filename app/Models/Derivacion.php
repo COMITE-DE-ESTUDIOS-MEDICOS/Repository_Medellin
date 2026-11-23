@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DelComponente;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,7 @@ use Illuminate\Validation\ValidationException;
 #[ScopedBy([DependenciaScope::class])]
 class Derivacion extends Model
 {
+    use DelComponente;
     use SoftDeletes;
 
     protected $table = 'derivaciones';

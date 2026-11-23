@@ -4,9 +4,14 @@ namespace App\Policies;
 
 use App\Models\Carpeta;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 
 class CarpetaPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'documentos';
+
     public function view(User $usuario, Carpeta $carpeta): bool
     {
         if (! $usuario->perteneceA($carpeta->dependencia_id)) {
