@@ -10,6 +10,7 @@ use App\Models\Dependencia;
 use App\Models\Marcacion;
 use App\Models\NovedadTurno;
 use App\Services\Turnos\Novedades;
+use Database\Seeders\AccesoPorComponenteSeeder;
 use Database\Seeders\CalleSeeder;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,6 +37,7 @@ class JornadaPorTurnoTest extends TestCase
         Notification::fake();
         Dependencia::factory()->create(['slug' => 'inclusion-social']);
         (new CalleSeeder)->run();
+        (new AccesoPorComponenteSeeder)->run(); // DOC-25: Calle con sus módulos, como DatabaseSeeder
         (new CatalogoTurnosCalleSeeder)->run();
         $this->calle = Componente::withoutGlobalScopes()->where('slug', 'calle')->sole();
         $this->calle->update(['config' => [

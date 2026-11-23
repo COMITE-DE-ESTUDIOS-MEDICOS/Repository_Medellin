@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\DelComponente;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TipoTurno extends Model
 {
+    use DelComponente;
+
     protected $table = 'tipos_turno';
 
     public const DIAS = [1 => 'Lun', 2 => 'Mar', 3 => 'Mié', 4 => 'Jue', 5 => 'Vie', 6 => 'Sáb', 7 => 'Dom'];

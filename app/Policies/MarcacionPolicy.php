@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Marcacion;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 use App\Services\ContextoDependencia;
 
 /**
@@ -12,6 +13,10 @@ use App\Services\ContextoDependencia;
  */
 class MarcacionPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'turnos';
+
     public function viewAny(User $usuario): bool
     {
         return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());

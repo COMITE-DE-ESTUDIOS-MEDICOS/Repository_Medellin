@@ -40,7 +40,7 @@ class IngresoAuthentikTest extends TestCase
 
         $this->authentikDevuelve(['preferred_username' => '1122334455']);
 
-        $this->get(route('authentik.callback'))->assertRedirect(route('documentos.index'));
+        $this->get(route('authentik.callback'))->assertRedirect(route('inicio'));
 
         $this->assertAuthenticatedAs($usuario);
     }
@@ -53,7 +53,7 @@ class IngresoAuthentikTest extends TestCase
 
         $this->authentikDevuelve(['preferred_username' => '1.122.334.455']);
 
-        $this->get(route('authentik.callback'))->assertRedirect(route('documentos.index'));
+        $this->get(route('authentik.callback'))->assertRedirect(route('inicio'));
 
         $this->assertAuthenticatedAs($usuario);
     }
@@ -69,14 +69,14 @@ class IngresoAuthentikTest extends TestCase
             ['id' => 'sub-123', 'preferred_username' => 'OTRO'],
         );
 
-        $this->get(route('authentik.callback'))->assertRedirect(route('documentos.index'));
+        $this->get(route('authentik.callback'))->assertRedirect(route('inicio'));
         $this->assertAuthenticatedAs($usuario);
         $this->assertSame('sub-123', $usuario->fresh()->authentik_sub);
 
         $this->post(route('logout'));
         $this->app['auth']->forgetGuards();
 
-        $this->get(route('authentik.callback'))->assertRedirect(route('documentos.index'));
+        $this->get(route('authentik.callback'))->assertRedirect(route('inicio'));
         $this->assertAuthenticatedAs($usuario);
     }
 
@@ -182,7 +182,7 @@ class IngresoAuthentikTest extends TestCase
         $super->forceFill(['es_superadmin' => true])->save();
 
         $this->post(route('login'), ['identificador' => $super->documento, 'password' => 'password'])
-            ->assertRedirect(route('documentos.index'));
+            ->assertRedirect(route('inicio'));
         $this->assertAuthenticatedAs($super);
     }
 

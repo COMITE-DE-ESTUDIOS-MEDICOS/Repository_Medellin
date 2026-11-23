@@ -88,8 +88,8 @@ class MenuPorGruposTest extends TestCase
 
     public function test_cerrado_el_grupo_muestra_sus_pendientes_en_el_titulo(): void
     {
-        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia);
         $componente = Componente::factory()->create(['dependencia_id' => $this->dependencia->id]);
+        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia, $componente);
         Colaborador::factory()->en($componente)->autoregistrado()->count(3)->create();
 
         $this->actingAs($coordinador)->get(route('documentos.index'))

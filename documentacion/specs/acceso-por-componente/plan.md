@@ -114,8 +114,8 @@ supervisión) no muestran datos de otro componente.
 
 - `Gate::define('modulo', fn (User $u, string $m) => app(ContextoDependencia::class)->tieneModulo($m))`
   en `AppServiceProvider`.
-- **Rutas:** grupos con `->middleware('can:modulo,documentos')`, `can:modulo,turnos`,
-  `can:modulo,derivaciones`, `can:modulo,supervisiones`. Cubre también lo que hoy no tiene
+- **Rutas:** grupos con `->middleware("can:modulo,'documentos'")`, `can:modulo,'turnos'`,
+  `can:modulo,'derivaciones'`, `can:modulo,'supervisiones'`, con la clave **entre comillas simples** (ver la fila de riesgos). Cubre también lo que hoy no tiene
   Policy (índice de documentos, carpetas nuevas, lote, tipos de documento, grupos de custodia,
   descargas, Excel). **Cuidado:** `Authorize` toma el argumento como parámetro de ruta si
   existe uno con ese nombre; por eso `supervisiones` y no `supervision`.
@@ -139,7 +139,7 @@ Policy cubre Livewire y los botones. La regla de cada rol no cambia.
 ### D6. Rutas por grupo
 
 - `routes/web.php`: documentos, carpetas, lote, comentarios de documento, `admin/enlaces`,
-  `admin/tipos`, `admin/custodia` → grupo `can:modulo,documentos`.
+  `admin/tipos`, `admin/custodia` → grupo `can:modulo,'documentos'`.
 - `routes/turnos-admin.php`: tres grupos (`turnos`, `derivaciones`, `supervisiones`).
   `componentes` queda fuera de todo grupo.
 - Sin cambios: perfil, campana, manual, salir, cambio de dependencia, usuarios, auditoría,
@@ -271,7 +271,7 @@ Policy cubre Livewire y los botones. La regla de cada rol no cambia.
 | Otra dependencia con usuarios o componentes en producción | Sus usuarios quedan sin componente y sin módulos | Consultas previas al despliegue (abajo); el seeder solo toca Inclusión Social |
 | Administración pasa a ver todos los componentes | Quien hoy tenga Administración verá Básica y Estabilización | PA-03: Edwar revisa la lista antes de desplegar |
 | Estado del singleton entre peticiones en una misma prueba | Después de un `get()`, el scope sigue filtrando las aserciones con el componente de esa petición | Ya pasa con la dependencia; en las pruebas nuevas, aserciones con `withoutGlobalScopes()` |
-| `can:modulo,<clave>` con una clave igual a un parámetro de ruta | El Gate recibe un modelo en vez del texto y falla | Claves fijas en `MODULOS`; una prueba recorre las rutas de cada grupo |
+| `can:modulo,<clave>` sin comillas | En Laravel 12, `Authorize` toma un argumento sin comillas como parámetro de ruta: si no existe pasa `null` y el Gate falla con un 500; si coincide con uno (`{supervision}`) recibe un modelo. **Corregido en ACC-04:** la clave va entre comillas simples (`"can:modulo,'turnos'"`) | Una prueba recorre todas las rutas de cada grupo |
 | Mover una persona de campo de componente | Deja de ser posible (cada quien solo ve el suyo) | Hoy solo Calle tiene Turnos; va a «Candidatos» |
 
 ### Antes de desplegar (Edwar, en producción, solo lectura)

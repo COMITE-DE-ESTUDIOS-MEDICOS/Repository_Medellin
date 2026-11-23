@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrigenMarcacion;
 use App\Enums\TipoMarcacion;
+use App\Models\Concerns\DelComponente;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +24,7 @@ use LogicException;
 #[ScopedBy([DependenciaScope::class])]
 class Marcacion extends Model
 {
+    use DelComponente;
     use HasFactory;
 
     protected $table = 'marcaciones';

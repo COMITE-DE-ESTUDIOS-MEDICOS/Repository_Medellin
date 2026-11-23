@@ -453,6 +453,8 @@ class CargaMasivaCasosController extends Controller
         return Derivacion::withoutGlobalScopes()
             ->whereNull('deleted_at')
             ->where('dependencia_id', $dependenciaId)
+            // DOC-25: solo casos del componente de la fila, para no delatar códigos de otro.
+            ->where('componente_id', $datos['componente']->id)
             ->whereNotNull('numero')
             ->whereDate('fecha_requerimiento', $datos['inicio']->toDateString())
             ->get()

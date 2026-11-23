@@ -17,6 +17,7 @@ use App\Models\NovedadTurno;
 use App\Services\ContextoDependencia;
 use App\Services\Turnos\Marcador;
 use App\Services\Turnos\TurnoCerrado;
+use Database\Seeders\AccesoPorComponenteSeeder;
 use Database\Seeders\CalleSeeder;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
 use Filament\Actions\EditAction;
@@ -54,6 +55,7 @@ class CierreSinSalidaTest extends TestCase
         Notification::fake();
         $this->dependencia = Dependencia::factory()->create(['slug' => 'inclusion-social']);
         (new CalleSeeder)->run();
+        (new AccesoPorComponenteSeeder)->run(); // DOC-25: Calle con sus módulos, como DatabaseSeeder
         (new CatalogoTurnosCalleSeeder)->run();
         $this->calle = Componente::withoutGlobalScopes()->where('slug', 'calle')->sole();
         $this->calle->update(['config' => [

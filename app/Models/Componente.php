@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\ComponenteScope;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
 use Illuminate\Database\Eloquent\Builder;
@@ -96,6 +97,12 @@ class Componente extends Model
             'config' => 'array',
             'modulos' => 'array',
         ];
+    }
+
+    /** DOC-25: cada usuario ve solo su componente (Administración, el que eligió). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new ComponenteScope('id'));
     }
 
     public function tieneModulo(string $modulo): bool

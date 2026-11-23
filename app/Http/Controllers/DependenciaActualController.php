@@ -15,7 +15,7 @@ class DependenciaActualController extends Controller
 
         $request->session()->put('dependencia_id', $dependencia->id);
 
-        return redirect()->route('documentos.index')
+        return redirect()->route('inicio')
             ->with('exito', "Ahora estás en {$dependencia->nombre}.");
     }
 }

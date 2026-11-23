@@ -93,7 +93,7 @@ class CasoDerivacionController extends Controller
                     }
 
                     if (! $peticion->boolean('confirmar_duplicado')) {
-                        $this->avisarDuplicado($dependencia->id, $datos['remitente'], $entidad, $datos['ubicacion']);
+                        $this->avisarDuplicado($dependencia->id, (int) $datos['componente_id'], $datos['remitente'], $entidad, $datos['ubicacion']);
                     }
 
                     // withoutGlobalScopes también quita SoftDeletes: las eliminadas cuentan.
@@ -157,14 +157,16 @@ class CasoDerivacionController extends Controller
     }
 
     /** La primera vez, un caso abierto igual y reciente detiene el guardado. */
-    protected function avisarDuplicado(int $dependenciaId, string $remitente, string $entidad, string $ubicacion): void
+    protected function avisarDuplicado(int $dependenciaId, int $componenteId, string $remitente, string $entidad, string $ubicacion): void
     {
         $normal = fn (?string $texto) => Str::lower(Str::squish((string) $texto));
 
         // ponytail: se compara en PHP (pocos casos en 30 min) para no depender de funciones de MySQL/SQLite.
-        $igual = Derivacion::withoutGlobalScopes()
-            ->whereNull('deleted_at')
+        // DOC-25: con los scopes (el componente donde está parado) y el del caso: si alguien
+        // manda el componente de otro, el aviso no le muestra un código ajeno (y guardar se rechaza).
+        $igual = Derivacion::query()
             ->where('dependencia_id', $dependenciaId)
+            ->where('componente_id', $componenteId)
             ->whereNotNull('numero')
             ->where('estado', Derivacion::PENDIENTE)
             ->where('remitente', $remitente)

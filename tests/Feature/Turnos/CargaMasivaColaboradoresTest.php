@@ -27,11 +27,11 @@ class CargaMasivaColaboradoresTest extends TestCase
         parent::setUp();
 
         $dependencia = Dependencia::factory()->create();
-        $this->admin = $this->usuarioCon(RolDependencia::Administracion, $dependencia);
         $this->calle = Componente::factory()->create([
             'dependencia_id' => $dependencia->id, 'nombre' => 'Calle',
             'config' => ['cargos' => ['Operador terapéutico', 'Monitor de ruta']],
         ]);
+        $this->admin = $this->usuarioCon(RolDependencia::Administracion, $dependencia);
         Nodo::factory()->create(['componente_id' => $this->calle->id, 'nombre' => 'Nodo 1']);
     }
 

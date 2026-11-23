@@ -138,7 +138,10 @@ class AdminBaseTest extends TestCase
         $deBeta = Colaborador::factory()->en($calleBeta)->create();
         Marcacion::factory()->de($deBeta)->create();
 
-        $this->actingAs($this->usuarioCon(RolDependencia::Administracion, $alfa));
+        // Sin el «Calle» que el helper crea (ACC-04): alfa no tiene ningún componente.
+        $admin = \App\Models\User::factory()->create();
+        $admin->dependencias()->attach($alfa->id, ['rol' => RolDependencia::Administracion->value]);
+        $this->actingAs($admin);
         app(\App\Services\ContextoDependencia::class)->establecer($alfa);
 
         $this->assertSame(0, Colaborador::count());

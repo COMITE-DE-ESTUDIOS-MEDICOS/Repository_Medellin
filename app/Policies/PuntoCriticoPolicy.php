@@ -4,11 +4,16 @@ namespace App\Policies;
 
 use App\Models\PuntoCritico;
 use App\Models\User;
+use App\Policies\Concerns\ExigeModulo;
 use App\Services\ContextoDependencia;
 
 /** Los puntos críticos los manejan los líderes (Edición en adelante): son quienes reparten a la gente. */
 class PuntoCriticoPolicy
 {
+    use ExigeModulo;
+
+    protected const MODULO = 'turnos';
+
     public function viewAny(User $usuario): bool
     {
         return $usuario->puedeEditarEn(app(ContextoDependencia::class)->id());

@@ -14,6 +14,7 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoEstadoController;
 use App\Http\Controllers\DocumentoVersionController;
 use App\Http\Controllers\EnvioPublicoController;
+use App\Http\Controllers\InicioController;
 use App\Http\Controllers\NotificacionController;
 use Illuminate\Support\Facades\Route;
 
@@ -71,62 +72,71 @@ Route::middleware(['auth', 'usuario.activo', 'dependencia'])->group(function () 
     Route::put('dependencia/{dependencia}', [DependenciaActualController::class, 'update'])
         ->name('dependencia.cambiar');
 
-    /*
-    |----------------------------------------------------------------------
-    | Explorador de documentos
-    |----------------------------------------------------------------------
-    */
+    // DOC-25 (D7): la llegada y el selector de componente, fuera de todo módulo.
+    Route::get('inicio', InicioController::class)->name('inicio');
+    Route::put('componente/{componente}', [InicioController::class, 'cambiarComponente'])
+        ->whereNumber('componente')->name('componente.cambiar');
 
-    Route::get('documentos', [DocumentoController::class, 'index'])->name('documentos.index');
-    Route::get('documentos/nuevo', [DocumentoController::class, 'create'])->name('documentos.create');
-    Route::post('documentos', [DocumentoController::class, 'store'])->name('documentos.store');
-    Route::get('documentos/{documento}', [DocumentoController::class, 'show'])->name('documentos.show');
-    Route::get('documentos/{documento}/editar', [DocumentoController::class, 'edit'])->name('documentos.edit');
-    Route::put('documentos/{documento}', [DocumentoController::class, 'update'])->name('documentos.update');
+    // DOC-25: el módulo Documentos (RN-49, RN-51). Sin él, 403 aunque el rol alcance.
+    Route::middleware("can:modulo,'documentos'")->group(function () {
 
-    Route::post('documentos/{documento}/versiones', [DocumentoVersionController::class, 'store'])
-        ->name('documentos.versiones.store');
+        /*
+        |----------------------------------------------------------------------
+        | Explorador de documentos
+        |----------------------------------------------------------------------
+        */
 
-    Route::get('documentos/{documento}/descargar', [DescargaController::class, 'descargar'])
-        ->name('documentos.descargar');
-    Route::get('documentos/{documento}/versiones/{version}/descargar', [DescargaController::class, 'descargarVersion'])
-        ->name('documentos.versiones.descargar');
-    Route::get('documentos/{documento}/previsualizar', [DescargaController::class, 'previsualizar'])
-        ->name('documentos.previsualizar');
-    Route::post('documentos/{documento}/copiar', [DocumentoController::class, 'copiar'])
-        ->name('documentos.copiar');
-    // Copiar o mover varios a la vez (los marcados con el check del explorador).
-    Route::post('documentos/lote', [\App\Http\Controllers\LoteController::class, 'aplicar'])
-        ->name('documentos.lote');
+        Route::get('documentos', [DocumentoController::class, 'index'])->name('documentos.index');
+        Route::get('documentos/nuevo', [DocumentoController::class, 'create'])->name('documentos.create');
+        Route::post('documentos', [DocumentoController::class, 'store'])->name('documentos.store');
+        Route::get('documentos/{documento}', [DocumentoController::class, 'show'])->name('documentos.show');
+        Route::get('documentos/{documento}/editar', [DocumentoController::class, 'edit'])->name('documentos.edit');
+        Route::put('documentos/{documento}', [DocumentoController::class, 'update'])->name('documentos.update');
 
-    Route::post('documentos/{documento}/comentarios', [\App\Http\Controllers\ComentarioDocumentoController::class, 'store'])
-        ->middleware('throttle:30,1')
-        ->name('documentos.comentarios.store');
-    Route::delete('documentos/{documento}/comentarios/{comentario}', [\App\Http\Controllers\ComentarioDocumentoController::class, 'destroy'])
-        ->name('documentos.comentarios.destroy');
+        Route::post('documentos/{documento}/versiones', [DocumentoVersionController::class, 'store'])
+            ->name('documentos.versiones.store');
 
-    Route::patch('documentos/{documento}/inactivar', [DocumentoEstadoController::class, 'inactivar'])
-        ->name('documentos.inactivar');
-    Route::patch('documentos/{documento}/reactivar', [DocumentoEstadoController::class, 'reactivar'])
-        ->name('documentos.reactivar');
+        Route::get('documentos/{documento}/descargar', [DescargaController::class, 'descargar'])
+            ->name('documentos.descargar');
+        Route::get('documentos/{documento}/versiones/{version}/descargar', [DescargaController::class, 'descargarVersion'])
+            ->name('documentos.versiones.descargar');
+        Route::get('documentos/{documento}/previsualizar', [DescargaController::class, 'previsualizar'])
+            ->name('documentos.previsualizar');
+        Route::post('documentos/{documento}/copiar', [DocumentoController::class, 'copiar'])
+            ->name('documentos.copiar');
+        // Copiar o mover varios a la vez (los marcados con el check del explorador).
+        Route::post('documentos/lote', [\App\Http\Controllers\LoteController::class, 'aplicar'])
+            ->name('documentos.lote');
 
-    /*
-    |----------------------------------------------------------------------
-    | Carpetas
-    |----------------------------------------------------------------------
-    */
+        Route::post('documentos/{documento}/comentarios', [\App\Http\Controllers\ComentarioDocumentoController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('documentos.comentarios.store');
+        Route::delete('documentos/{documento}/comentarios/{comentario}', [\App\Http\Controllers\ComentarioDocumentoController::class, 'destroy'])
+            ->name('documentos.comentarios.destroy');
 
-    Route::get('carpetas/nueva', [CarpetaController::class, 'create'])->name('carpetas.create');
-    Route::post('carpetas', [CarpetaController::class, 'store'])->name('carpetas.store');
-    Route::get('carpetas/{carpeta}/editar', [CarpetaController::class, 'edit'])->name('carpetas.edit');
-    Route::put('carpetas/{carpeta}', [CarpetaController::class, 'update'])->name('carpetas.update');
-    Route::get('carpetas/{carpeta}/descargar', [DescargaController::class, 'descargarCarpeta'])
-        ->name('carpetas.descargar');
-    Route::post('carpetas/{carpeta}/copiar', [CarpetaController::class, 'copiar'])->name('carpetas.copiar');
-    Route::patch('carpetas/{carpeta}/inactivar', [CarpetaController::class, 'inactivar'])
-        ->name('carpetas.inactivar');
-    Route::patch('carpetas/{carpeta}/reactivar', [CarpetaController::class, 'reactivar'])
-        ->name('carpetas.reactivar');
+        Route::patch('documentos/{documento}/inactivar', [DocumentoEstadoController::class, 'inactivar'])
+            ->name('documentos.inactivar');
+        Route::patch('documentos/{documento}/reactivar', [DocumentoEstadoController::class, 'reactivar'])
+            ->name('documentos.reactivar');
+
+        /*
+        |----------------------------------------------------------------------
+        | Carpetas
+        |----------------------------------------------------------------------
+        */
+
+        Route::get('carpetas/nueva', [CarpetaController::class, 'create'])->name('carpetas.create');
+        Route::post('carpetas', [CarpetaController::class, 'store'])->name('carpetas.store');
+        Route::get('carpetas/{carpeta}/editar', [CarpetaController::class, 'edit'])->name('carpetas.edit');
+        Route::put('carpetas/{carpeta}', [CarpetaController::class, 'update'])->name('carpetas.update');
+        Route::get('carpetas/{carpeta}/descargar', [DescargaController::class, 'descargarCarpeta'])
+            ->name('carpetas.descargar');
+        Route::post('carpetas/{carpeta}/copiar', [CarpetaController::class, 'copiar'])->name('carpetas.copiar');
+        Route::patch('carpetas/{carpeta}/inactivar', [CarpetaController::class, 'inactivar'])
+            ->name('carpetas.inactivar');
+        Route::patch('carpetas/{carpeta}/reactivar', [CarpetaController::class, 'reactivar'])
+            ->name('carpetas.reactivar');
+    });
 
     /*
     |----------------------------------------------------------------------
@@ -162,23 +172,26 @@ Route::middleware(['auth', 'usuario.activo', 'dependencia'])->group(function () 
         Route::put('usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::delete('usuarios/{usuario}/acceso', [UsuarioController::class, 'revocar'])->name('usuarios.revocar');
 
-        Route::get('tipos', [TipoDocumentoController::class, 'index'])->name('tipos.index');
-        Route::post('tipos', [TipoDocumentoController::class, 'store'])->name('tipos.store');
-        Route::put('tipos/{tipo}', [TipoDocumentoController::class, 'update'])->name('tipos.update');
+        // DOC-25: Tipos de documento, enlaces de carga y custodia son del módulo Documentos.
+        Route::middleware("can:modulo,'documentos'")->group(function () {
+            Route::get('tipos', [TipoDocumentoController::class, 'index'])->name('tipos.index');
+            Route::post('tipos', [TipoDocumentoController::class, 'store'])->name('tipos.store');
+            Route::put('tipos/{tipo}', [TipoDocumentoController::class, 'update'])->name('tipos.update');
 
-        // Administración ve y gestiona todos los de su dependencia; un líder
-        // solo los de las carpetas que lidera. La Policy decide, no la ruta.
-        Route::get('enlaces', [EnlaceCargaController::class, 'index'])->name('enlaces.index');
-        Route::get('enlaces/nuevo', [EnlaceCargaController::class, 'create'])->name('enlaces.create');
-        Route::post('enlaces', [EnlaceCargaController::class, 'store'])->name('enlaces.store');
-        Route::patch('enlaces/{enlace}/revocar', [EnlaceCargaController::class, 'revocar'])->name('enlaces.revocar');
-        Route::patch('enlaces/{enlace}/fecha-envio', [EnlaceCargaController::class, 'corregirFechaEnvio'])
-            ->name('enlaces.fecha-envio');
+            // Administración ve y gestiona todos los de su dependencia; un líder
+            // solo los de las carpetas que lidera. La Policy decide, no la ruta.
+            Route::get('enlaces', [EnlaceCargaController::class, 'index'])->name('enlaces.index');
+            Route::get('enlaces/nuevo', [EnlaceCargaController::class, 'create'])->name('enlaces.create');
+            Route::post('enlaces', [EnlaceCargaController::class, 'store'])->name('enlaces.store');
+            Route::patch('enlaces/{enlace}/revocar', [EnlaceCargaController::class, 'revocar'])->name('enlaces.revocar');
+            Route::patch('enlaces/{enlace}/fecha-envio', [EnlaceCargaController::class, 'corregirFechaEnvio'])
+                ->name('enlaces.fecha-envio');
 
-        // Grupos de custodia (Coordinación): quién ve y trabaja qué carpetas.
-        Route::get('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'index'])->name('custodia.index');
-        Route::post('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'store'])->name('custodia.store');
-        Route::put('custodia/{grupo}', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'update'])->name('custodia.update');
+            // Grupos de custodia (Coordinación): quién ve y trabaja qué carpetas.
+            Route::get('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'index'])->name('custodia.index');
+            Route::post('custodia', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'store'])->name('custodia.store');
+            Route::put('custodia/{grupo}', [\App\Http\Controllers\Admin\GrupoCustodiaController::class, 'update'])->name('custodia.update');
+        });
 
         // Avisos por la campana (Administración).
         Route::get('avisos', [\App\Http\Controllers\Admin\AvisoController::class, 'index'])->name('avisos.index');
