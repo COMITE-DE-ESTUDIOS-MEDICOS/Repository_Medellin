@@ -75,4 +75,13 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
 | Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
 | Casos: soporte opcional y carga única de casos ya atendidos | DOC-24 | [Aprobada](specs/casos-soporte-opcional-y-carga-masiva/spec.md) | Construida · falta probar con un Excel real (PA-03) |
+| Acceso por componente · componentes Básica y Estabilización | DOC-25 | [Aprobada](specs/acceso-por-componente/spec.md) | Por planear |
+| Usuarios HC: ficha, caracterización, búsqueda y edición con historial | DOC-26 | [Borrador](specs/usuarios-hc/spec.md) | Por aprobar |
+| Ingresos y egresos de Usuarios HC · sedes y capacidad | DOC-27 | [Borrador](specs/ingresos-y-egresos-hc/spec.md) | Por aprobar |
+| Dashboard de Habitante de Calle: cupos/día y ocupación | DOC-28 | [Borrador](specs/dashboard-hc/spec.md) | Por aprobar |
+| Reportes de Habitante de Calle: reporte de cupos | DOC-29 | [Borrador](specs/reportes-hc/spec.md) | Por aprobar |
+| Cierres de periodo de Habitante de Calle | DOC-30 | [Borrador resumido](specs/cierres-hc/spec.md) | Por aprobar |
+| Unificar fichas duplicadas de Usuarios HC | DOC-31 | [Borrador resumido](specs/unificacion-usuarios-hc/spec.md) | Por aprobar |
+| Infraestructura: nginx en producción, Redis, monitoreo; decisión de Docker y PostgreSQL | DOC-32 | [Borrador](specs/infraestructura/spec.md) | Por aprobar |
+| Habitante de Calle: plan de trabajo (calendario y alcance de DOC-25 a DOC-31) | — | [Plan de trabajo](specs/habitante-de-calle/plan-de-trabajo.md) | Borrador |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.
