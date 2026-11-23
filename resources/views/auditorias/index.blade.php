@@ -65,7 +65,7 @@
             @forelse($registros as $registro)
                 <tr>
                     <td class="whitespace-nowrap px-4 py-3 text-[var(--muted)]">
-                        {{ $registro->created_at->format('d/m/Y H:i') }}
+                        {{ $registro->created_at->fechaHora() }}
                     </td>
                     <td class="px-4 py-3 text-[var(--text)]">{{ $registro->usuario?->name ?? 'Sistema' }}</td>
                     <td class="px-4 py-3 text-[var(--text)]">{{ $registro->etiqueta_accion }}</td>

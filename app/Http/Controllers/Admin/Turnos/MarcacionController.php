@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Turnos;
 
 use App\Enums\EstadoNovedad;
+use App\Enums\OrigenMarcacion;
 use App\Enums\TipoMarcacion;
 use App\Enums\TipoNovedad;
 use App\Http\Controllers\Controller;
@@ -45,6 +46,13 @@ class MarcacionController extends Controller
 
         return view('admin.turnos.marcaciones.index', [
             'marcaciones' => $marcaciones,
+            // DOC-21 (CA-06): los cierres automáticos que nadie ha revisado ni corregido.
+            'porCorregir' => NovedadTurno::query()
+                ->whereIn('marcacion_id', $marcaciones->getCollection()->where('origen', OrigenMarcacion::CierreAutomatico)->pluck('id'))
+                ->where('tipo', TipoNovedad::SinSalida->value)
+                ->where('estado', EstadoNovedad::Pendiente->value)
+                ->pluck('marcacion_id')
+                ->flip(),
             'componentes' => Componente::activos()->with(['nodos' => fn ($q) => $q->activos()])->orderBy('nombre')->get(),
             'desde' => $desde,
             'hasta' => $hasta,
@@ -65,7 +73,10 @@ class MarcacionController extends Controller
         $this->authorize('viewAny', Marcacion::class);
 
         [$desde, $hasta] = $this->rango($request);
-        $turnos = $jornadas->entre($desde, $hasta, fn (Builder $q) => $this->filtrar($q, $request));
+        // El nodo no recorta los turnos de una persona: quien cubrió en otro
+        // nodo los tiene todos en el resumen. La pestaña «Turnos» sí se queda
+        // con los marcados en ese nodo.
+        $turnos = $jornadas->entre($desde, $hasta, fn (Builder $q) => $this->filtrar($q, $request, nodo: false));
 
         // Las novedades de duración de cada turno (las de su salida), sin las
         // ya corregidas: esas quedaron reemplazadas por la nueva evaluación.
@@ -77,10 +88,13 @@ class MarcacionController extends Controller
             ->keyBy('marcacion_id');
 
         $filas = $turnos->map(fn (array $turno) => $this->calcular($turno, $novedades));
+        $delNodo = $request->filled('nodo')
+            ? $filas->filter(fn (array $f) => $f['entrada']->nodo_id === $request->integer('nodo'))->values()
+            : $filas;
 
         $ruta = Xlsx::libro(tempnam(sys_get_temp_dir(), 'turnos'), [
-            'Turnos' => [self::ENCABEZADOS_TURNOS, $filas->map(fn (array $f) => $this->filaTurno($f))],
-            'Resumen mensual' => $this->resumen($request, $filas, $desde, $hasta),
+            'Turnos' => [self::ENCABEZADOS_TURNOS, $delNodo->map(fn (array $f) => $this->filaTurno($f))],
+            'Resumen mensual' => $this->resumen($request, $filas, $delNodo, $desde, $hasta),
         ]);
 
         return response()
@@ -89,7 +103,7 @@ class MarcacionController extends Controller
     }
 
     protected const ENCABEZADOS_TURNOS = [
-        'Cédula', 'Nombre', 'Cargo', 'Componente', 'Nodo', 'Entrada', 'Salida',
+        'Cédula', 'Nombre', 'Cargo', 'Componente', 'Nodo', 'Turno', 'Entrada', 'Salida',
         'Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas',
         'Novedad', 'Cómo cerró', 'EPP',
     ];
@@ -99,12 +113,13 @@ class MarcacionController extends Controller
     {
         $entrada = $turno['entrada'];
         $novedad = $turno['salida'] ? $novedades->get($turno['salida']->id) : null;
-        $jornada = (int) round((float) $entrada->componente->regla('jornada_horas') * 60);
+        // DOC-8: la jornada de su turno (el reconocido con entrada y salida).
+        $jornada = $entrada->componente->jornadaPara($turno['tipo'] ?? null);
 
         // Lo que cuenta es el trabajo real: la permanencia menos el descanso
         // (Componente::minutosTrabajados, el mismo cálculo de las novedades).
         $permanencia = $turno['minutos'];
-        $trabajado = $permanencia !== null ? $entrada->componente->minutosTrabajados($permanencia) : null;
+        $trabajado = $permanencia !== null ? $entrada->componente->minutosTrabajados($permanencia, $turno['tipo'] ?? null) : null;
 
         // Horas extra solo cuando hay novedad de horas extra (pasó de la
         // tolerancia); lo de dentro de la tolerancia cuenta como jornada.
@@ -124,8 +139,14 @@ class MarcacionController extends Controller
             $c->cargo,
             $f['entrada']->componente->nombre,
             $f['entrada']->nodo?->nombre,
+            // El turno por la hora de entrada (Programacion::reconocer). Sin
+            // uno que encaje va en rojo: hay que mirar esa entrada.
+            $f['turno']['tipo']?->codigo ?? ['alerta' => 'Sin reconocer'],
             $f['entrada']->marcada_at->format('d/m/Y H:i'),
-            $salida?->marcada_at->format('d/m/Y H:i') ?? 'Sin salida',
+            // DOC-21 (CA-06): cerrado solo y sin revisar, va en rojo hasta que Coordinación lo corrija o lo confirme.
+            $this->porCorregir($salida, $f['novedad'])
+                ? ['alerta' => $salida->marcada_at->format('d/m/Y H:i').' · Cierre automático · por corregir']
+                : ($salida?->marcada_at->format('d/m/Y H:i') ?? 'Sin salida'),
             self::horas($f['permanencia']),
             $f['permanencia'] !== null ? self::horas($f['permanencia'] - $f['trabajado']) : null,
             self::horas($f['trabajado']),
@@ -149,6 +170,14 @@ class MarcacionController extends Controller
         ];
     }
 
+    /** Una salida del cierre automático cuya novedad «no marcó salida» sigue pendiente. */
+    protected function porCorregir(?Marcacion $salida, ?NovedadTurno $novedad): bool
+    {
+        return $salida?->origen === OrigenMarcacion::CierreAutomatico
+            && $novedad?->tipo === TipoNovedad::SinSalida
+            && $novedad->estado === EstadoNovedad::Pendiente;
+    }
+
     /**
      * Una fila por persona. Entran también las personas activas del filtro
      * que no marcaron nada en el período (0 días, en rojo): es lo primero
@@ -157,7 +186,7 @@ class MarcacionController extends Controller
      *
      * @return array{0: array, 1: array}
      */
-    protected function resumen(Request $request, $filas, Carbon $desde, Carbon $hasta): array
+    protected function resumen(Request $request, $filas, $delNodo, Carbon $desde, Carbon $hasta): array
     {
         // Semanas de lunes a domingo que tocan el período.
         $semanas = [];
@@ -178,8 +207,9 @@ class MarcacionController extends Controller
             ->get()
             ->keyBy('id');
 
-        // Quien marcó pero ya no está activo también sale: marcó en el período.
-        $porPersona->each(function ($turnos, $id) use ($personas) {
+        // Quien marcó en el nodo (o en cualquiera, sin filtro) también sale,
+        // aunque ya no esté activo o su nodo habitual sea otro.
+        $delNodo->groupBy(fn (array $f) => $f['entrada']->colaborador_id)->each(function ($turnos, $id) use ($personas) {
             $personas->put($id, $turnos->first()['entrada']->colaborador);
         });
 
@@ -291,6 +321,39 @@ class MarcacionController extends Controller
         return back()->with('exito', 'Hora corregida. La marca anterior queda anulada en el historial.');
     }
 
+    /** DOC-18: entrada ↔ salida, a la misma hora. Para enderezar un turno invertido. */
+    public function cambiarTipo(Request $request, Marcacion $marcacion, Marcador $marcador): RedirectResponse
+    {
+        $this->authorize('anular', $marcacion);
+
+        $motivo = $request->validate(['motivo' => ['required', 'string', 'min:5', 'max:500']])['motivo'];
+        $tipo = $marcacion->esEntrada() ? TipoMarcacion::Salida : TipoMarcacion::Entrada;
+
+        try {
+            $marcador->corregir($marcacion, $marcacion->marcada_at, $motivo, $request->user(), $tipo);
+        } catch (TurnoCerrado $e) {
+            return back()->withErrors(['motivo' => $e->getMessage()]);
+        }
+
+        return back()->with('exito', "Ahora es una {$tipo->etiqueta()}. La marca anterior queda anulada en el historial.");
+    }
+
+    /** DOC-18: quitar una marca de más. Queda tachada en el historial y deja de contar. */
+    public function anular(Request $request, Marcacion $marcacion, Marcador $marcador): RedirectResponse
+    {
+        $this->authorize('anular', $marcacion);
+
+        $motivo = $request->validate(['motivo' => ['required', 'string', 'min:5', 'max:500']])['motivo'];
+
+        try {
+            $marcador->anular($marcacion, $motivo, $request->user());
+        } catch (TurnoCerrado $e) {
+            return back()->withErrors(['motivo' => $e->getMessage()]);
+        }
+
+        return back()->with('exito', 'Marca anulada. Ya no cuenta, y queda en el historial con tu nombre y el motivo.');
+    }
+
     /** Del primer día del mes hasta hoy, si no se pide otro rango. */
     protected function rango(Request $request): array
     {
@@ -300,11 +363,11 @@ class MarcacionController extends Controller
         return [$desde, $hasta];
     }
 
-    protected function filtrar(Builder $q, Request $request): void
+    protected function filtrar(Builder $q, Request $request, bool $nodo = true): void
     {
         $q->when($request->filled('cedula'), fn ($q) => $q->whereHas('colaborador', fn ($c) => $c
                 ->where('documento', 'like', User::normalizarDocumento($request->input('cedula')).'%')))
             ->when($request->filled('componente'), fn ($q) => $q->where('componente_id', $request->integer('componente')))
-            ->when($request->filled('nodo'), fn ($q) => $q->where('nodo_id', $request->integer('nodo')));
+            ->when($nodo && $request->filled('nodo'), fn ($q) => $q->where('nodo_id', $request->integer('nodo')));
     }
 }

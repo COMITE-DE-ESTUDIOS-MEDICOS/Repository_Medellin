@@ -86,7 +86,7 @@ class CorreccionYTurnoCerradoTest extends TestCase
     public function test_con_el_turno_del_dia_cerrado_no_se_vuelve_a_marcar(): void
     {
         $this->turno('11:00');
-        $this->travel(5)->minutes();
+        $this->travel(40)->minutes();
 
         $this->marcar()->assertSessionHasErrors('cedula');
         $this->assertSame(2, Marcacion::withoutGlobalScopes()->count(), 'No se abrió otro turno.');
@@ -205,8 +205,8 @@ class CorreccionYTurnoCerradoTest extends TestCase
 
         $turnos = $this->hojaXlsx($this->actingAs($this->editor)->get(route('admin.turnos.marcaciones.exportar')), 'Turnos');
 
-        $this->assertSame(['Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas'], array_slice($turnos[0], 7, 7));
-        $this->assertEquals([10, 0, 10, 8, 8, 2, 'SI'], array_slice($turnos[1], 7, 7));
+        $this->assertSame(['Permanencia (h)', 'Descanso (h)', 'Horas trabajadas', 'Jornada (h)', 'Horas ordinarias', 'Horas extra', 'Extras aprobadas'], array_slice($turnos[0], 8, 7));
+        $this->assertEquals([10, 0, 10, 8, 8, 2, 'SI'], array_slice($turnos[1], 8, 7));
     }
 
     public function test_un_turno_dentro_de_la_tolerancia_no_da_horas_extra(): void
@@ -215,6 +215,91 @@ class CorreccionYTurnoCerradoTest extends TestCase
 
         $turnos = $this->hojaXlsx($this->actingAs($this->editor)->get(route('admin.turnos.marcaciones.exportar')), 'Turnos');
 
-        $this->assertEquals([8.17, 0, 8.17, 8, 8.17, 0, null], array_slice($turnos[1], 7, 7));
+        $this->assertEquals([8.17, 0, 8.17, 8, 8.17, 0, null], array_slice($turnos[1], 8, 7));
+    }
+
+    /**
+     * El caso de Jean Paul (N7, 21:00–04:30): salió a las 04:41, reintentó a
+     * las 04:43 y eso abría una entrada; desde ahí todo quedaba al revés.
+     */
+    public function test_doc17_ca04_un_reintento_despues_de_la_salida_no_abre_una_entrada(): void
+    {
+        $this->calle->update(['config' => array_merge($this->calle->config, ['jornada_horas' => 7])]);
+        $this->travelTo(now()->setTime(21, 0));
+        $this->marcar($this->primeraVez());
+        $this->travelTo(now()->addDay()->setTime(4, 41));
+        $this->marcar()->assertSessionHas('turno.marcado.tipo', 'Salida');
+
+        $this->travel(125)->seconds();
+        $this->marcar()->assertSessionHas('turno.marcado.repetida', true);
+        $this->postJson(route('turno.cedula', ['token' => $this->token]), ['cedula' => '1017000111'])
+            ->assertJsonPath('accion', 'reciente');
+
+        $this->travelTo(now()->setTime(21, 0));
+        $this->marcar()->assertSessionHas('turno.marcado.tipo', 'Entrada');
+        $this->assertSame(3, Marcacion::withoutGlobalScopes()->count());
+    }
+
+    private function coordinador(): User
+    {
+        return $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia);
+    }
+
+    public function test_doc18_ca01_coordinacion_cambia_el_tipo_y_la_original_queda_anulada(): void
+    {
+        [, $salida] = $this->turno('15:00');
+        $this->travel(1)->hours();
+
+        $this->actingAs($this->coordinador())
+            ->patch(route('admin.turnos.marcaciones.tipo', $salida), ['motivo' => 'Era su entrada del turno de noche'])
+            ->assertSessionHasNoErrors();
+
+        $salida->refresh();
+        $this->assertTrue($salida->estaAnulada());
+        $this->assertSame(\App\Enums\TipoMarcacion::Entrada, $salida->reemplazo->tipo);
+        $this->assertSame('15:00', $salida->reemplazo->marcada_at->format('H:i'), 'Misma hora, otro tipo.');
+    }
+
+    public function test_doc18_ca02_anular_quita_la_marca_sin_borrarla_y_cierra_sus_novedades(): void
+    {
+        [, $salida] = $this->turno('11:00');
+        $corto = NovedadTurno::withoutGlobalScopes()->sole();
+        $this->travel(1)->hours();
+
+        $this->actingAs($this->coordinador())
+            ->patch(route('admin.turnos.marcaciones.anular', $salida), ['motivo' => 'Reintento: quedó de más'])
+            ->assertSessionHasNoErrors();
+
+        $salida->refresh();
+        $this->assertTrue($salida->estaAnulada());
+        $this->assertNull($salida->reemplazada_por_id);
+        $this->assertSame(2, Marcacion::withoutGlobalScopes()->count(), 'No se borra nada.');
+        $this->assertSame(1, Marcacion::withoutGlobalScopes()->vigentes()->count());
+        $this->assertSame(EstadoNovedad::Corregida, $corto->fresh()->estado);
+        $this->assertDatabaseHas('auditorias', ['accion' => 'turno.correccion']);
+    }
+
+    public function test_doc18_ca03_edicion_no_anula_ni_cambia_el_tipo(): void
+    {
+        [, $salida] = $this->turno('15:00');
+
+        $this->actingAs($this->editor)
+            ->patch(route('admin.turnos.marcaciones.anular', $salida), ['motivo' => 'No debería poder'])
+            ->assertForbidden();
+        $this->actingAs($this->editor)
+            ->patch(route('admin.turnos.marcaciones.tipo', $salida), ['motivo' => 'No debería poder'])
+            ->assertForbidden();
+        $this->assertFalse($salida->fresh()->estaAnulada());
+    }
+
+    public function test_doc18_ca04_una_marca_anulada_no_se_vuelve_a_anular(): void
+    {
+        [, $salida] = $this->turno('15:00');
+        $coordinador = $this->coordinador();
+        $this->actingAs($coordinador)->patch(route('admin.turnos.marcaciones.anular', $salida), ['motivo' => 'Quedó de más']);
+
+        $this->actingAs($coordinador)
+            ->patch(route('admin.turnos.marcaciones.anular', $salida), ['motivo' => 'Otra vez'])
+            ->assertForbidden();
     }
 }

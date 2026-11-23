@@ -17,7 +17,7 @@
         @endcan
         @can('create', App\Models\Colaborador::class)
             {{-- Carga masiva (temporal): la plantilla y el botón que la lee. --}}
-            <a href="{{ route('admin.turnos.colaboradores.carga.plantilla') }}" class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Descargar Excel de carga</a>
+            <a href="{{ route('admin.turnos.colaboradores.carga.plantilla') }}" download class="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Descargar Excel de carga</a>
             <form method="POST" action="{{ route('admin.turnos.colaboradores.carga.importar') }}" enctype="multipart/form-data" data-carga-masiva>
                 @csrf
                 <label class="cursor-pointer rounded-md px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)] inline-block">

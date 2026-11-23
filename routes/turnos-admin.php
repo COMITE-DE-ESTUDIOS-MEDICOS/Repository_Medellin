@@ -12,8 +12,11 @@
 */
 
 use App\Http\Controllers\Admin\Turnos\AusenciaController;
+use App\Http\Controllers\Admin\Turnos\CargaMasivaCasosController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaColaboradoresController;
 use App\Http\Controllers\Admin\Turnos\ColaboradorController;
+use App\Http\Controllers\Admin\Turnos\CasoDerivacionController;
+use App\Http\Controllers\Admin\Turnos\ComentarioDerivacionController;
 use App\Http\Controllers\Admin\Turnos\DerivacionController;
 use App\Http\Controllers\Admin\Turnos\EnlaceTurnoController;
 use App\Http\Controllers\Admin\Turnos\EnTurnoController;
@@ -56,6 +59,8 @@ Route::get('marcaciones', [MarcacionController::class, 'index'])->name('marcacio
 Route::get('marcaciones/exportar', [MarcacionController::class, 'exportar'])->name('marcaciones.exportar');
 Route::post('colaboradores/{colaborador}/marcaciones', [MarcacionController::class, 'store'])->name('marcaciones.store');
 Route::patch('marcaciones/{marcacion}/corregir', [MarcacionController::class, 'corregir'])->name('marcaciones.corregir');
+Route::patch('marcaciones/{marcacion}/tipo', [MarcacionController::class, 'cambiarTipo'])->name('marcaciones.tipo');
+Route::patch('marcaciones/{marcacion}/anular', [MarcacionController::class, 'anular'])->name('marcaciones.anular');
 Route::get('novedades', [NovedadController::class, 'index'])->name('novedades.index');
 Route::get('novedades/exportar', [NovedadController::class, 'exportar'])->name('novedades.exportar');
 Route::patch('novedades/{novedad}', [NovedadController::class, 'revisar'])->name('novedades.revisar');
@@ -65,13 +70,24 @@ Route::post('colaboradores/{colaborador}/ausencias', [AusenciaController::class,
 Route::delete('ausencias/{ausencia}', [AusenciaController::class, 'destroy'])->name('ausencias.destroy');
 Route::post('novedades/{novedad}/justificar', [AusenciaController::class, 'justificar'])->name('novedades.justificar');
 
-// Derivaciones y respuesta territorial (Edición). Se crean por el enlace por cédula.
-Route::get('derivaciones/exportar', [DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
-Route::patch('derivaciones/{derivacion}/responder', [DerivacionController::class, 'responder'])->name('derivaciones.responder');
+// Derivaciones y respuesta territorial (Edición). DOC-20: la oficina crea el caso DC-NNN.
+Route::get('derivaciones/crear', [CasoDerivacionController::class, 'create'])->name('derivaciones.create');
+Route::post('derivaciones', [CasoDerivacionController::class, 'store'])->name('derivaciones.store');
+// DOC-24: carga única de casos ya atendidos (Coordinación). Temporal: se quita con su controlador.
+Route::get('derivaciones/carga-masiva/formato', [CargaMasivaCasosController::class, 'formato'])->name('derivaciones.carga.formato');
+Route::post('derivaciones/carga-masiva', [CargaMasivaCasosController::class, 'importar'])->name('derivaciones.carga.importar');
+Route::get('derivaciones/exportar',[DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
+// Plan de contingencia: el superadministrador cierra a mano un caso atendido que no se pudo enviar.
+Route::patch('derivaciones/{derivacion}/contingencia', [DerivacionController::class, 'contingencia'])->name('derivaciones.contingencia');
 // Supervisión territorial (DOC-11): consultar y descargar.
 Route::get('supervisiones', [SupervisionController::class, 'index'])->name('supervisiones.index');
 Route::get('supervisiones/exportar', [SupervisionController::class, 'exportar'])->name('supervisiones.exportar');
 Route::get('supervisiones/{supervision}', [SupervisionController::class, 'show'])->name('supervisiones.show');
+// DOC-23: comentarios en la ficha del caso.
+Route::post('derivaciones/{derivacion}/comentarios', [ComentarioDerivacionController::class, 'store'])
+    ->middleware('throttle:30,1')->name('derivaciones.comentarios.store');
+Route::delete('derivaciones/{derivacion}/comentarios/{comentario}', [ComentarioDerivacionController::class, 'destroy'])
+    ->name('derivaciones.comentarios.destroy');
 Route::get('derivaciones/fotos', [DerivacionController::class, 'fotos'])->name('derivaciones.fotos');
 Route::resource('derivaciones', DerivacionController::class)
     ->only(['index', 'show', 'edit', 'update', 'destroy'])

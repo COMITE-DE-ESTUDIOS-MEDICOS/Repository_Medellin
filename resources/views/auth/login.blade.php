@@ -155,19 +155,43 @@
                 @endif
 
                 {{--
-                    Ya no hay campos: la identidad la valida Authentik y aquí
-                    solo queda la salida hacia él. El botón conserva el nombre
-                    de siempre, «Ingresar», porque para quien entra el paso es
-                    el mismo; lo que cambia es dónde se escribe la contraseña.
+                    La identidad la valida Authentik: es la cuenta institucional,
+                    la misma de MedTech. Este botón es la entrada de todos.
                 --}}
                 <a href="{{ route('authentik.redirect') }}" id="boton-login"
                    class="liquid-button-primary flex w-full items-center justify-center gap-2 rounded-xl text-sm font-bold shadow-md"
                    style="padding-top: clamp(0.5rem, 1.6vh, 0.75rem); padding-bottom: clamp(0.5rem, 1.6vh, 0.75rem);">
-                    <span id="texto-boton-login">Ingresar</span>
+                    <span id="texto-boton-login">Entrar con la cuenta institucional</span>
                     <svg id="icono-boton-login" class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
                     </svg>
                 </a>
+
+                {{--
+                    DOC-22 (PA-01): el formulario propio queda solo para el
+                    superadministrador, como entrada de emergencia si Authentik
+                    no responde. Va plegado y discreto para que nadie lo tome
+                    por la entrada de todos los días.
+                --}}
+                <details class="mt-3 text-xs" style="color: var(--muted);" @if(old('identificador')) open @endif>
+                    <summary class="cursor-pointer text-center">Acceso de emergencia (administración)</summary>
+
+                    <form method="POST" action="{{ route('login') }}" class="mt-3 space-y-2">
+                        @csrf
+                        <label class="block font-bold" style="color: var(--text);" for="identificador">Usuario o alias de emergencia</label>
+                        <input id="identificador" name="identificador" type="text" value="{{ old('identificador') }}" required
+                               autocomplete="username" maxlength="255" class="liquid-input w-full px-3 text-sm">
+
+                        <label class="block font-bold" style="color: var(--text);" for="password">Contraseña</label>
+                        <input id="password" name="password" type="password" required
+                               autocomplete="current-password" class="liquid-input w-full px-3 text-sm">
+
+                        <button type="submit" class="w-full rounded-xl border py-2 text-xs font-bold"
+                                style="border-color: var(--border); color: var(--text);">
+                            Ingresar
+                        </button>
+                    </form>
+                </details>
 
                 <div class="border-t text-center" style="border-color: var(--border); margin-top: clamp(0.5rem, 2vh, 1.5rem); padding-top: clamp(0.4rem, 1.5vh, 1rem);">
                     <p class="text-[11px] leading-relaxed" style="color: var(--muted);">
@@ -205,7 +229,7 @@
             if (evento.persisted) {
                 document.getElementById('cargando-pagina').classList.add('hidden');
                 boton.classList.remove('pointer-events-none', 'opacity-75');
-                document.getElementById('texto-boton-login').textContent = 'Ingresar';
+                document.getElementById('texto-boton-login').textContent = 'Entrar con la cuenta institucional';
                 document.getElementById('icono-boton-login').classList.remove('hidden');
             }
         });

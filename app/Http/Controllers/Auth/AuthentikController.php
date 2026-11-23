@@ -36,13 +36,26 @@ class AuthentikController extends Controller
         }
 
         $local = $this->cuentaLocalDe($remoto);
+        $sub = (string) $remoto->getId();
 
         if ($local === null) {
             // Queda el rastro: sin esto, un rechazo es indistinguible de una
             // falla de configuración cuando alguien llama a soporte.
             Log::warning('Authentik: identidad sin cuenta local', [
                 'username' => $remoto->preferred_username,
-                'email' => $remoto->getEmail(),
+                'sub' => $sub,
+            ]);
+
+            return $this->rechazar('Tu usuario no está registrado en Documenta. Contacta a un administrador.');
+        }
+
+        // La cuenta ya está ligada a otro `sub`: es otra cuenta de Authentik
+        // con el mismo documento. No se reemplaza; lo resuelve un administrador.
+        if (filled($local->authentik_sub) && $local->authentik_sub !== $sub) {
+            Log::warning('Authentik: otro sub con el mismo documento', [
+                'user_id' => $local->id,
+                'username' => $remoto->preferred_username,
+                'sub' => $sub,
             ]);
 
             return $this->rechazar('Tu usuario no está registrado en Documenta. Contacta a un administrador.');
@@ -56,7 +69,8 @@ class AuthentikController extends Controller
 
         Auth::login($local);
         $request->session()->regenerate();
-        $local->forceFill(['ultimo_acceso_at' => now()])->save();
+        // El primer ingreso deja ligado el `sub`; los siguientes entran por él.
+        $local->forceFill(['ultimo_acceso_at' => now(), 'authentik_sub' => $local->authentik_sub ?: ($sub ?: null)])->save();
 
         $auditor->registrar(AccionAuditoria::Ingreso, $local, 'Ingreso por Authentik');
 
@@ -64,31 +78,37 @@ class AuthentikController extends Controller
     }
 
     /**
-     * A quién de esta base corresponde la identidad que devolvió Authentik.
+     * A quién de esta base corresponde la identidad que devolvió Authentik
+     * (DOC-22, CA-06 y CA-07).
      *
-     * El criterio es el documento: Documenta crea allá cada cuenta con el
-     * documento de `username`, y es lo que vuelve en `preferred_username`.
-     * Se normaliza igual que al guardarlo, para que un punto de más no deje
-     * a nadie afuera.
-     *
-     * El correo queda de red de seguridad y nada más: sirve para las cuentas
-     * que ya existían en Authentik antes de todo esto, creadas a mano y con
-     * un username que no es una cédula. Si algún día no queda ninguna, esta
-     * segunda consulta se puede borrar sin más.
+     * Primero por el `sub` del OIDC, que queda guardado desde el primer
+     * ingreso. Si no está, por el documento (`preferred_username`),
+     * normalizado igual que al guardarlo. Un documento que queda vacío no
+     * busca nada: nunca puede caer en un usuario sin documento. El correo ya
+     * no sirve para entrar.
      */
     protected function cuentaLocalDe(object $remoto): ?User
     {
-        $documento = User::normalizarDocumento($remoto->preferred_username);
+        $sub = (string) $remoto->getId();
 
-        $local = $documento !== ''
-            ? User::where('documento', $documento)->first()
-            : null;
-
-        if ($local === null && filled($remoto->getEmail())) {
-            $local = User::where('email', $remoto->getEmail())->first();
+        if ($sub !== '' && $local = User::where('authentik_sub', $sub)->first()) {
+            return $local;
         }
 
-        return $local;
+        // DOC-22: el usuario se compara TAL CUAL (solo sin espacios a los
+        // lados): «adminDocumenta» no liga con «ADMINDOCUMENTA». La base puede
+        // comparar sin distinguir mayúsculas (MySQL), así que se confirma en PHP.
+        $usuario = trim((string) $remoto->preferred_username);
+
+        // Una cédula escrita con puntos o espacios («1.017.000.111») es la
+        // misma cédula: solo para usuarios hechos de dígitos.
+        if (preg_match('/^[0-9][0-9.\s-]*$/', $usuario)) {
+            $usuario = preg_replace('/\D/', '', $usuario);
+        }
+
+        return $usuario !== ''
+            ? User::where('documento', $usuario)->get()->first(fn (User $u) => $u->documento === $usuario)
+            : null;
     }
 
     /** El mensaje sale por el mismo bloque de errores que ya pinta la vista de ingreso. */

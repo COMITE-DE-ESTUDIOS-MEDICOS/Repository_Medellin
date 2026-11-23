@@ -37,12 +37,25 @@ class TipoTurno extends Model
         return $this->belongsTo(Componente::class);
     }
 
-    /** «5:00 – 12:30», o vacío si no tiene horario. */
+    /** «5:00 a. m. – 12:30 p. m.», o vacío si no tiene horario. */
     public function horario(): string
     {
         return $this->hora_inicio && $this->hora_fin
-            ? substr($this->hora_inicio, 0, 5).' – '.substr($this->hora_fin, 0, 5)
+            ? \Illuminate\Support\Carbon::parse($this->hora_inicio)->hora().' – '.\Illuminate\Support\Carbon::parse($this->hora_fin)->hora()
             : '';
+    }
+
+    /** Minutos de su horario (cruza la medianoche si el fin es antes del inicio), o null sin horario. */
+    public function minutosDeHorario(): ?int
+    {
+        if (! $this->hora_inicio || ! $this->hora_fin) {
+            return null;
+        }
+
+        $inicio = \Illuminate\Support\Carbon::parse('2000-01-01 '.$this->hora_inicio);
+        $fin = \Illuminate\Support\Carbon::parse('2000-01-01 '.$this->hora_fin);
+
+        return (int) $inicio->diffInMinutes($fin->lte($inicio) ? $fin->addDay() : $fin);
     }
 
     /** «Lun–Sáb», «Vie», «Dom y festivos»… para leerlo de un vistazo. */

@@ -17,7 +17,7 @@
 
     <div class="ml-auto flex flex-wrap gap-2">
         @if($carpetaActual)
-            <a href="{{ route('carpetas.descargar', $carpetaActual) }}"
+            <a href="{{ route('carpetas.descargar', $carpetaActual) }}" download
                class="rounded-md bg-[var(--card)] px-3 py-1.5 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">
                 Descargar carpeta
             </a>
@@ -299,7 +299,7 @@
                                 @endif
                             @endif
 
-                            <a href="{{ route('documentos.descargar', $documento) }}"
+                            <a href="{{ route('documentos.descargar', $documento) }}" download
                                class="text-sm font-medium text-[var(--primary)] hover:underline">Descargar</a>
 
                             @unless($documento->activo)

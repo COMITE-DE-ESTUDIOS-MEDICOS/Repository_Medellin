@@ -23,7 +23,7 @@ class Dependencia extends Model
     public function usuarios(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'dependencia_usuario')
-            ->withPivot('rol', 'aprueba_novedades')
+            ->withPivot('rol', 'aprueba_novedades', 'componente_id')
             ->withTimestamps();
     }
 

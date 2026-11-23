@@ -3,6 +3,7 @@
 namespace Tests;
 
 use App\Enums\RolDependencia;
+use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -19,6 +20,15 @@ abstract class TestCase extends BaseTestCase
 
     /** @var list<string> archivos temporales que hay que borrar al terminar */
     private array $temporales = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Ninguna prueba sale a internet: una llamada sin Http::fake() revienta en vez de
+        // crear cuentas de verdad en Authentik (pasó el 2026-11-12).
+        \Illuminate\Support\Facades\Http::preventStrayRequests();
+    }
 
     protected function tearDown(): void
     {
@@ -41,20 +51,30 @@ abstract class TestCase extends BaseTestCase
      * Usuario con un rol dentro de una dependencia. El rol vive en la pivote,
      * así que la misma persona puede tener otro distinto en otra dependencia.
      */
-    protected function usuarioCon(RolDependencia $rol, ?Dependencia $dependencia = null): User
+    protected function usuarioCon(RolDependencia $rol, ?Dependencia $dependencia = null, ?Componente $componente = null): User
     {
         $dependencia ??= Dependencia::factory()->create();
 
         $usuario = User::factory()->create();
 
-        return $this->darRol($usuario, $rol, $dependencia);
+        return $this->darRol($usuario, $rol, $dependencia, $componente);
     }
 
-    /** Añade (o cambia) el rol de alguien en otra dependencia. */
-    protected function darRol(User $usuario, RolDependencia $rol, Dependencia $dependencia): User
+    /**
+     * Añade (o cambia) el rol de alguien en otra dependencia. DOC-25: Lectura,
+     * Edición y Coordinación quedan en $componente o en el primero de la
+     * dependencia (si no hay, se crea «Calle» con todos los módulos).
+     * Administración queda sin componente y no crea ninguno: lo elige por sesión.
+     */
+    protected function darRol(User $usuario, RolDependencia $rol, Dependencia $dependencia, ?Componente $componente = null): User
     {
+        if ($rol !== RolDependencia::Administracion) {
+            $componente ??= Componente::withoutGlobalScopes()->where('dependencia_id', $dependencia->id)->orderBy('id')->first()
+                ?? Componente::factory()->create(['dependencia_id' => $dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle']);
+        }
+
         $usuario->dependencias()->syncWithoutDetaching([
-            $dependencia->id => ['rol' => $rol->value],
+            $dependencia->id => ['rol' => $rol->value, 'componente_id' => $componente?->id],
         ]);
 
         // rolEn() lee la relación cargada: si quedara la de antes del attach,

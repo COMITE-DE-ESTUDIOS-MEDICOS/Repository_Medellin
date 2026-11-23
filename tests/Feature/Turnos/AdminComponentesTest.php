@@ -110,6 +110,25 @@ class AdminComponentesTest extends TestCase
             ->assertHasFormErrors(['config.horas_max_turno', 'config.descanso_parcial_min']);
     }
 
+    public function test_el_descanso_muestra_lo_que_da_cada_turno_con_los_valores_puestos(): void
+    {
+        $calle = Componente::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle',
+            'config' => ['sin_descanso_hasta_h' => 4, 'descanso_parcial_min' => 30, 'descanso_completo_desde_h' => 6, 'descanso_min' => 30]]);
+        \App\Models\TipoTurno::create(['componente_id' => $calle->id, 'codigo' => 'T4', 'nombre' => 'Viernes mañana', 'es_turno' => true, 'hora_inicio' => '06:00', 'hora_fin' => '10:00', 'horas_nomina' => 4, 'activo' => true]);
+        \App\Models\TipoTurno::create(['componente_id' => $calle->id, 'codigo' => 'N1', 'nombre' => 'Mañana', 'es_turno' => true, 'hora_inicio' => '05:00', 'hora_fin' => '12:30', 'horas_nomina' => 7, 'activo' => true]);
+        $valores = fn (array $cambios = []) => fn (string $campo) => ($cambios + $calle->config)[str_replace('config.', '', $campo)] ?? null;
+
+        $texto = Componentes::ejemploDescanso($valores(), $calle);
+        $this->assertStringContainsString('T4 (4 h en el sitio) → 4 h de trabajo', $texto);
+        $this->assertStringContainsString('N1 (7 h 30 min en el sitio) → 7 h de trabajo', $texto);
+
+        // Cambia con lo que se escribe: con 60 de descanso largo, el N1 da 6 h 30 min.
+        $this->assertStringContainsString('N1 (7 h 30 min en el sitio) → 6 h 30 min de trabajo', Componentes::ejemploDescanso($valores(['descanso_min' => 60]), $calle));
+
+        // Al crear un componente, sin turnos todavía: ejemplos de 4 h, 7 h 30 min y 12 h.
+        $this->assertStringContainsString('Turno de 12 h (12 h en el sitio) → 11 h 30 min de trabajo', Componentes::ejemploDescanso($valores(), null));
+    }
+
     public function test_editar_nodos_desactivar_y_la_zona_va_completa(): void
     {
         $calle = Componente::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle']);

@@ -34,11 +34,12 @@ class DescansoTest extends TestCase
         Notification::fake();
 
         $dependencia = Dependencia::factory()->create();
-        // Los valores de Talento Humano: 8 h netas, 1 h de descanso, 15 min de tolerancia.
+        // Los valores de Talento Humano: 8 h netas, 1 h de descanso, 15 min de tolerancia
+        // (40 de horas extra, el mínimo que Edwar permite: el caso de 46 min sigue siendo extra).
         $this->calle = Componente::factory()->create([
             'dependencia_id' => $dependencia->id,
             'config' => [
-                'jornada_horas' => 8, 'tolerancia_min' => 15,
+                'jornada_horas' => 8, 'tolerancia_min' => 15, 'tolerancia_extra_min' => 40,
                 'sin_descanso_hasta_h' => 4, 'descanso_parcial_min' => 30,
                 'descanso_completo_desde_h' => 6, 'descanso_min' => 60,
             ],
@@ -102,7 +103,7 @@ class DescansoTest extends TestCase
         ])), 'Turnos');
 
         // Permanencia 9,77 · descanso 1,00 · trabajadas 8,77 · jornada 8,00 · ordinarias 8,00 · extra 0,77 · aprobadas SI
-        $this->assertEquals([9.77, 1, 8.77, 8, 8, 0.77, 'SI'], array_slice($turnos[1], 7, 7));
+        $this->assertEquals([9.77, 1, 8.77, 8, 8, 0.77, 'SI'], array_slice($turnos[1], 8, 7));
     }
 
     public function test_el_descuento_va_por_tramos_de_permanencia(): void

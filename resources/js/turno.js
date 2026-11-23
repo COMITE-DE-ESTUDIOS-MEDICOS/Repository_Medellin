@@ -14,6 +14,8 @@ const TEXTOS = {
     entrada: 'Registrar entrada',
     salida: 'Registrar salida',
     cerrado: 'Ya registraste tu turno de hoy',
+    // DOC-17: el primer intento sí llegó; otro botón aquí solo invita al error.
+    reciente: 'Tu marca ya quedó registrada ✓',
 };
 
 function iniciar(formulario) {
@@ -62,7 +64,7 @@ function iniciar(formulario) {
             boton.dataset.textoAccion = boton.textContent;
             // Con el turno del día cerrado no hay nada que marcar: si la hora
             // está mal, la corrige Coordinación, no un segundo envío.
-            boton.disabled = accion === 'cerrado';
+            boton.disabled = accion === 'cerrado' || accion === 'reciente';
         }
     });
 

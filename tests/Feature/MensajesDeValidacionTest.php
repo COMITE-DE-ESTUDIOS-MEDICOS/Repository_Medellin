@@ -56,7 +56,7 @@ class MensajesDeValidacionTest extends TestCase
         $mensaje = session('errors')->first('identificador');
 
         $this->assertStringContainsString('obligatorio', $mensaje);
-        $this->assertStringContainsString('documento', $mensaje, 'No usó el nombre amable del campo.');
+        $this->assertStringContainsString('usuario', $mensaje, 'No usó el nombre amable del campo.');
     }
 
     /**

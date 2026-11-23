@@ -1,4 +1,4 @@
-# Documentación de Documenta (SDD)
+﻿# Documentación de Documenta (SDD)
 
 Documenta se documenta y se sigue construyendo con **Spec-Driven Development**: primero
 se escribe qué debe hacer (spec), se aprueba, y después se construye. Como el sistema ya
@@ -59,7 +59,7 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Turnos automáticos y ausencias | DOC-5 | Fase 3 | Construida |
 | Derivaciones y respuesta territorial | DOC-6 | Fase 3 | Construida |
 | Notificaciones, avisos y manual | DOC-7 | Fase 3 | Construida |
-| Jornada esperada por tipo de turno | DOC-8 | Por escribir | Por especificar |
+| Jornada esperada por tipo de turno · tolerancia de horas extra | DOC-8 | [Aprobada](specs/jornada-por-tipo-de-turno/spec.md) | Construida |
 | Planilla mensual con códigos para Nómina | DOC-9 | Por escribir | Por especificar |
 | Recargos nocturno, dominical y festivo (RN, RFD, RFN) | DOC-10 | Por escribir | Por especificar |
 | Registro de supervisión territorial | DOC-11 | [Aprobada](specs/supervision-territorial/spec.md) | Construida |
@@ -67,5 +67,21 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Ubicación imprecisa (iPhone) y nombres largos de archivo | DOC-15 | [Aprobada](specs/ubicacion-imprecisa/spec.md) | Construida |
 | Analítica de supervisión y Excel con resumen | DOC-14 | [Aprobada](specs/analitica-supervision/spec.md) | Construida |
 | Registrar solo en turno · avisos de supervisión | DOC-13 | [Aprobada](specs/registro-en-turno-y-avisos-supervision/spec.md) | Construida |
-
+| Salida mínima: reintentos que no son salida | DOC-17 | [Aprobada](specs/salida-minima/spec.md) | Construida |
+| Anular una marca o cambiarle el tipo | DOC-18 | [Aprobada](specs/anular-y-cambiar-tipo-de-marca/spec.md) | Construida |
+| Reporte con el turno reconocido y sin ceros por nodo | DOC-19 | [Aprobada](specs/reporte-turno-reconocido-y-nodo/spec.md) | Construida |
+| Casos de derivación creados por la oficina (DC-001) | DOC-20 | [Aprobada](specs/casos-de-derivacion/spec.md) | Construida |
+| Turno por entrada y salida · cierre sin salida por cargo | DOC-21 | [Aprobada](specs/turno-por-entrada-y-salida/spec.md) | Construida |
+| Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
+| Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
+| Casos: soporte opcional y carga única de casos ya atendidos | DOC-24 | [Aprobada](specs/casos-soporte-opcional-y-carga-masiva/spec.md) | Construida · falta probar con un Excel real (PA-03) |
+| Acceso por componente · componentes Básica y Estabilización | DOC-25 | [Aprobada](specs/acceso-por-componente/spec.md) | Por planear |
+| Usuarios HC: ficha, caracterización, búsqueda y edición con historial | DOC-26 | [Borrador](specs/usuarios-hc/spec.md) | Por aprobar |
+| Ingresos y egresos de Usuarios HC · sedes y capacidad | DOC-27 | [Borrador](specs/ingresos-y-egresos-hc/spec.md) | Por aprobar |
+| Dashboard de Habitante de Calle: cupos/día y ocupación | DOC-28 | [Borrador](specs/dashboard-hc/spec.md) | Por aprobar |
+| Reportes de Habitante de Calle: reporte de cupos | DOC-29 | [Borrador](specs/reportes-hc/spec.md) | Por aprobar |
+| Cierres de periodo de Habitante de Calle | DOC-30 | [Borrador resumido](specs/cierres-hc/spec.md) | Por aprobar |
+| Unificar fichas duplicadas de Usuarios HC | DOC-31 | [Borrador resumido](specs/unificacion-usuarios-hc/spec.md) | Por aprobar |
+| Infraestructura: Docker y monitoreo en pruebas, migración a AWS (Ohio) en enero de 2027 | DOC-32 | [Borrador](specs/infraestructura/spec.md) | Por aprobar |
+| Habitante de Calle: plan de trabajo (calendario y alcance de DOC-25 a DOC-31) | — | [Plan de trabajo](specs/habitante-de-calle/plan-de-trabajo.md) | Borrador |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

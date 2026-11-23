@@ -354,7 +354,8 @@ export async function estamparFoto(archivo, ladoMaximo = 0, etiqueta = 'Evidenci
     // El mismo instante que se estampa viaja en lastModified, para que el
     // servidor guarde exactamente la fecha que se lee en la foto.
     const momento = new Date();
-    const hora = new Intl.DateTimeFormat('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }).format(momento);
+    // En 12 h, como en la aplicación: «5:09 p. m.».
+    const hora = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit', hour12: true }).format(momento).replace(/\s+/g, ' ');
     const partesFecha = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
         .formatToParts(momento)
         .reduce((p, { type, value }) => ({ ...p, [type]: value.replace('.', '') }), {});

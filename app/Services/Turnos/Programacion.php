@@ -48,33 +48,50 @@ class Programacion
     }
 
     /**
-     * El turno de una entrada: el de inicio más cercano a la hora en que
-     * marcó, dentro de la ventana del componente. Si el habitual de la
-     * persona cabe en la ventana, gana el habitual (una T3 que llega a las
-     * 9:00 no se vuelve N1). Null si ninguno encaja.
+     * El turno de una entrada (DOC-21). Candidatos: los que aplican ese día
+     * con inicio dentro de la ventana del componente. Con la salida, gana el
+     * que mejor encaja con las dos horas: |entrada − inicio| + |salida − fin|.
+     * Sin ella (al marcar, o en un cierre automático), el de inicio más
+     * cercano. El habitual solo desempata; después, el orden de la malla.
+     * Null si ninguno encaja.
      *
      * @return array{tipo: TipoTurno, inicio: Carbon, minutos_tarde: int}|null
      */
-    public function reconocer(Componente $componente, CarbonInterface $entrada, ?TipoTurno $habitual = null): ?array
+    public function reconocer(Componente $componente, CarbonInterface $entrada, ?TipoTurno $habitual = null, ?CarbonInterface $salida = null): ?array
     {
         $antes = (int) $componente->regla('reconocer_antes_min');
         $despues = (int) $componente->regla('reconocer_despues_min');
 
-        $candidatos = $this->tiposDe($componente)
+        $elegido = $this->tiposDe($componente)
             ->filter(fn (TipoTurno $t) => $t->hora_inicio && $this->aplica($t, $entrada))
-            ->map(function (TipoTurno $t) use ($entrada) {
+            ->map(function (TipoTurno $t) use ($entrada, $salida, $habitual) {
                 $inicio = $this->inicio($t, $entrada);
                 // Pasada la medianoche, un turno de noche empezó «ayer».
                 if ($inicio->gt($entrada) && $inicio->diffInMinutes($entrada) > 12 * 60) {
                     $inicio->subDay();
                 }
 
-                return ['tipo' => $t, 'inicio' => $inicio, 'diferencia' => (int) $inicio->diffInMinutes($entrada, false)];
-            })
-            ->filter(fn ($c) => $c['diferencia'] >= -$antes && $c['diferencia'] <= $despues);
+                $diferencia = (int) $inicio->diffInMinutes($entrada, false);
+                $distancia = abs($diferencia);
 
-        $elegido = $candidatos->first(fn ($c) => $habitual && $c['tipo']->is($habitual))
-            ?? $candidatos->sortBy(fn ($c) => abs($c['diferencia']))->first();
+                // Un tipo sin hora de fin se mide solo por la entrada.
+                if ($salida && $t->hora_fin) {
+                    $fin = Carbon::parse($inicio->toDateString().' '.$t->hora_fin);
+                    // N7 21:00–4:30: termina al día siguiente.
+                    if ($fin->lte($inicio)) {
+                        $fin->addDay();
+                    }
+                    $distancia += abs((int) $fin->diffInMinutes($salida, false));
+                }
+
+                return [
+                    'tipo' => $t, 'inicio' => $inicio, 'diferencia' => $diferencia,
+                    'orden' => [$distancia, $habitual && $t->is($habitual) ? 0 : 1, (int) $t->orden, $t->id],
+                ];
+            })
+            ->filter(fn ($c) => $c['diferencia'] >= -$antes && $c['diferencia'] <= $despues)
+            ->sort(fn ($a, $b) => $a['orden'] <=> $b['orden'])
+            ->first();
 
         return $elegido ? [
             'tipo' => $elegido['tipo'],

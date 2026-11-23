@@ -30,6 +30,9 @@ class Componente extends Model
         'foto_obligatoria' => true,
         'ubicacion_obligatoria' => false,
         'tolerancia_min' => 15,
+        // DOC-8/DOC-21: salir hasta tanto después del fin del turno no es hora extra,
+        // y es el margen con que se cierra un turno sin salida (40 a 60).
+        'tolerancia_extra_min' => 60,
         // Lo que debería durar un turno: más o menos que esto (con la
         // tolerancia) es una novedad de horas extra o de turno corto.
         'jornada_horas' => 8,
@@ -45,6 +48,12 @@ class Componente extends Model
         'sin_descanso_hasta_h' => 4,
         'descanso_completo_desde_h' => 6,
         'horas_max_turno' => 14,
+        // DOC-21: cargo => horas. Para esos cargos, el turno sin salida se
+        // cierra a tantas horas de la entrada en vez de horas_max_turno.
+        'horas_max_por_cargo' => [],
+        // DOC-17: una salida a menos de esto de la entrada es un reintento
+        // (la entrada llegó y el teléfono no se enteró), no una salida.
+        'salida_minima_min' => 30,
         // Cuántos turnos puede abrir una persona en un mismo día. Cumplidos,
         // el enlace ya no la deja marcar: lo que falte lo corrige Coordinación.
         'turnos_por_dia' => 1,
@@ -64,6 +73,20 @@ class Componente extends Model
         'precision_minima_m' => 500,
     ];
 
+    /**
+     * DOC-25: los módulos que existen (cada uno son rutas y políticas), con su
+     * etiqueta y su ruta de llegada, en el orden del menú. Cuáles abre cada
+     * componente es dato: la columna 'modulos'. La clave es 'supervisiones' y
+     * no 'supervision', que choca con el parámetro de ruta {supervision}.
+     */
+    public const MODULOS = [
+        'documentos' => ['Documentos', 'documentos.index'],
+        'turnos' => ['Turnos', 'admin.turnos.enlaces.index'],
+        'derivaciones' => ['Derivaciones', 'admin.turnos.derivaciones.index'],
+        'supervisiones' => ['Supervisión', 'admin.turnos.supervisiones.index'],
+    ];
+
+    // 'modulos' no va aquí a propósito: solo lo cambia el superadministrador (DOC-25, D9).
     protected $fillable = ['dependencia_id', 'nombre', 'slug', 'activo', 'config'];
 
     protected function casts(): array
@@ -71,7 +94,13 @@ class Componente extends Model
         return [
             'activo' => 'boolean',
             'config' => 'array',
+            'modulos' => 'array',
         ];
+    }
+
+    public function tieneModulo(string $modulo): bool
+    {
+        return in_array($modulo, $this->modulos ?? [], true);
     }
 
     /** Valor de una regla de este componente, o su defecto de REGLAS. */
@@ -81,17 +110,51 @@ class Componente extends Model
     }
 
     /**
+     * DOC-8: el trabajo que se espera de un turno. Con un tipo de turno con
+     * horario, su horario menos el descanso que le toca (T4 de 4 h → 4 h;
+     * N1 de 7 h 30 min → 7 h con 30 min de descanso). Sin él, la jornada
+     * del componente. Lo usan las novedades y el reporte: un solo cálculo.
+     */
+    public function jornadaPara(?TipoTurno $tipo): int
+    {
+        $horario = $tipo?->minutosDeHorario();
+
+        return $horario !== null
+            ? $this->minutosTrabajados($horario, $tipo)
+            : (int) round((float) $this->regla('jornada_horas') * 60);
+    }
+
+    /**
      * El trabajo real de un turno: la permanencia menos el descanso. Es lo
      * que se compara con la jornada (novedades) y lo que va al reporte: un
      * solo cálculo, para que los dos digan siempre lo mismo.
      */
-    public function minutosTrabajados(int $permanencia): int
+    public function minutosTrabajados(int $permanencia, ?TipoTurno $tipo = null): int
     {
-        return max(0, $permanencia - $this->descansoPara($permanencia));
+        return max(0, $permanencia - $this->descansoPara($permanencia, $tipo));
     }
 
-    /** Cuánto descanso no remunerado le toca a un turno de esa permanencia (ver REGLAS). */
-    public function descansoPara(int $permanencia): int
+    /**
+     * Cuánto descanso no remunerado le toca (ver REGLAS).
+     *
+     * Edwar, 2026-11-10: el descanso va por el TURNO, no por lo que se quedó.
+     * Con un turno con horario, el de su horario (T4 de 4 h → nada; N1 de
+     * 7 h 30 min → 30 min), sin pasar del que daría el tiempo en el sitio: un
+     * T4 que se queda 4 h 05 min no pierde 30 min, y un N1 que se va a las
+     * 3 h no descuenta un descanso que no tomó. Sin turno, por el tiempo en
+     * el sitio, como antes.
+     */
+    public function descansoPara(int $permanencia, ?TipoTurno $tipo = null): int
+    {
+        $horario = $tipo?->minutosDeHorario();
+
+        return $horario === null
+            ? $this->descansoPorTramo($permanencia)
+            : min($this->descansoPorTramo($horario), $this->descansoPorTramo($permanencia));
+    }
+
+    /** El descanso de los tramos del componente para ese tiempo. */
+    protected function descansoPorTramo(int $permanencia): int
     {
         return match (true) {
             $permanencia <= (int) $this->regla('sin_descanso_hasta_h') * 60 => 0,

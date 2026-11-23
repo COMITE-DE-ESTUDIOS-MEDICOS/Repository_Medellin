@@ -52,7 +52,7 @@ class CatalogosMallaTest extends TestCase
     public function test_el_catalogo_de_calle_viene_cargado_con_sus_codigos(): void
     {
         $n1 = TipoTurno::where('codigo', 'N1')->sole();
-        $this->assertSame('05:00 – 12:30', $n1->horario());
+        $this->assertSame('5:00 a. m. – 12:30 p. m.', $n1->horario());
         $this->assertSame('Lun–Sáb', $n1->diasLegibles());
         $this->assertEquals(7, $n1->horas_nomina);
         $this->assertSame('Dom y festivos', TipoTurno::where('codigo', 'C13')->sole()->diasLegibles());

@@ -48,7 +48,7 @@
                 <div class="flex justify-between gap-3">
                     <dt class="text-[var(--muted)]">Creado</dt>
                     <dd class="text-right text-[var(--text)]">
-                        {{ $enlace->created_at->format('d/m/Y H:i') }} · {{ $enlace->creador?->name ?? '—' }}
+                        {{ $enlace->created_at->fechaHora() }} · {{ $enlace->creador?->name ?? '—' }}
                     </dd>
                 </div>
             </dl>

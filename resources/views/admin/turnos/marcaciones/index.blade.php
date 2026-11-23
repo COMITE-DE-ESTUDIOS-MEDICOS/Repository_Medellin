@@ -15,14 +15,15 @@
         </p>
     </div>
 
-    {{-- El reporte lleva los mismos filtros que la pantalla. --}}
-    <a href="{{ route('admin.turnos.marcaciones.exportar', request()->query()) }}"
-       class="liquid-button-primary ml-auto rounded-md px-3 py-1.5 text-sm font-medium">
+    {{-- Envía el formulario de filtros tal como está en pantalla, sin tener que pulsar «Filtrar» antes.
+         data-descarga: el overlay de carga no se muestra, porque una descarga no cambia de página. --}}
+    <button type="submit" form="filtros" formaction="{{ route('admin.turnos.marcaciones.exportar') }}" data-descarga
+            class="liquid-button-primary ml-auto rounded-md px-3 py-1.5 text-sm font-medium">
         Descargar reporte (Excel)
-    </a>
+    </button>
 </div>
 
-<form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
+<form id="filtros" method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
     <div>
         <label for="cedula" class="block text-xs font-medium text-[var(--muted)]">Cédula</label>
         <input id="cedula" name="cedula" type="search" inputmode="numeric" value="{{ request('cedula') }}" class="{{ $campo }}">
@@ -74,7 +75,7 @@
             @forelse($marcaciones as $marcacion)
                 <tr class="{{ $marcacion->estaAnulada() ? 'opacity-50' : '' }}">
                     <td class="px-4 py-3 whitespace-nowrap text-[var(--text)]">
-                        <span class="{{ $marcacion->estaAnulada() ? 'line-through' : '' }}">{{ $marcacion->marcada_at->format('d/m/Y H:i') }}</span>
+                        <span class="{{ $marcacion->estaAnulada() ? 'line-through' : '' }}">{{ $marcacion->marcada_at->fechaHora() }}</span>
                     </td>
                     <td class="px-4 py-3">
                         @can('view', $marcacion->colaborador)<a href="{{ route('admin.turnos.colaboradores.show', $marcacion->colaborador) }}" class="font-medium text-[var(--text)] hover:text-[var(--primary)]">{{ $marcacion->colaborador->nombre }}</a>@else<span class="font-medium text-[var(--text)]">{{ $marcacion->colaborador->nombre }}</span>@endcan
@@ -87,6 +88,9 @@
                         @if($marcacion->origen !== \App\Enums\OrigenMarcacion::Enlace)
                             <span class="mt-0.5 block text-xs text-[var(--muted)]"
                                   title="{{ $marcacion->motivo }}">{{ $marcacion->origen->etiqueta() }}{{ $marcacion->registrador ? ' · '.$marcacion->registrador->name : '' }}</span>
+                        @endif
+                        @if(isset($porCorregir[$marcacion->id]) && ! $marcacion->estaAnulada())
+                            <span class="mt-0.5 inline-block rounded bg-warning-soft px-1.5 py-0.5 text-xs text-[var(--warning)]" title="{{ $marcacion->motivo }}">Cierre automático · por corregir</span>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-[var(--muted)]">
@@ -120,7 +124,7 @@
                     <td class="px-4 py-3 text-right">
                         @if($marcacion->estaAnulada())
                             <span class="text-xs text-[var(--muted)]" title="{{ $marcacion->motivo_anulacion }}">
-                                Corregida por {{ $marcacion->anulador?->name ?? '—' }}
+                                {{ $marcacion->reemplazada_por_id ? 'Corregida' : 'Anulada' }} por {{ $marcacion->anulador?->name ?? '—' }}
                             </span>
                         @else
                             @include('admin.turnos._corregir', ['marcacion' => $marcacion])

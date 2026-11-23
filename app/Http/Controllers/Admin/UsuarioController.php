@@ -12,7 +12,7 @@ use App\Services\AuthentikProvisioner;
 use App\Services\ContextoDependencia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class UsuarioController extends Controller
@@ -57,8 +57,10 @@ class UsuarioController extends Controller
             'email' => $request->input('email'),
             'cargo' => $request->input('cargo'),
             'activo' => $request->boolean('activo', true),
-            // El cast 'hashed' del modelo la cifra al asignarla.
-            'password' => $request->string('password')->toString(),
+            // Nadie la conoce: las personas entran por Authentik, donde
+            // definen la suya (DOC-22). La columna no admite nulo. El cast
+            // 'hashed' del modelo la cifra al asignarla.
+            'password' => Str::random(64),
         ]);
 
         $esCuentaNueva = $usuario->wasRecentlyCreated;
@@ -76,17 +78,9 @@ class UsuarioController extends Controller
                 : "Dio acceso a {$usuario->name}, que ya tenía cuenta, con rol {$rol->etiqueta()}",
         );
 
-        // Solo la cuenta nueva: a quien ya existía se le sumó una dependencia,
-        // y su identidad en Authentik —si la tiene— ya está creada, con su
-        // propia clave, que aquí no se toca. El método es idempotente de todos
-        // modos, pero la intención se lee mejor aquí.
-        //
-        // La contraseña va en claro y por separado del modelo a propósito: en
-        // el objeto ya está cifrada por el cast, y Authentik necesita la que
-        // tecleó el administrador para que la persona entre con ella.
-        if ($esCuentaNueva) {
-            $this->authentik->crear($usuario, $request->string('password')->toString());
-        }
+        // Nueva o ya existente: si está activa, queda en el grupo de
+        // Documenta. Su cuenta de Authentik, si ya existía, no se toca.
+        $enAuthentik = $usuario->activo && $this->authentik->darAcceso($usuario);
 
         $redireccion = redirect()
             ->route('admin.usuarios.index')
@@ -94,7 +88,7 @@ class UsuarioController extends Controller
 
         // El aviso va por 'error' y no pegado al de éxito: es rojo, se lee
         // aparte, y no se disfraza de confirmación.
-        if ($esCuentaNueva && blank($usuario->authentik_id)) {
+        if ($usuario->activo && ! $enAuthentik) {
             $redireccion->with('error', $this->avisoDeAuthentik());
         }
 
@@ -129,12 +123,9 @@ class UsuarioController extends Controller
             'activo' => $request->boolean('activo'),
         ]);
 
-        // En claro solo de paso, para poder fijarla también en Authentik: en
-        // el modelo entra cifrada y de ahí ya no se puede releer.
-        $contrasena = $request->filled('password') ? $request->string('password')->toString() : null;
-
-        if ($contrasena !== null) {
-            $usuario->password = Hash::make($contrasena);
+        // El alias de emergencia solo es del superadministrador (PA-01).
+        if ($usuario->es_superadmin) {
+            $usuario->usuario = $request->filled('usuario') ? $request->string('usuario')->toString() : null;
         }
 
         $usuario->save();
@@ -150,34 +141,23 @@ class UsuarioController extends Controller
             "Actualizó el acceso de {$usuario->name}",
         );
 
-        // La ficha entera viaja de vuelta, con el estado incluido: el
-        // documento corregido aquí es el username de allá, y una cuenta
-        // apagada aquí tiene que quedar apagada allá o deja un ingreso que
-        // nadie vigila. Si no tiene identidad, esto no hace nada.
-        $this->authentik->actualizar($usuario, $contrasena);
-
-        // Y si no la tiene —porque Authentik no respondió el día del alta, o
-        // porque la cuenta es anterior a todo esto—, guardar la ficha es el
-        // reintento. Hace falta contraseña: allá no sirve de nada una
-        // identidad que no puede entrar, y la de aquí está cifrada y no se
-        // puede releer. A una cuenta apagada tampoco se le crea: para eso se
-        // la apagó.
-        $faltaIdentidad = blank($usuario->authentik_id) && $usuario->activo;
-
-        if ($faltaIdentidad && $contrasena !== null) {
-            $this->authentik->crear($usuario, $contrasena);
-        }
+        // Nada de la ficha viaja a Authentik (DOC-22): ni nombre, ni correo,
+        // ni documento. Solo el acceso: activa, en el grupo (idempotente, y
+        // sirve de reintento); inactiva, fuera del grupo. La cuenta de
+        // Authentik nunca se desactiva: perdería las otras apps.
+        $enAuthentik = $usuario->activo
+            ? $this->authentik->darAcceso($usuario)
+            : $this->authentik->quitarAcceso($usuario);
 
         $redireccion = redirect()
             ->route('admin.usuarios.index')
             ->with('exito', 'Usuario actualizado.');
 
-        // Se vuelve a mirar después del intento, no antes: si la identidad se
-        // creó recién, no hay nada que avisar.
-        if (blank($usuario->authentik_id) && $usuario->activo) {
-            $redireccion->with('error', $contrasena === null
-                ? "{$usuario->name} todavía no existe en Authentik: ponle una contraseña aquí para crearlo."
-                : $this->avisoDeAuthentik());
+        if (! $enAuthentik) {
+            $redireccion->with('error', $usuario->activo
+                ? $this->avisoDeAuthentik()
+                : 'No se pudo sacar a esta persona del grupo de Documenta en Authentik: todavía puede entrar.'
+                    .' Mira el detalle en la auditoría y vuelve a guardar esta ficha para reintentarlo.');
         }
 
         return $redireccion;
@@ -200,12 +180,17 @@ class UsuarioController extends Controller
             "Revocó el acceso de {$usuario->name} a la dependencia",
         );
 
+        // Sin ninguna dependencia ya no entra a Documenta: fuera del grupo.
+        if (! $usuario->activo || $usuario->dependencias()->doesntExist()) {
+            $this->authentik->quitarAcceso($usuario);
+        }
+
         return back()->with('exito', 'Acceso revocado.');
     }
 
     /**
-     * Por qué la cuenta quedó sin identidad en Authentik, en palabras para
-     * quien administra.
+     * Por qué la persona no quedó en el grupo de Documenta en Authentik, en
+     * palabras para quien administra.
      *
      * Sin esto el aprovisionamiento falla en silencio: la pantalla dice
      * «Usuario creado», la persona no puede entrar, y nadie sabe por qué
@@ -214,11 +199,11 @@ class UsuarioController extends Controller
     protected function avisoDeAuthentik(): string
     {
         if (! $this->authentik->configurado()) {
-            return 'No se creó en Authentik, que no está configurado en este servidor.'
+            return 'No se le dio acceso en Authentik, que no está configurado en este servidor.'
                 .' Mientras tanto, esa persona no puede ingresar.';
         }
 
-        return 'No se pudo crear en Authentik. Mira el detalle en la auditoría'
+        return 'No se pudo dar acceso en Authentik. Mira el detalle en la auditoría'
             .' y vuelve a guardar esta ficha para reintentarlo.';
     }
 
@@ -236,7 +221,7 @@ class UsuarioController extends Controller
      * Nadie administra a quien está por encima suyo.
      *
      * Sin esto, Coordinación podría abrir la ficha de un administrador y
-     * cambiarle la contraseña, o bajarle el rol: dos formas de quedarse con
+     * desactivarlo, o bajarle el rol: dos formas de quedarse con
      * la dependencia sin tener nunca el permiso para ello.
      */
     protected function verificarRango(Request $request, User $usuario): void

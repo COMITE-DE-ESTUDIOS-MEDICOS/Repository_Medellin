@@ -240,4 +240,31 @@ class CarpetasYCopiasTest extends TestCase
         $this->assertContains('Evidencias/Octubre/Foto visita.pdf', $entradas);
         $this->assertNotContains('Evidencias/Retirado.pdf', $entradas);
     }
+
+    /** Ni siquiera Administración, que sí ve lo inactivo en pantalla, se lo lleva en el ZIP. */
+    public function test_el_zip_no_trae_documentos_ni_carpetas_inactivas_aunque_descargue_administracion(): void
+    {
+        $raiz = $this->carpeta('Evidencias');
+        $inactiva = $this->carpeta('Vieja', $raiz);
+        $dentro = $this->carpeta('Dentro', $inactiva);
+        $this->subir('Vigente', $raiz);
+        $this->subir('Retirado', $raiz)->update(['activo' => false]);
+        $this->subir('De la vieja', $inactiva);
+        $this->subir('Mas adentro', $dentro);
+        $inactiva->update(['activa' => false]);
+
+        $admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
+        $respuesta = $this->actingAs($admin)->get(route('carpetas.descargar', $raiz))->assertOk();
+
+        $zip = new ZipArchive();
+        $zip->open($respuesta->baseResponse->getFile()->getPathname());
+        $entradas = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entradas[] = $zip->getNameIndex($i);
+        }
+        $zip->close();
+
+        $this->assertContains('Evidencias/Vigente.pdf', $entradas);
+        $this->assertSame([], array_values(array_filter($entradas, fn ($e) => str_contains($e, 'Retirado') || str_contains($e, 'Vieja'))));
+    }
 }

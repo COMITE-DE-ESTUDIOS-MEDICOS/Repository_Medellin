@@ -5,6 +5,7 @@ import './copiar';
 import './qr';
 import './turno';
 import './pasos';
+import './caso-derivacion';
 import './contador';
 import './supervision';
 import './select-buscable';

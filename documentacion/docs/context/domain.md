@@ -86,9 +86,20 @@ asigna por dependencia. Nadie gestiona a un usuario con rol mayor; la cuenta de
 plataforma solo la gestiona otro superadministrador.
 *Origen:* F-02 · *Código:* `RolDependencia`, `UsuarioController::verificarRango`, `Livewire\Usuarios::alcanza`.
 
-**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante; la
-entrada es por Authentik o el formulario propio.
-*Origen:* F-02 · *Código:* `UsuarioController`, `AuthentikProvisioner`.
+**RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante. Desde
+DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
+
+- su usuario es la cédula (`^[0-9A-Z]{3,20}$`);
+- dar acceso la crea sin contraseña, o la agrega al grupo de Documenta si ya existía;
+- desactivar a la persona la saca del grupo, sin desactivar su cuenta;
+- Documenta nunca cambia el nombre, el correo, el usuario ni la contraseña de esa cuenta;
+- la contraseña la define cada persona en Authentik, con un enlace de recuperación de un solo
+  uso;
+- se entra por Authentik: la primera vez por el usuario, después por el `sub`, nunca por el
+  correo;
+- el formulario propio queda solo para el superadministrador, como acceso de emergencia.
+
+*Origen:* F-02, DOC-22 · *Código:* `UsuarioController`, `AuthentikProvisioner`, `Auth\AuthentikController`, `Auth\SesionController`.
 
 **RN-04. Todo cambio deja auditoría.** Quién, qué, cuándo, IP y navegador. Inactivar
 exige motivo.
@@ -159,8 +170,10 @@ la hora que cuenta es la del servidor (la del teléfono se guarda aparte).
 **RN-17. Las marcaciones no se editan.** Corregir anula la original y crea otra con
 motivo y autor. No se permite una salida antes de su entrada, una hora del futuro ni
 corregir dos veces la misma marca. Las novedades que dependían de ella pasan a
-«Corregida» y el turno se vuelve a juzgar.
-*Origen:* F-03 §1, F-04 §2 · *Código:* `Marcador::corregir`, `Marcacion::vigentes`.
+«Corregida» y el turno se vuelve a juzgar. Coordinación y Administración además pueden
+**cambiarle el tipo** (entrada ↔ salida, misma hora, sin exigir coherencia con las vecinas) o
+**anularla** sin reemplazo; tampoco se borra: queda tachada con quién y por qué (DOC-18).
+*Origen:* F-03 §1, F-04 §2, DOC-18 · *Código:* `Marcador::corregir`, `Marcador::anular`, `Marcacion::vigentes`.
 
 **RN-18. Sin señal se marca igual.** Sin ubicación se marca y queda la novedad «Sin
 ubicación», salvo que el componente exija ubicación. Fuera del radio del nodo: «Fuera de
@@ -171,19 +184,36 @@ zona».
 enlace ya no deja marcar; lo que falte lo corrige un líder.
 *Origen:* F-04 §1.
 
-**RN-20. Cierre automático.** Una entrada sin salida pasada la duración máxima del turno
-se cierra sola y queda la novedad «Sin salida».
-*Origen:* F-04 §4 · *Código:* `turnos:cerrar-abiertas` (cada hora).
+**RN-20. Cierre automático.** Una entrada sin salida se cierra sola y queda la novedad «Sin
+salida». El turno aparece en el reporte desde ese momento, marcado «Cierre automático · por
+corregir», hasta que se revisa. Se cierra así:
 
-**RN-21. Trabajo real = permanencia − descanso.** El descanso no remunerado va por tramos
-de permanencia, configurables por componente. Valores de fábrica: hasta 4 h, nada; hasta
-6 h, 30 min; más de 6 h, 1 h.
+- si el cargo tiene un máximo propio (Duración máxima por cargo; los conductores, 15 h), a esas
+  horas de la entrada;
+- si no, al fin del turno más largo que esa entrada podría ser, más la tolerancia de horas extra
+  (60 min);
+- si ningún turno encaja, a la duración máxima del componente.
+
+No depende del cron: quien marca con una entrada vencida la cierra primero y lo nuevo queda como
+entrada.
+*Origen:* F-04 §4, DOC-21 · *Código:* `Marcador::tope`, `cerrarSinSalida`, `turnos:cerrar-abiertas` (cada hora).
+
+**RN-21. Trabajo real = permanencia − descanso.** El descanso no remunerado va por tramos,
+configurables por componente. Valores de fábrica: hasta 4 h, nada; hasta 6 h, 30 min; más
+de 6 h, 1 h. En Calle se usan 30 min en los dos tramos. Desde DOC-8, el tramo se toma
+del **horario del turno reconocido**: un T4 (4 h) no descuenta nada aunque se quede de más,
+y un N1 (7 h 30 min) descuenta 30 min. Nunca se descuenta más de lo que daría el tiempo en
+el sitio: un N1 que se va a las 3 h no descuenta. Sin turno con horario, va por el tiempo en
+el sitio.
 *Origen:* F-04 §2, F-05 §5 · *Código:* `Componente::minutosTrabajados`, `descansoPara`.
 Ver PA-01 y PA-02.
 
-**RN-22. Horas extra y turno corto.** Si el trabajo real pasa de la jornada esperada más
-la tolerancia, nace «Horas extra»; si queda por debajo, «Turno corto». Ambas pendientes.
-*Origen:* F-04 §2. Ver PA-01.
+**RN-22. Horas extra y turno corto.** La jornada esperada es la del turno reconocido: su
+horario menos el descanso que le toca (T4 → 4 h; N1 → 7 h). Sin turno con horario, la del
+componente. Si el trabajo real pasa de esa jornada más la **tolerancia de horas extra** (40 a
+60 min, por componente), nace «Horas extra». Si queda por debajo de la jornada menos la
+tolerancia, nace «Turno corto». Las dos quedan pendientes.
+*Origen:* F-04 §2, DOC-8 · *Código:* `Componente::jornadaPara`, `Novedades::evaluarDuracion`.
 
 **RN-23. Quién aprueba novedades de turno.** Coordinación y Administración siempre; de
 Edición, solo quien tenga «Aprueba novedades de turno» (se marca por persona en
@@ -191,11 +221,13 @@ Usuarios). Rechazar exige comentario. A quien aprueba le llegan las novedades po
 campana.
 *Origen:* F-04 §2, D-13 · *Código:* `User::puedeAprobarNovedadesEn`.
 
-**RN-24. El turno se reconoce por la hora.** Al marcar entrada, el sistema elige el tipo de
-turno cuyo inicio esté más cerca, entre 90 min antes y 180 min después; si el habitual de
-la persona cabe, gana el habitual. En festivo solo cuentan los turnos de domingos y
-festivos o de todos los días. Pasada la tolerancia queda «Tardanza».
-*Origen:* F-04, D-06 · *Código:* `Programacion::reconocer`.
+**RN-24. El turno se reconoce por la entrada y la salida.** Entran los turnos cuyo inicio cae
+entre 90 min antes y 180 min después de la entrada. Al marcar la entrada se elige el de inicio
+más cercano (provisional, para la tardanza). Con la salida, el que mejor encaja con las dos
+horas, y ese es el que va al reporte. El turno habitual solo desempata. En festivo solo cuentan
+los turnos de domingos y festivos o de todos los días. Pasada la tolerancia queda «Tardanza», que
+se corrige o se ajusta sola cuando la salida cambia el turno.
+*Origen:* F-04, D-06, DOC-21 · *Código:* `Programacion::reconocer`, `Novedades::revisarTardanza`.
 
 **RN-25. «No registró entrada».** A quien se esperaba (turno habitual que aplica ese día,
 sin día de descanso ni ausencia) y 30 min después del inicio no ha marcado, le nace la
@@ -217,32 +249,49 @@ aplica; los valores en pesos los calcula Nómina.
 
 ### Atención territorial
 
-**RN-29. Quién reporta una derivación.** Solo cédulas de personas de campo registradas
-en la dependencia del enlace, con tres evidencias fotográficas obligatorias; el soporte
-(PDF o foto) es opcional. El caso queda en el componente del enlace.
-*Origen:* D-16, D-17 · *Código:* `Publico\DerivacionController`.
+**RN-29. El caso lo crea la oficina y lo atiende la persona de campo.** Edición en
+adelante crea el caso con el mensaje, quién lo envía (Alcaldía, Autoridades locales del
+sector u Otra), la comuna de Medellín (lista en `config/repositorio.php` → `comunas`, DOC-23),
+la ubicación y un soporte opcional (DOC-24). Recibe un código consecutivo por
+dependencia (DC-001, DC-1000…), que nunca se repite ni se reinicia. La persona de campo lo
+atiende desde su enlace de derivaciones: cédula registrada, activa y en turno, código
+exacto, nodo que atiende, la atención o gestión realizada (obligatoria, DOC-23), tres
+evidencias fotográficas y «¿Se cumplió?» (con No, la observación es obligatoria). Un caso se atiende una sola vez. Las derivaciones del flujo
+anterior (sin código) se conservan como «registro anterior».
+*Origen:* D-16, D-17, DOC-20 · *Código:* `CasoDerivacionController`, `Publico\DerivacionController`.
 
-**RN-30. La derivación llega pendiente y el tiempo corre.** Corre desde la fecha y hora
-del requerimiento, que no puede ser posterior a la hora actual.
-*Origen:* D-19 · *Código:* `Derivacion::requeridaAt`, `minutos`.
+**RN-30. El tiempo corre desde la creación.** La hora del servidor al crear el caso es el
+inicio. Nadie la escribe. **Excepción única (DOC-24, noviembre de 2026):** los casos
+represados, ya atendidos, entran por un Excel que sube Coordinación, con su hora de inicio
+y de cierre; quedan marcados «Carga masiva» y auditados. La carga se cierra sola el
+30/11/2026.
+*Origen:* D-19, DOC-20, DOC-24 · *Código:* `Derivacion::requeridaAt`, `minutos`, `CargaMasivaCasosController`, `DerivacionPolicy::cargarMasivo`.
 
-**RN-31. Meta de 3 horas.** Responder después de 3 h exige justificación.
+**RN-31. Meta de 3 horas.** Atender después de 3 h exige justificación.
 *Origen:* D-18 · *Código:* `Derivacion::META_MINUTOS`.
 
-**RN-32. Responder detiene el tiempo.** Un usuario de Edición en adelante escribe la
-respuesta y la marca como solucionada: queda quién, cuándo y cuánto tardó. No se responde
-dos veces; después solo se corrige.
-*Origen:* D-19 · *Código:* `Admin\Turnos\DerivacionController::responder`.
+**RN-32. Enviar la atención detiene el tiempo.** El envío de la persona de campo es la
+marca de cierre, con la hora del servidor. Edición y Coordinación solo corrigen textos.
+Las horas, el «¿Se cumplió?» y el cierre a mano (plan de contingencia) son solo del
+superadministrador de la plataforma, con motivo y auditoría. Lo mismo vale para la hora
+de cierre de los registros anteriores. Los casos de la carga única (DOC-24, ver RN-30)
+nacen con las horas del archivo; corregirlas después sigue siendo del superadministrador.
+*Origen:* D-19, DOC-20, DOC-24 · *Código:* `DerivacionPolicy::corregirHoras`.
 
-**RN-33. Avisos de derivaciones.** A los usuarios de Edición de la dependencia: al llegar
-y cada 30 min mientras siga pendiente; pasada la meta, el aviso dice «VENCIDA». Cada aviso
-reemplaza al anterior del mismo caso, y todos se retiran al responderla.
-*Origen:* D-19, D-21 · *Código:* `DerivacionPendiente`, `derivaciones:recordar` (cada minuto).
+**RN-33. Avisos de derivaciones.** Un solo aviso cuando el caso pasa 3 h sin atención,
+para Edición y Coordinación de la dependencia. Al atenderse, quien lo creó recibe el suyo
+y se retira el de vencido. Ya no hay recordatorio cada 30 min.
+*Origen:* D-19, D-21, DOC-20 · *Código:* `DerivacionPendiente`, `CasoAtendido`, `derivaciones:recordar`.
 
-**RN-34. Trazabilidad.** La lista muestra, con los filtros aplicados, cuántas siguen sin
-respuesta y cuántas vencieron, el cumplimiento, qué nodos tienen casos sin responder y
-quién ha respondido con su tiempo promedio.
-*Origen:* D-20 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`.
+**RN-34. Trazabilidad.** La lista y la ficha muestran quién creó el caso y cuándo, quién
+lo atendió (persona de campo y nodo) y cuándo, el tiempo, la meta y el «¿Se cumplió?». Los
+indicadores, con los filtros aplicados, dan los abiertos y vencidos, el cumplimiento, los
+nodos con casos abiertos y los casos atendidos por cada persona de campo con su tiempo
+promedio. Desde DOC-23 se filtra también por comuna, y la ficha trae la gestión realizada y
+los comentarios: escribe Edición en adelante, avisa por la campana a quien creó el caso y a
+quienes ya comentaron, y la vía pública no los ve. La ficha de un caso de la carga única
+(DOC-24) dice «Carga masiva», quién lo cargó y cuándo.
+*Origen:* D-20, DOC-20, DOC-23, DOC-24 · *Código:* `Admin\Turnos\DerivacionController::trazabilidad`, `ComentarioDerivacionController`.
 
 **RN-35. Eliminar derivaciones.** Solo Coordinación en adelante, como borrado lógico: sale
 del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a «no borrar».
@@ -250,8 +299,10 @@ del reporte y sus fotos siguen en el repositorio. Es una excepción explícita a
 
 **RN-36. Reporte de derivaciones.** Excel con encabezado negro y las columnas de la hoja
 original, las fotos dentro de sus celdas y el soporte en PDF como enlace firmado que vence
-a los 30 días; un ZIP con las fotos originales.
-*Origen:* D-16.
+a los 30 días; un ZIP con las fotos originales. Desde DOC-20, al final se agregan el
+código, quién lo creó, la creación, la atención, el «¿Se cumplió?» y la observación; desde
+DOC-23, la comuna y la gestión realizada; desde DOC-24, el origen («Carga masiva»).
+*Origen:* D-16, DOC-20, DOC-23, DOC-24.
 
 **RN-39. Quién supervisa.** Solo registran supervisiones las personas de campo activas
 cuyo cargo está en «Cargos que supervisan» del componente (en Calle: «Apoyo al control
@@ -292,7 +343,24 @@ guarda y cuenta como ubicación, pero no se juzga «fuera de zona»: queda la no
 sistema, y deja «Registrar de todos modos».
 *Origen:* DOC-15 · *Código:* `Marcador::marcar`, `resources/js/turno.js`.
 
+**RN-47. Salida mínima.** Una marca antes de la «Salida mínima» del componente (30 min de
+fábrica) después de la última marca —entrada o salida— no cambia el tipo: es un reintento de
+quien creyó que la anterior no llegó. Se responde «Ya estaba registrada tu entrada/salida» y
+no se crea nada; al poner la cédula, el botón dice «Tu marca ya quedó registrada ✓» y no deja
+enviar. Una salida o entrada real antes de ese tiempo la agrega Coordinación.
+*Origen:* DOC-17 · *Código:* `Marcador::esReintento`, `resources/js/turno.js`.
+
 ### Comunicación
+
+**RN-48. Ver un caso desde la vía pública (excepción).** Es la única vez que la vía
+pública muestra contenido de un caso, y solo en el enlace de derivaciones. Primero va la
+cédula activa y en turno. Después, el código exacto de un caso abierto del mismo
+componente; cualquier otro resultado recibe el mismo mensaje. La consulta va por POST,
+con un límite de 10 cada 10 min por IP y por cédula, y cada consulta queda auditada. El
+soporte se abre por una URL firmada que vence a los 10 min, sin caché. Se muestra solo el
+mensaje, quién lo envía, la ubicación y el soporte. El servidor revalida todo al enviar y
+nada se guarda en el navegador.
+*Origen:* DOC-20 (P-2, autorizada por Edwar) · *Código:* `Publico\DerivacionController::caso`, `soporte`.
 
 **RN-37. Avisos de versión.** Al desplegar, si `CHANGELOG.md` tiene la sección de esa
 versión, se anuncia una vez por la campana a todos los usuarios activos.
@@ -317,7 +385,7 @@ No hay tabla `parametros` (constitución, stack). Los valores viven en tres luga
 
 | # | Pregunta | Dueño | Bloquea |
 |---|---|---|---|
-| PA-01 | La jornada esperada es una sola por componente: un domingo de 10 h sale como horas extra si la jornada es 7 h. ¿Se compara cada turno con las horas de nómina de **su** tipo de turno? (recomendado: sí; DOC-8) | Edwar | DOC-8 |
+| ~~PA-01~~ | Resuelta en DOC-8: cada turno se compara con la jornada de su horario | Edwar | DOC-8 |
 | PA-02 | Calle: ¿mañana, tarde y noche descuentan 30 min (7 h 30 en el sitio = 7 h)? Con los tramos de fábrica descuentan 1 h. ¿El tramo largo pasa a «más de 8 h»? (D-15) | Talento Humano | DOC-8 |
 | PA-03 | Domingos (C13): ¿de 7:00 a 18:00 con 1 h de almuerzo, 10 h de nómina? Hoy está cargado de 6:00 a 18:00 con 12 h (D-15) | Talento Humano | DOC-8 |
 | PA-04 | Talento Humano pidió 1 h de almuerzo a los turnos que empiezan entre las 8 y las 11 a. m. ¿Aplica a T3 (10:00–17:30) aunque los demás turnos descuenten 30 min? (F-05 §5) | Talento Humano | DOC-8 |

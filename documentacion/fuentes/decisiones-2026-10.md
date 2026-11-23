@@ -113,6 +113,16 @@ supervisión avisa a Edición y Coordinación.
 
 **D-28 · Ubicación imprecisa.** Ante los problemas de ubicación con iPhone: avisar a la persona cómo activar la ubicación precisa, no marcar «fuera de zona» con una ubicación aproximada (novedad «Ubicación imprecisa») y no enviar sin ubicación cuando es obligatoria. Edwar revisará cómo sale en producción.
 
+**D-29 · Salida mínima de 30 minutos.** Quien reintenta marcar porque creyó que su entrada
+no llegó terminaba con una salida falsa. Una marca a menos de 30 minutos de la entrada se
+toma como reintento; el tiempo es editable por componente en Componentes y nodos.
+*(29 de octubre, reporte del equipo de campo)*
+
+**D-30 · Anular y cambiar el tipo de una marca, sin borrar.** Ante un turno N7 invertido,
+Coordinación y Administración pueden anular una marca o pasarla de entrada a salida (o al
+revés); se prefirió a borrarla para no perder la traza ante Nómina. El reintento dentro de
+la salida mínima tampoco abre una entrada después de una salida. *(30 de octubre)*
+
 **D-27 · Sin exigir verificación (por ahora).** Quien se registró sola por el QR y está
 «por verificar» puede marcar y registrar igual, para no interrumpir la operación. Se
 revisará más adelante (exigirla para registrar, no para marcar, sería lo recomendado).

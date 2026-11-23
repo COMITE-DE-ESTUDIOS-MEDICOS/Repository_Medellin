@@ -67,7 +67,7 @@ class TurnoController extends Controller
         return response()->json([
             'existe' => true,
             'saludo' => $colaborador->saludo(),
-            // 'entrada', 'salida', o 'cerrado' si ya hizo su turno del día.
+            // 'entrada', 'salida', 'reciente' si acaba de entrar, o 'cerrado' si ya hizo su turno del día.
             'accion' => $this->marcador->estadoParaMarcar($colaborador, $enlace->componente),
         ]);
     }
@@ -172,7 +172,7 @@ class TurnoController extends Controller
             ->route('turno.enlace', ['token' => $token])
             ->with('turno.marcado', [
                 'tipo' => $marcacion->tipo->etiqueta(),
-                'hora' => $marcacion->marcada_at->format('H:i'),
+                'hora' => $marcacion->marcada_at->hora(),
                 'saludo' => $marcacion->colaborador->saludo(),
                 'repetida' => ! $marcacion->wasRecentlyCreated,
                 'sin_ubicacion' => $marcacion->sin_ubicacion,

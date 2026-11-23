@@ -120,7 +120,7 @@
             <div>
                 <label for="hora_visita" class="{{ $etiqueta }}">Hora de la visita *</label>
                 <input id="hora_visita" name="hora_visita" type="time" required
-                       value="{{ old('hora_visita', now()->format('H:i')) }}" class="{{ $campo }}">
+                       value="{{ old('hora_visita', now()->hora()) }}" class="{{ $campo }}">
             </div>
         </div>
 

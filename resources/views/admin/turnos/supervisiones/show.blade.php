@@ -20,7 +20,7 @@
 
 <div class="grid gap-6 lg:grid-cols-3">
     <div class="space-y-6 lg:col-span-2">
-        <x-seccion-ficha icono="ubicacion" titulo="La visita" :descripcion="$s->visita_at->format('d/m/Y').' a las '.$s->visita_at->format('H:i')">
+        <x-seccion-ficha icono="ubicacion" titulo="La visita" :descripcion="$s->visita_at->format('d/m/Y').' a las '.$s->visita_at->hora()">
             <dl class="divide-y divide-[var(--border)]">
                 <div class="{{ $fila }}"><dt class="{{ $dt }}">Supervisó</dt><dd class="{{ $dd }}">{{ $s->supervisor_nombre }} · CC {{ $s->supervisor_cedula }}</dd></div>
                 <div class="{{ $fila }}"><dt class="{{ $dt }}">Dinamizador 1</dt><dd class="{{ $dd }}">{{ $persona($s->dinamizador1) }}</dd></div>
@@ -79,7 +79,7 @@
             </div>
         @endforeach
         <div class="rounded-xl bg-[var(--card)] p-4 text-xs text-[var(--muted)] ring-1 ring-[var(--border)]">
-            Abrió el formulario {{ $s->inicio_at?->format('H:i') ?? '—' }} · lo envió {{ $s->created_at->format('d/m/Y H:i') }}
+            Abrió el formulario {{ $s->inicio_at?->hora() ?? '—' }} · lo envió {{ $s->created_at->fechaHora() }}
         </div>
     </aside>
 </div>

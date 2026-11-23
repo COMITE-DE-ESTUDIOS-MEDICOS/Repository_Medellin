@@ -60,7 +60,7 @@
                     <p class="font-medium text-[var(--text)]">{{ $aviso->titulo }}</p>
                     <p class="mt-0.5 break-words text-[var(--muted)]">{{ $aviso->mensaje }}</p>
                     <p class="mt-1 text-xs text-[var(--muted)]">
-                        {{ $aviso->created_at->format('d/m/Y H:i') }}
+                        {{ $aviso->created_at->fechaHora() }}
                         · {{ $aviso->version ? 'Automático de versión' : ($aviso->autor?->name ?? '—') }}
                         · {{ $aviso->destinatarios }} {{ $aviso->destinatarios === 1 ? 'persona' : 'personas' }}
                         @if($aviso->roles)

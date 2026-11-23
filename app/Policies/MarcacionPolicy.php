@@ -21,4 +21,10 @@ class MarcacionPolicy
     {
         return $usuario->puedeEditarEn($marcacion->dependencia_id) && ! $marcacion->estaAnulada();
     }
+
+    /** DOC-18: anular una marca o cambiarle el tipo, desde Coordinación. */
+    public function anular(User $usuario, Marcacion $marcacion): bool
+    {
+        return $usuario->puedeGestionarEn($marcacion->dependencia_id) && ! $marcacion->estaAnulada();
+    }
 }

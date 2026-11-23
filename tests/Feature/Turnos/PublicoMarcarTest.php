@@ -113,6 +113,40 @@ class PublicoMarcarTest extends TestCase
         $this->assertSame(1, Marcacion::withoutGlobalScopes()->count());
     }
 
+    /** DOC-17: la entrada llegó, el teléfono no se enteró y la persona lo intenta otra vez. */
+    public function test_ca01_reintentar_minutos_despues_de_la_entrada_no_crea_una_salida(): void
+    {
+        $this->marcar($this->registro());
+        $this->travel(29)->minutes();
+
+        $this->marcar()
+            ->assertSessionHas('turno.marcado.repetida', true)
+            ->assertSessionHas('turno.marcado.tipo', 'Entrada');
+
+        $this->assertSame(1, Marcacion::withoutGlobalScopes()->count());
+        $this->postJson(route('turno.cedula', ['token' => $this->token]), ['cedula' => '1017000111'])
+            ->assertJsonPath('accion', 'reciente');
+    }
+
+    public function test_ca02_pasado_el_margen_la_marca_es_salida(): void
+    {
+        $this->marcar($this->registro());
+        $this->travel(30)->minutes();
+
+        $this->marcar()->assertSessionHas('turno.marcado.tipo', 'Salida');
+        $this->assertSame(2, Marcacion::withoutGlobalScopes()->count());
+    }
+
+    public function test_ca03_el_margen_es_regla_del_componente(): void
+    {
+        $this->calle->update(['config' => [...$this->calle->config, 'salida_minima_min' => 60]]);
+        $this->marcar($this->registro());
+        $this->travel(45)->minutes();
+
+        $this->marcar()->assertSessionHas('turno.marcado.repetida', true);
+        $this->assertSame(1, Marcacion::withoutGlobalScopes()->count());
+    }
+
     public function test_un_turno_de_noche_cierra_con_la_salida_de_la_madrugada(): void
     {
         $this->travelTo(now()->setTime(22, 0));
@@ -129,6 +163,7 @@ class PublicoMarcarTest extends TestCase
     public function test_la_consulta_de_cedula_no_revela_datos_personales(): void
     {
         $this->marcar($this->registro());
+        $this->travel(1)->hours();
 
         $respuesta = $this->postJson(route('turno.cedula', ['token' => $this->token]), ['cedula' => '1017000111']);
 

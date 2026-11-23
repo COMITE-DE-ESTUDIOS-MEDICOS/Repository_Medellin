@@ -10,9 +10,11 @@ use App\Models\Colaborador;
 use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\Marcacion;
+use App\Models\Nodo;
 use App\Models\NovedadTurno;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -78,7 +80,7 @@ class AdminMarcacionesYNovedadesTest extends TestCase
 
         $this->assertSame(['Cédula', 'Nombre', 'Cargo'], array_slice($turnos[0], 0, 3));
         $this->assertSame(['43555666', 'Laura Gómez', 'Monitor de ruta', 'Calle'], array_slice($turnos[1], 0, 4));
-        $this->assertSame(8.5, $turnos[1][7], '8 h 30 min en el sitio, como número.');
+        $this->assertSame(8.5, $turnos[1][array_search('Permanencia (h)', $turnos[0], true)], '8 h 30 min en el sitio, como número.');
     }
 
     /** La segunda pestaña: una fila por persona, la semana sobre 42 h en rojo, y quien no marcó con 0 días. */
@@ -112,6 +114,36 @@ class AdminMarcacionesYNovedadesTest extends TestCase
         $zip->open($respuesta->baseResponse->getFile()->getPathname());
         $this->assertGreaterThanOrEqual(2, substr_count($zip->getFromName('xl/worksheets/sheet2.xml'), 's="3"'));
         $zip->close();
+    }
+
+    /** DOC-19 CA-02: con el filtro de nodo, quien cubrió en otro nodo sale con sus días, no en 0. */
+    public function test_doc19_ca02_el_resumen_por_nodo_cuenta_los_turnos_hechos_en_otro_nodo(): void
+    {
+        $propio = Nodo::factory()->create(['componente_id' => $this->calle->id, 'nombre' => 'Nodo 2']);
+        $otro = Nodo::factory()->create(['componente_id' => $this->calle->id, 'nombre' => 'Nodo 6']);
+        $this->persona->update(['nodo_id' => $propio->id]);
+
+        foreach (['2026-09-07 07:00', '2026-09-08 07:00'] as $dia) {
+            Marcacion::factory()->de($this->persona)->create(['marcada_at' => Carbon::parse($dia), 'nodo_id' => $otro->id]);
+            Marcacion::factory()->de($this->persona)->salida()->create(['marcada_at' => Carbon::parse($dia)->addHours(8), 'nodo_id' => $otro->id]);
+        }
+
+        $exportar = fn (int $nodo) => $this->actingAs($this->coordinador)
+            ->get(route('admin.turnos.marcaciones.exportar', ['nodo' => $nodo, 'desde' => '2026-09-01', 'hasta' => '2026-09-30']))
+            ->assertOk();
+        $dias = function ($respuesta) {
+            $resumen = collect($this->hojaXlsx($respuesta, 'Resumen mensual'));
+            $columnas = array_flip($resumen->first());
+
+            return $resumen->first(fn ($f) => ($f[1] ?? null) === 'Laura Gómez')[$columnas['Días trabajados']] ?? null;
+        };
+
+        $this->assertEquals(2, $dias($exportar($propio->id)), 'En su nodo habitual: con los días que trabajó, aunque fueran en otro.');
+        $this->assertEquals(2, $dias($exportar($otro->id)), 'En el nodo donde cubrió: también aparece.');
+
+        // La pestaña Turnos sí se queda con los marcados en ese nodo.
+        $this->assertCount(1, $this->hojaXlsx($exportar($propio->id), 'Turnos'), 'Solo el encabezado: no marcó en su nodo.');
+        $this->assertCount(3, $this->hojaXlsx($exportar($otro->id), 'Turnos'));
     }
 
     public function test_la_correccion_manual_agrega_una_fila_y_evalua_el_turno(): void

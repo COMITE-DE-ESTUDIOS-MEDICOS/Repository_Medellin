@@ -30,8 +30,14 @@ class PerfilController extends Controller
         return back()->with('exito', 'Datos actualizados.');
     }
 
+    /**
+     * DOC-22: la contraseña de las personas la gestiona Authentik. Aquí solo
+     * la cambia el superadministrador, la de su entrada de emergencia.
+     */
     public function actualizarPassword(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->es_superadmin, 403);
+
         $datos = $request->validate([
             'password_actual' => ['required', 'current_password'],
             'password' => ['required', 'confirmed', 'string', 'max:255'],

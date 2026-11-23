@@ -12,11 +12,13 @@ use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Support\Enums\Width;
@@ -90,6 +92,13 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                     ->slideOver()
                     ->modalWidth(Width::ThreeExtraLarge)
                     ->schema(self::formulario())
+                    // El tope por cargo se guarda como mapa; el Repeater lo edita como filas.
+                    ->mutateRecordDataUsing(function (array $data) {
+                        $data['config']['horas_max_por_cargo'] = collect($data['config']['horas_max_por_cargo'] ?? [])
+                            ->map(fn ($horas, $cargo) => ['cargo' => $cargo, 'horas' => $horas])->values()->all();
+
+                        return $data;
+                    })
                     ->mutateDataUsing(fn (array $data, Componente $record) => self::preparar($data, $record))
                     ->after(fn (Componente $record) => app(Auditor::class)->registrar(
                         AccionAuditoria::ComponenteGuardado, $record, "Actualizó el componente {$record->nombre}",
@@ -135,10 +144,30 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                 ->columns(2)
                 ->schema([
                     self::regla('jornada_horas', 'Jornada esperada (horas)', 1, 24, 'Trabajo neto esperado, sin el descanso. Más o menos que esto, pasada la tolerancia, sale como horas extra o turno corto.'),
-                    self::regla('tolerancia_min', 'Tolerancia (minutos)', 0, 240, 'Margen antes de contar un turno como corto, con horas extra o como tardanza.'),
-                    self::regla('horas_max_turno', 'Duración máxima del turno (horas)', 1, 24, 'Una entrada sin salida pasado este tiempo se cierra sola y queda como novedad.')
+                    self::regla('tolerancia_min', 'Tolerancia (minutos)', 0, 240, 'Margen antes de contar un turno como corto o como tardanza.'),
+                    self::regla('tolerancia_extra_min', 'Tolerancia de horas extra (minutos)', 40, 60, 'Salir hasta tanto después del fin del turno no cuenta como hora extra. También es el margen con que se cierra solo un turno sin salida.'),
+                    self::regla('horas_max_turno', 'Duración máxima del turno (horas)', 1, 24, 'Si el sistema no reconoce el turno, una entrada sin salida se cierra a estas horas y queda como novedad. Si lo reconoce, se cierra al fin del turno más la tolerancia de horas extra.')
                         ->gte('config.jornada_horas'),
+                    // DOC-21 (CA-08): se guarda como cargo => horas (preparar()).
+                    Repeater::make('config.horas_max_por_cargo')
+                        ->label('Duración máxima por cargo')
+                        ->helperText('Para estos cargos, el turno sin salida se cierra a estas horas de la entrada en vez de la duración máxima general.')
+                        ->defaultItems(0)
+                        ->addActionLabel('Agregar cargo')
+                        ->columns(2)
+                        ->columnSpanFull()
+                        ->schema([
+                            Select::make('cargo')
+                                ->label('Cargo')
+                                // Los cargos del componente, como están ahora en el formulario.
+                                ->options(fn ($get) => collect((array) $get('../../cargos'))->filter()->mapWithKeys(fn ($c) => [$c => $c])->all())
+                                ->required()
+                                ->distinct()
+                                ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                            TextInput::make('horas')->label('Horas')->integer()->required()->minValue(1)->maxValue(24),
+                        ]),
                     self::regla('turnos_por_dia', 'Turnos por día', 1, 6, 'Cumplidos, el enlace ya no deja marcar ese día.'),
+                    self::regla('salida_minima_min', 'Salida mínima (minutos)', 0, 240, 'Volver a marcar antes de esto, después de la entrada, no cuenta como salida: es un reintento. Si alguien se va antes, Coordinación agrega la salida.'),
                 ]),
 
             Section::make('Descanso no remunerado')
@@ -146,12 +175,17 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                 ->columns(2)
                 ->collapsible()
                 ->schema([
-                    self::regla('sin_descanso_hasta_h', 'Turno corto: hasta (horas)', 0, 12, 'Hasta aquí no se descuenta nada: una pausa corta se paga como trabajo.'),
-                    self::regla('descanso_parcial_min', 'Turno medio: descuento (minutos)', 0, 240, 'Entre el turno corto y el largo (ej. 30 de desayuno).')
-                        ->lte('config.descanso_min'),
+                    self::regla('sin_descanso_hasta_h', 'Turno corto: hasta (horas)', 0, 12, 'Hasta aquí no se descuenta nada: una pausa corta se paga como trabajo.')
+                        ->live(onBlur: true),
+                    self::regla('descanso_parcial_min', 'Turno medio: descuento (minutos)', 0, 240, 'Entre el turno corto y el largo.')
+                        ->lte('config.descanso_min')->live(onBlur: true),
                     self::regla('descanso_completo_desde_h', 'Turno largo: más de (horas)', 1, 24, 'Desde aquí se descuenta el descanso completo.')
-                        ->gte('config.sin_descanso_hasta_h'),
-                    self::regla('descanso_min', 'Turno largo: descuento (minutos)', 0, 240, 'Ej. 30 de desayuno + 30 de almuerzo.'),
+                        ->gte('config.sin_descanso_hasta_h')->live(onBlur: true),
+                    self::regla('descanso_min', 'Turno largo: descuento (minutos)', 0, 240, 'El descanso completo de un turno largo.')
+                        ->live(onBlur: true),
+                    // Lo que da con estos valores, turno por turno: así no hay que hacer la cuenta.
+                    Text::make(fn ($get, ?Componente $record) => self::ejemploDescanso($get, $record))
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Turno automático')
@@ -200,6 +234,29 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
     }
 
     /** Un número de las reglas del componente (config), con su valor por defecto. */
+    /**
+     * «Con estos valores: T4 (4 h en el sitio) → 4 h de trabajo · N1 (7 h 30 min) → 7 h…».
+     * Con los turnos con horario del componente; al crearlo, con 4 h, 7 h 30 min y 12 h.
+     */
+    public static function ejemploDescanso($get, ?Componente $record): string
+    {
+        $prueba = new Componente(['config' => collect(['sin_descanso_hasta_h', 'descanso_parcial_min', 'descanso_completo_desde_h', 'descanso_min'])
+            ->mapWithKeys(fn ($clave) => [$clave => (int) ($get("config.{$clave}") ?? Componente::REGLAS[$clave])])->all()]);
+
+        $turnos = $record
+            ? \App\Models\TipoTurno::where('componente_id', $record->id)->where('activo', true)->orderBy('orden')->get()
+                ->filter(fn ($t) => $t->minutosDeHorario() !== null)
+                ->map(fn ($t) => [$t->codigo, $t->minutosDeHorario()])
+            : collect([['Turno de 4 h', 240], ['Turno de 7 h 30 min', 450], ['Turno de 12 h', 720]]);
+
+        $horas = fn (int $m) => intdiv($m, 60).' h'.($m % 60 ? ' '.($m % 60).' min' : '');
+
+        // Los que duran lo mismo, juntos: «N1, N1., T3, N7 (7 h 30 min en el sitio) → 7 h de trabajo».
+        return 'Con estos valores: '.$turnos->groupBy(fn ($t) => $t[1])->sortKeys()
+            ->map(fn ($grupo, $minutos) => $grupo->pluck(0)->join(', ')." ({$horas($minutos)} en el sitio) → {$horas($prueba->minutosTrabajados($minutos))} de trabajo")
+            ->join(' · ').'.';
+    }
+
     protected static function regla(string $clave, string $etiqueta, int $min, int $max, string $ayuda): TextInput
     {
         return TextInput::make("config.{$clave}")
@@ -229,12 +286,15 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
     protected static function preparar(array $data, ?Componente $record = null): array
     {
         $config = array_replace(Componente::REGLAS, $record?->config ?? [], $data['config'] ?? []);
+        $limpio = fn ($cargo) => trim(preg_replace('/\s+/', ' ', (string) $cargo));
         foreach (['cargos', 'cargos_supervision'] as $lista) {
-            $config[$lista] = array_values(array_unique(array_filter(array_map(
-                fn ($cargo) => trim(preg_replace('/\s+/', ' ', (string) $cargo)),
-                (array) ($config[$lista] ?? []),
-            ))));
+            $config[$lista] = array_values(array_unique(array_filter(array_map($limpio, (array) ($config[$lista] ?? [])))));
         }
+        // Del Repeater llegan filas {cargo, horas}; se guarda cargo => horas.
+        $config['horas_max_por_cargo'] = collect((array) $config['horas_max_por_cargo'])
+            ->mapWithKeys(fn ($v, $k) => is_array($v) ? [$limpio($v['cargo'] ?? '') => (int) ($v['horas'] ?? 0)] : [$k => (int) $v])
+            ->filter(fn ($horas, $cargo) => $cargo !== '' && $horas > 0)
+            ->all();
 
         return [
             ...$data,

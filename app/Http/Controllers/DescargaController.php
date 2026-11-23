@@ -61,7 +61,9 @@ class DescargaController extends Controller
 
     /**
      * La carpeta entera en un ZIP, con sus subcarpetas. Entra solo lo que
-     * quien descarga puede ver: un lector no se lleva lo inactivo.
+     * quien descarga puede ver, y nunca lo inactivo: ni documentos ni
+     * carpetas inactivadas (con todo lo que cuelga de ellas), aunque quien
+     * descarga sí los vea en pantalla.
      */
     public function descargarCarpeta(Request $request, Carpeta $carpeta): BinaryFileResponse
     {
@@ -84,6 +86,7 @@ class DescargaController extends Controller
             $usados = [];
 
             $documentos = Documento::visiblesPara($usuario)
+                ->activos()
                 ->where('carpeta_id', $actual->id)
                 ->with('versionActual')
                 ->get();
@@ -104,7 +107,7 @@ class DescargaController extends Controller
                 $total++;
             }
 
-            $hijas = Carpeta::visiblesPara($usuario)->where('carpeta_id', $actual->id)->get();
+            $hijas = Carpeta::visiblesPara($usuario)->activas()->where('carpeta_id', $actual->id)->get();
 
             foreach ($hijas as $hija) {
                 $pendientes[] = [$hija, $prefijo.'/'.$this->nombreSeguro($hija->nombre)];

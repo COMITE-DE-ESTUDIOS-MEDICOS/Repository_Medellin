@@ -134,7 +134,7 @@ class EnlaceCargaController extends Controller
             'enviado_at.before_or_equal' => 'La fecha de envío no puede estar en el futuro.',
         ]);
 
-        $antes = $enlace->enviado_at?->format('d/m/Y H:i') ?? 'sin fecha';
+        $antes = $enlace->enviado_at?->fechaHora() ?? 'sin fecha';
 
         $enlace->update(['enviado_at' => $datos['enviado_at']]);
 
@@ -142,7 +142,7 @@ class EnlaceCargaController extends Controller
             AccionAuditoria::EnlaceFechaEnvioCorregida,
             $enlace,
             "Corrigió la fecha de envío del enlace hacia «{$enlace->carpeta?->nombre}»",
-            ['antes' => $antes, 'despues' => $enlace->enviado_at->format('d/m/Y H:i')],
+            ['antes' => $antes, 'despues' => $enlace->enviado_at->fechaHora()],
         );
 
         return back()->with('exito', 'Fecha de envío corregida.');
