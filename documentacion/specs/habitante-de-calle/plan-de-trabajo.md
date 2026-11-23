@@ -142,7 +142,7 @@ hacen entregas pequeñas a `develop` cada día.
 | Las pruebas corren en SQLite y los cálculos de permanencia usan fechas y agrupaciones | Funciona en pruebas y falla en el servidor | Verificar esos cálculos contra MySQL (constitución VII) |
 | Estimación optimista | El 10/12 no alcanza ni DOC-27 completa | Si el 4/12 no está registrando ingresos y egresos en pruebas, se deja corregir, reabrir y anular para la semana siguiente y se avisa |
 | Quedan pendientes de antes: probar DOC-24 con un Excel real y su cierre del 30/11 | Compiten por los mismos días | Decidir hoy si se atienden o se aplazan |
-| **Infraestructura, fase 1 (DOC-32):** pasar producción a nginx y meter Redis cuesta 1 o 2 días que no están en este plan (Edwar, 2026-11-23: «no sé de dónde salen») | Se come días de DOC-26 o DOC-27 | El cambio se hace de noche, fuera del horario de desarrollo; la preparación en pruebas la lleva quien termine primero su tarea de DOC-25. Si aun así no alcanza, se mueve después del 10/12 |
+| **Infraestructura (DOC-32):** con la migración a AWS en enero, la fase 1 en el servidor actual se reduce a revisar qué `php.ini` usa el sitio (y Redis solo si Edwar lo decide). Docker y el monitoreo van después del 10/12 | Poco: unas horas, no días | Se hace de noche o lo toma quien termine primero su parte de DOC-25 |
 | **Administración pasa a ver todos los componentes (DOC-25, decisión del 2026-11-23)** | Quien hoy tenga Administración en producción verá Básica y Estabilización apenas existan | Revisar la lista de usuarios de Administración antes de desplegar DOC-25 (DOC-25, PA-03) |
 
 ## Antes de empezar: lo que tiene que decidir Edwar

@@ -82,6 +82,6 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Reportes de Habitante de Calle: reporte de cupos | DOC-29 | [Borrador](specs/reportes-hc/spec.md) | Por aprobar |
 | Cierres de periodo de Habitante de Calle | DOC-30 | [Borrador resumido](specs/cierres-hc/spec.md) | Por aprobar |
 | Unificar fichas duplicadas de Usuarios HC | DOC-31 | [Borrador resumido](specs/unificacion-usuarios-hc/spec.md) | Por aprobar |
-| Infraestructura: nginx en producción, Redis, monitoreo; decisión de Docker y PostgreSQL | DOC-32 | [Borrador](specs/infraestructura/spec.md) | Por aprobar |
+| Infraestructura: Docker y monitoreo en pruebas, migración a AWS (Ohio) en enero de 2027 | DOC-32 | [Borrador](specs/infraestructura/spec.md) | Por aprobar |
 | Habitante de Calle: plan de trabajo (calendario y alcance de DOC-25 a DOC-31) | — | [Plan de trabajo](specs/habitante-de-calle/plan-de-trabajo.md) | Borrador |
 Seguimiento: en el repositorio (`tasks.md`). Notion queda para cuando se conecte.

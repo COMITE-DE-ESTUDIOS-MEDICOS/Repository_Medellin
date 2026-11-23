@@ -73,6 +73,20 @@ class Componente extends Model
         'precision_minima_m' => 500,
     ];
 
+    /**
+     * DOC-25: los módulos que existen (cada uno son rutas y políticas), con su
+     * etiqueta y su ruta de llegada, en el orden del menú. Cuáles abre cada
+     * componente es dato: la columna 'modulos'. La clave es 'supervisiones' y
+     * no 'supervision', que choca con el parámetro de ruta {supervision}.
+     */
+    public const MODULOS = [
+        'documentos' => ['Documentos', 'documentos.index'],
+        'turnos' => ['Turnos', 'admin.turnos.enlaces.index'],
+        'derivaciones' => ['Derivaciones', 'admin.turnos.derivaciones.index'],
+        'supervisiones' => ['Supervisión', 'admin.turnos.supervisiones.index'],
+    ];
+
+    // 'modulos' no va aquí a propósito: solo lo cambia el superadministrador (DOC-25, D9).
     protected $fillable = ['dependencia_id', 'nombre', 'slug', 'activo', 'config'];
 
     protected function casts(): array
@@ -80,7 +94,13 @@ class Componente extends Model
         return [
             'activo' => 'boolean',
             'config' => 'array',
+            'modulos' => 'array',
         ];
+    }
+
+    public function tieneModulo(string $modulo): bool
+    {
+        return in_array($modulo, $this->modulos ?? [], true);
     }
 
     /** Valor de una regla de este componente, o su defecto de REGLAS. */

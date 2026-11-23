@@ -23,7 +23,14 @@ class ComponenteFactory extends Factory
             'slug' => str($nombre)->slug()->toString(),
             'activo' => true,
             'config' => null,
+            'modulos' => array_keys(Componente::MODULOS),
         ];
+    }
+
+    /** DOC-25: como Básica y Estabilización hoy, sin ningún módulo. */
+    public function sinModulos(): static
+    {
+        return $this->state(fn () => ['modulos' => []]);
     }
 
     /** Reglas propias de este componente, encima de Componente::REGLAS. */

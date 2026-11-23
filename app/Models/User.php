@@ -106,7 +106,7 @@ class User extends Authenticatable
     public function dependencias(): BelongsToMany
     {
         return $this->belongsToMany(Dependencia::class, 'dependencia_usuario')
-            ->withPivot('rol', 'aprueba_novedades')
+            ->withPivot('rol', 'aprueba_novedades', 'componente_id')
             ->withTimestamps();
     }
 
@@ -159,7 +159,16 @@ class User extends Authenticatable
         return RolDependencia::tryFrom($relacion->pivot->rol);
     }
 
-    /** La dependencia con su pivote (rol, aprueba_novedades), o null si no pertenece. */
+    /** DOC-25: el componente del usuario en esa dependencia; null = Administración o sin componente. */
+    public function componenteEn(Dependencia|int|null $dependencia): ?int
+    {
+        $id = $dependencia instanceof Dependencia ? $dependencia->id : $dependencia;
+        $componente = $id === null ? null : $this->membresia($id)?->pivot->componente_id;
+
+        return $componente === null ? null : (int) $componente;
+    }
+
+    /** La dependencia con su pivote (rol, aprueba_novedades, componente_id), o null si no pertenece. */
     protected function membresia(int $id): ?Dependencia
     {
         return $this->dependencias->firstWhere('id', $id)
