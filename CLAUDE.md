@@ -34,6 +34,21 @@ Desde ahora:
    se pregunta; no se resuelve por cuenta propia.
 6. Dudas que no bloquean: van a «Candidatos para la siguiente versión» del documento.
 
+## Agentes (`.claude/agents/`)
+
+El flujo SDD repartido, cada uno con lo suyo y en este orden:
+
+| Agente | Qué hace | Escribe |
+|---|---|---|
+| `especificador` | Del pedido a la spec (el qué) | `spec.md` |
+| `arquitecto` | De la spec aprobada al plan y las tareas (el cómo) | `plan.md`, `tasks.md` |
+| `backend` | Una tarea: migraciones, modelos, políticas, controladores, con su prueba | código y pruebas |
+| `frontend` | Una tarea: vistas Blade, Filament, estilos, manual | vistas |
+| `qa` | Revisa contra la spec y las reglas; no corrige, reporta | pruebas que demuestran fallos |
+
+Entre `especificador` y `arquitecto` va la aprobación de Edwar. A `qa` se le pasa la spec y
+los archivos cambiados, no el informe de quien construyó. Ninguno hace commit ni PR.
+
 ## Git y seguridad (no negociable)
 
 - **No hagas commit, push, merge, tags ni PR sin que Edwar lo pida.** Ramas: `eduDev` y

@@ -117,6 +117,26 @@ class AdminEnlacesYEnTurnoTest extends TestCase
             ->assertDontSee('Ya Salio');
     }
 
+    public function test_en_turno_se_ve_por_paginas_y_se_busca_por_nombre_o_cedula(): void
+    {
+        // La más antigua primero: 30 entradas, de la que lleva más a la que lleva menos.
+        $marcas = collect(range(1, 30))->map(fn ($n) => Marcacion::factory()
+            ->de(Colaborador::factory()->en($this->calle)->create(['nombre' => "Persona {$n}", 'documento' => (string) (1017000000 + $n)]))
+            ->create(['marcada_at' => now()->subMinutes(400 - $n)]));
+
+        $this->actingAs($this->coordinador)->get(route('admin.turnos.en-turno'))->assertOk()->assertSee('30 personas marcaron entrada');
+
+        // Livewire::test no pasa por los middlewares: la dependencia se pone a mano.
+        app(\App\Services\ContextoDependencia::class)->establecer($this->dependencia);
+
+        \Livewire\Livewire::actingAs($this->coordinador)->test(\App\Livewire\Turnos\EnTurno::class)
+            ->assertCanSeeTableRecords($marcas->take(25))
+            ->assertCanNotSeeTableRecords($marcas->skip(25))
+            ->searchTable('1017000028')
+            ->assertCanSeeTableRecords([$marcas[27]])
+            ->assertCanNotSeeTableRecords([$marcas[0]]);
+    }
+
     public function test_una_correccion_con_hora_anterior_no_cambia_quien_sigue_en_turno(): void
     {
         $persona = Colaborador::factory()->en($this->calle)->create();

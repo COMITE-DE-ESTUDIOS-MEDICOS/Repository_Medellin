@@ -58,3 +58,4 @@ de PHP **intl**, **xmlreader** y **zip**.
 | Componentes y nodos (panel lateral con reglas y nodos) | Administración → «Componentes y nodos» | Coordinación en adelante |
 | Tipos de turno | Personas de campo → «Tipos de turno» | Edición en adelante |
 | Puntos críticos (con «Ver en el mapa») | En turno ahora → «Puntos críticos» | Edición en adelante |
+| En turno ahora (solo consulta: páginas, búsqueda y filtros) | Turnos → «En turno ahora» | Edición en adelante |
