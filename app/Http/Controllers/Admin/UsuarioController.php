@@ -6,6 +6,8 @@ use App\Enums\AccionAuditoria;
 use App\Enums\RolDependencia;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GuardarUsuarioRequest;
+use App\Models\Componente;
+use App\Models\Scopes\ComponenteScope;
 use App\Models\User;
 use App\Services\Auditor;
 use App\Services\AuthentikProvisioner;
@@ -36,7 +38,10 @@ class UsuarioController extends Controller
     {
         $this->autorizar();
 
-        return view('admin.usuarios.create', ['roles' => $this->rolesAsignables($request)]);
+        return view('admin.usuarios.create', [
+            'roles' => $this->rolesAsignables($request),
+            'componentes' => $request->user()->componentesAsignablesEn($this->contexto->requerida()),
+        ]);
     }
 
     public function store(GuardarUsuarioRequest $request): RedirectResponse
@@ -45,6 +50,7 @@ class UsuarioController extends Controller
         $dependencia = $this->contexto->requerida();
 
         $rol = RolDependencia::from($request->string('rol')->toString());
+        $componente = $this->componenteElegido($request, $rol);
 
         // firstOrCreate y no firstOrNew: una cuenta que ya existe pertenece
         // también a otras dependencias, y darle acceso aquí no autoriza a
@@ -66,16 +72,24 @@ class UsuarioController extends Controller
         $esCuentaNueva = $usuario->wasRecentlyCreated;
 
         // Un usuario puede pertenecer a varias dependencias con roles distintos.
+        // Quien ya está en esta no llega aquí: GuardarUsuarioRequest lo rechaza.
         $usuario->dependencias()->syncWithoutDetaching([
-            $dependencia->id => ['rol' => $rol->value, 'aprueba_novedades' => $request->boolean('aprueba_novedades')],
+            $dependencia->id => [
+                'rol' => $rol->value,
+                'aprueba_novedades' => $request->boolean('aprueba_novedades'),
+                'componente_id' => $componente?->id,
+            ],
         ]);
+
+        $en = $componente ? " en {$componente->nombre}" : '';
 
         $this->auditor->registrar(
             AccionAuditoria::UsuarioCreado,
             $usuario,
             $esCuentaNueva
-                ? "Creó la cuenta de {$usuario->name} con rol {$rol->etiqueta()}"
-                : "Dio acceso a {$usuario->name}, que ya tenía cuenta, con rol {$rol->etiqueta()}",
+                ? "Creó la cuenta de {$usuario->name} con rol {$rol->etiqueta()}{$en}"
+                : "Dio acceso a {$usuario->name}, que ya tenía cuenta, con rol {$rol->etiqueta()}{$en}",
+            ['componente' => $componente?->nombre],
         );
 
         // Nueva o ya existente: si está activa, queda en el grupo de
@@ -105,7 +119,12 @@ class UsuarioController extends Controller
             'usuario' => $usuario,
             'rolActualUsuario' => $usuario->rolEn($this->contexto->id()),
             'apruebaNovedades' => (bool) $usuario->dependencias()->whereKey($this->contexto->id())->first()?->pivot->aprueba_novedades,
-            'roles' => $this->rolesAsignables($request),
+            // En su propia ficha no cambia su acceso: solo ve su rol.
+            'roles' => $usuario->is($request->user()) && ! $request->user()->es_superadmin
+                ? [$usuario->rolEn($this->contexto->id())]
+                : $this->rolesAsignables($request),
+            'componentes' => $request->user()->componentesAsignablesEn($this->contexto->requerida()),
+            'componenteActualUsuario' => $usuario->componenteEn($this->contexto->id()),
         ]);
     }
 
@@ -130,15 +149,23 @@ class UsuarioController extends Controller
 
         $usuario->save();
 
+        $rol = RolDependencia::from($request->string('rol')->toString());
+        $componente = $this->componenteElegido($request, $rol);
+        $antes = $this->componenteDeId($usuario->componenteEn($this->contexto->id()));
+
         $usuario->dependencias()->updateExistingPivot(
             $this->contexto->id(),
-            ['rol' => $request->string('rol')->toString(), 'aprueba_novedades' => $request->boolean('aprueba_novedades')],
+            ['rol' => $rol->value, 'aprueba_novedades' => $request->boolean('aprueba_novedades'), 'componente_id' => $componente?->id],
         );
+
+        $cambio = $antes?->id !== $componente?->id;
 
         $this->auditor->registrar(
             AccionAuditoria::UsuarioActualizado,
             $usuario,
-            "Actualizó el acceso de {$usuario->name}",
+            "Actualizó el acceso de {$usuario->name}"
+                .($cambio ? ": pasó de {$this->nombreDe($antes)} a {$this->nombreDe($componente)}" : ''),
+            $cambio ? ['componente' => ['antes' => $antes?->nombre, 'despues' => $componente?->nombre]] : [],
         );
 
         // Nada de la ficha viaja a Authentik (DOC-22): ni nombre, ni correo,
@@ -212,9 +239,24 @@ class UsuarioController extends Controller
         abort_unless($this->contexto->puedeGestionar(), 403, 'No tienes permiso para gestionar usuarios.');
     }
 
+    /**
+     * Es de esta dependencia y, para quien no es Administración, de su
+     * componente (DOC-25): Coordinación de Calle no ve a nadie de Básica.
+     */
     protected function verificarPertenencia(User $usuario): void
     {
-        abort_unless($usuario->perteneceA($this->contexto->id()), 404);
+        $dependencia = $this->contexto->id();
+        $actor = auth()->user();
+
+        abort_unless($usuario->perteneceA($dependencia), 404);
+
+        // Las cuentas de Administración (sin componente) las rechaza con 403
+        // verificarRango; aquí no se adelanta un 404 que lo esconda.
+        if ($actor->puedeAdministrarEn($dependencia) || $usuario->rolEn($dependencia) === RolDependencia::Administracion) {
+            return;
+        }
+
+        abort_unless($usuario->componenteEn($dependencia) === ($actor->componenteEn($dependencia) ?? 0), 404);
     }
 
     /**
@@ -240,11 +282,38 @@ class UsuarioController extends Controller
         $suyo = $usuario->rolEn($this->contexto->id())?->nivel() ?? 0;
 
         abort_if($suyo > $mio, 403, 'No puedes gestionar a alguien con un rol por encima del tuyo.');
+
+        // DOC-25 (PA-03, P-02 del plan): Administración la da solo el
+        // superadministrador, y solo él gestiona esas cuentas (bajarlas incluido).
+        // Su propia ficha sí la edita (Edwar 2026-11-24): sin tocar su acceso,
+        // que lo fija GuardarUsuarioRequest.
+        abort_if(
+            $suyo === RolDependencia::Administracion->nivel() && ! $actor->es_superadmin && ! $usuario->is($actor),
+            403,
+            'Las cuentas de Administración solo las gestiona el superadministrador.',
+        );
     }
 
     /** Los roles que este usuario puede repartir, nunca por encima del suyo. */
     protected function rolesAsignables(Request $request): array
     {
-        return $request->user()->rolEn($this->contexto->id())?->asignables() ?? [];
+        return $request->user()->rolesAsignablesEn($this->contexto->id());
+    }
+
+    /** DOC-25: el componente del formulario (ya validado); Administración, ninguno. */
+    protected function componenteElegido(Request $request, RolDependencia $rol): ?Componente
+    {
+        return $rol === RolDependencia::Administracion ? null : $this->componenteDeId($request->integer('componente_id'));
+    }
+
+    /** Sin el scope de componente: Administración asigna cualquiera de la dependencia. */
+    protected function componenteDeId(?int $id): ?Componente
+    {
+        return $id ? Componente::withoutGlobalScope(ComponenteScope::class)->find($id) : null;
+    }
+
+    protected function nombreDe(?Componente $componente): string
+    {
+        return $componente?->nombre ?? 'ningún componente';
     }
 }

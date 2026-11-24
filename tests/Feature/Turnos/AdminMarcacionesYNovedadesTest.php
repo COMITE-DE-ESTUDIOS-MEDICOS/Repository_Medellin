@@ -244,7 +244,7 @@ class AdminMarcacionesYNovedadesTest extends TestCase
 
         $admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
         $this->actingAs($admin)->put(route('admin.usuarios.update', $deisy), [
-            'name' => $deisy->name, 'documento' => $deisy->documento, 'rol' => 'edicion', 'activo' => '1', 'aprueba_novedades' => '1',
+            'name' => $deisy->name, 'documento' => $deisy->documento, 'rol' => 'edicion', 'componente_id' => $this->calle->id, 'activo' => '1', 'aprueba_novedades' => '1',
         ])->assertSessionHasNoErrors();
         $this->assertTrue($deisy->fresh()->puedeAprobarNovedadesEn($this->dependencia));
         $this->actingAs($admin)->get(route('admin.usuarios.edit', $deisy))->assertSee('Aprueba novedades de turno');

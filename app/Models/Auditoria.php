@@ -13,6 +13,7 @@ class Auditoria extends Model
 
     protected $fillable = [
         'dependencia_id',
+        'componente_id',
         'user_id',
         'accion',
         'auditable_type',

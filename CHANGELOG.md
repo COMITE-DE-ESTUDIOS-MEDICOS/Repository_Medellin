@@ -24,8 +24,8 @@ Cada viñeta, corta y para quien no programa.
 - Cada persona trabaja en su **componente** (Calle, Básica o Estabilización) y ve solo lo de ese componente: sus pantallas y sus datos. Quienes ya usan Documenta quedan en Calle y ven lo mismo que antes.
 - Se crearon los componentes **Básica** y **Estabilización**, todavía sin pantallas activas: quien entra en uno de ellos ve una bienvenida que lo explica.
 - El menú muestra arriba el **componente** en el que estás. Administración trabaja en todos: toca «Componente» y elige otro.
-- **Auditoría:** Coordinación ve solo lo que hicieron los usuarios de su componente.
-- **Enviar aviso:** se marcan los componentes a los que va (llega solo a las personas de esos componentes), y cada envío queda en la auditoría.
+- **Auditoría:** Coordinación ve solo lo de su componente, incluidas las marcas por QR, lo que llega por los enlaces y los cierres automáticos.
+- **Enviar aviso:** se marcan los componentes a los que va (llega a las personas de esos componentes y a Administración), y cada envío queda en la auditoría.
 
 ## v2.2
 

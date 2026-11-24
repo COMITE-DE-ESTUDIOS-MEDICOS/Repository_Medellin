@@ -204,14 +204,18 @@ Policy cubre Livewire y los botones. La regla de cada rol no cambia.
 
 ### D10. Auditoría y avisos
 
-- **Auditoría (PA-06):** Coordinación ve solo
-  `whereIn('user_id', <usuarios de la pivote con dependencia y componente = el suyo>)`;
-  Administración y superadministrador, todo. El filtro «Usuario» ofrece los mismos. Con
-  subconsulta `whereIn`, sin `GROUP BY` ni juntas nuevas. La tabla `auditorias` **no** recibe
-  columna nueva.
+- **Auditoría (PA-06, cambiada por Edwar el 2026-11-24):** `auditorias.componente_id`
+  (migración `2026_11_24_000003`). `Auditor::registrar` guarda el del dato auditado o, si no
+  tiene, el componente donde está parado el usuario. Coordinación ve los de su componente y,
+  si su componente tiene Documentos, también los sin componente (anteriores a DOC-25 y cargas
+  por enlace). Así ve lo que llega por la vía pública y lo automático, y nada de otro componente.
+  Administración y superadministrador, todo. El filtro «Usuario» ofrece las personas de su
+  componente. Antes era `whereIn('user_id', …)`: dejaba fuera todo lo que no tiene usuario,
+  casi toda la auditoría de Calle, contra CA-03.
 - **Enviar aviso:** casillas de componentes (al menos uno, marcado por defecto el actual).
   `Avisos::enviar(..., ?array $componentes = null)` y `destinatarios()` con
-  `wherePivotIn('componente_id', $componentes)`. Los avisos de versión (RN-37) no pasan
+  esos componentes **más Administración** (P-04); los roles marcados siguen filtrando. Si no le
+  llega a nadie, se rechaza con un mensaje y no se guarda. Los avisos de versión (RN-37) no pasan
   componentes: siguen llegando a todos.
 - **Campana (RN-23, RN-25, RN-33, RN-45):** `Dependencia::usuariosDelComponente(int $id)` =
   `usuarios()->where(fn ($q) => $q->where('dependencia_usuario.componente_id', $id)->orWhere('dependencia_usuario.rol', 'administracion'))`.
@@ -304,10 +308,13 @@ Estado de la spec y `documentacion/README.md`.
 - **P-02.** ¿Administración puede editar o desactivar a otro usuario de Administración? Como
   solo el superadministrador da ese rol, **por defecto: no, solo el superadministrador**
   gestiona cuentas de Administración (bajarlas a Coordinación incluido, CA-09).
+  **Edwar (2026-11-24):** Administración sí edita su propia ficha (nombre, correo, cargo),
+  sin cambiar su acceso: en la propia ficha, de cualquier rol, el rol, el componente y el
+  estado se quedan como están. El acceso de Administración lo controla el superadministrador.
 - **P-03.** Las personas de campo sin componente en Inclusión Social: **por defecto la
   migración las pasa a Calle** (era el único). Si el conteo de arriba da 0, no aplica.
 - **P-04.** «Enviar aviso» (§6 y CA-13): **por defecto, casillas de componentes, al menos una**,
-  y llega solo a los usuarios de esos componentes. Los de Administración (sin componente) no lo
-  reciben. ¿Deben recibirlo siempre?
+  y llega a los usuarios de esos componentes. **Respondida por Edwar (2026-11-24):**
+  Administración también lo recibe, como antes de DOC-25.
 - **P-05.** Superadministrador: se comporta como Administración (selector de componente,
   empieza en Calle). En Básica ve lo que ve Básica (nada por ahora). **Por defecto: así.**

@@ -150,7 +150,8 @@ class MenuLateralTemporalTest extends TestCase
             if ($rol->puedeGestionar()) {
                 $pantallas['admin.usuarios.index'] = route('admin.usuarios.index');
                 $pantallas['admin.usuarios.create'] = route('admin.usuarios.create');
-                $pantallas['admin.usuarios.edit'] = route('admin.usuarios.edit', $usuario);
+                // DOC-25: la ficha de otra persona; la de Administración solo la abre el superadministrador.
+                $pantallas['admin.usuarios.edit'] = route('admin.usuarios.edit', $this->darRol(User::factory()->create(), RolDependencia::Lectura, $this->inclusion));
                 $pantallas['admin.tipos.index'] = route('admin.tipos.index');
                 $pantallas['auditoria.index'] = route('auditoria.index');
             }
@@ -286,7 +287,7 @@ class MenuLateralTemporalTest extends TestCase
             'perfil.edit' => route('perfil.edit'),
             'admin.usuarios.index' => route('admin.usuarios.index'),
             'admin.usuarios.create' => route('admin.usuarios.create'),
-            'admin.usuarios.edit' => route('admin.usuarios.edit', $usuario),
+            'admin.usuarios.edit' => route('admin.usuarios.edit', $this->darRol(User::factory()->create(), RolDependencia::Lectura, $this->inclusion)),
             'admin.tipos.index' => route('admin.tipos.index'),
             'auditoria.index' => route('auditoria.index'),
         ];

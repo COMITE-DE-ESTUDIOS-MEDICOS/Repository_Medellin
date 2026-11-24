@@ -78,6 +78,9 @@ enum RolDependencia: string
      * podría crear un usuario con rol Administración —o ascenderse a sí
      * misma— y saltarse en dos clics justo lo que no debe poder hacer.
      *
+     * DOC-25 (PA-03): Administración no sale de aquí; la da solo el
+     * superadministrador (User::rolesAsignablesEn).
+     *
      * @return list<self>
      */
     public function asignables(): array
@@ -88,7 +91,7 @@ enum RolDependencia: string
 
         return array_values(array_filter(
             self::cases(),
-            fn (self $rol) => $rol->nivel() <= $this->nivel(),
+            fn (self $rol) => $rol !== self::Administracion && $rol->nivel() <= $this->nivel(),
         ));
     }
 

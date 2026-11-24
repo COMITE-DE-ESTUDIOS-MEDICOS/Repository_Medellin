@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\RolDependencia;
 use App\Enums\TemaInterfaz;
+use App\Models\Scopes\ComponenteScope;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -166,6 +168,36 @@ class User extends Authenticatable
         $componente = $id === null ? null : $this->membresia($id)?->pivot->componente_id;
 
         return $componente === null ? null : (int) $componente;
+    }
+
+    /**
+     * DOC-25: los roles que puede repartir en esa dependencia. Administración
+     * solo la da el superadministrador (PA-03); los demás, hasta Coordinación.
+     *
+     * @return list<RolDependencia>
+     */
+    public function rolesAsignablesEn(Dependencia|int|null $dependencia): array
+    {
+        return $this->es_superadmin ? RolDependencia::cases() : ($this->rolEn($dependencia)?->asignables() ?? []);
+    }
+
+    /**
+     * DOC-25: los componentes en que puede poner a alguien. Administración y el
+     * superadministrador, cualquiera activo de la dependencia (salto a propósito
+     * del scope de componente); Coordinación, solo el suyo.
+     *
+     * @return Collection<int, Componente>
+     */
+    public function componentesAsignablesEn(Dependencia|int $dependencia): Collection
+    {
+        $id = $dependencia instanceof Dependencia ? $dependencia->id : $dependencia;
+
+        return Componente::withoutGlobalScope(ComponenteScope::class)
+            ->where('dependencia_id', $id)
+            ->where('activo', true)
+            ->when(! $this->puedeAdministrarEn($id), fn ($q) => $q->whereKey($this->componenteEn($id) ?? 0))
+            ->orderBy('id')
+            ->get();
     }
 
     /** La dependencia con su pivote (rol, aprueba_novedades, componente_id), o null si no pertenece. */

@@ -45,13 +45,18 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
     public function table(Table $table): Table
     {
         $dependencia = app(ContextoDependencia::class)->requerida()->id;
+        $actor = auth()->user();
+        $veTodos = $actor->puedeAdministrarEn($dependencia);
 
         return $table
-            // El rol sale de la pivote de esta dependencia, no de otra.
+            // El rol y el componente salen de la pivote de esta dependencia, no de otra.
             ->query(User::query()
                 ->join('dependencia_usuario as du', 'du.user_id', '=', 'users.id')
+                ->leftJoin('componentes as c', 'c.id', '=', 'du.componente_id')
                 ->where('du.dependencia_id', $dependencia)
-                ->select('users.*', 'du.rol as rol_aqui', 'du.aprueba_novedades as aprueba_aqui'))
+                // DOC-25: Coordinación solo ve a los de su componente (sin componente, a nadie).
+                ->when(! $veTodos, fn (Builder $q) => $q->where('du.componente_id', $actor->componenteEn($dependencia) ?? 0))
+                ->select('users.*', 'du.rol as rol_aqui', 'du.aprueba_novedades as aprueba_aqui', 'c.nombre as componente_aqui'))
             ->defaultSort('name')
             ->columns([
                 TextColumn::make('name')
@@ -76,6 +81,9 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
                         default => 'gray',
                     })
                     ->sortable(),
+                TextColumn::make('componente_aqui')
+                    ->label('Componente')
+                    ->state(fn (User $u) => $u->componente_aqui ?? ($u->rol_aqui === RolDependencia::Administracion->value ? 'Todos' : 'Sin componente')),
                 IconColumn::make('aprueba_aqui')
                     ->label('Aprueba novedades')
                     ->boolean()
@@ -106,6 +114,11 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
                     ->label('Rol')
                     ->options(collect(RolDependencia::cases())->mapWithKeys(fn ($r) => [$r->value => $r->etiqueta()])->all())
                     ->query(fn (Builder $query, array $data) => $query->when($data['value'] ?? null, fn ($q, $rol) => $q->where('du.rol', $rol))),
+                SelectFilter::make('componente')
+                    ->label('Componente')
+                    ->options(fn () => $actor->componentesAsignablesEn($dependencia)->pluck('nombre', 'id')->all())
+                    ->query(fn (Builder $query, array $data) => $query->when($data['value'] ?? null, fn ($q, $id) => $q->where('du.componente_id', $id)))
+                    ->visible($veTodos),
                 // La consulta lleva un join: la columna va con su tabla.
                 TernaryFilter::make('activo')
                     ->label('Cuenta activa')
@@ -172,6 +185,11 @@ class Usuarios extends Component implements HasActions, HasSchemas, HasTable
         $dependencia = app(ContextoDependencia::class)->id();
 
         if ($usuario->es_superadmin && ! $actor->es_superadmin) {
+            return false;
+        }
+
+        // DOC-25: las cuentas de Administración solo las gestiona el superadministrador.
+        if ($usuario->rol_aqui === RolDependencia::Administracion->value && ! $actor->es_superadmin) {
             return false;
         }
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RolDependencia;
 use App\Models\Carpeta;
+use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\Documento;
 use App\Models\DocumentoVersion;
@@ -63,6 +64,7 @@ class IntentaRomperloTest extends TestCase
             'email' => 'otro@medellin.gov.co',
             'cargo' => 'Auxiliar',
             'rol' => RolDependencia::Lectura->value,
+            'componente_id' => Componente::withoutGlobalScopes()->where('dependencia_id', Dependencia::where('slug', 'alfa')->value('id'))->value('id'),
             'activo' => 0,
             'password' => 'ClavePuesta123',
             'password_confirmation' => 'ClavePuesta123',
@@ -165,6 +167,7 @@ class IntentaRomperloTest extends TestCase
                 'documento' => '1234567890',
                 'email' => $companero->email,
                 'rol' => RolDependencia::Lectura->value,
+                'componente_id' => $companero->componenteEn($alfa),
                 'activo' => 1,
             ])
             ->assertSessionHasErrors('documento');
@@ -179,6 +182,7 @@ class IntentaRomperloTest extends TestCase
                 'documento' => $documentoOriginal,
                 'email' => $companero->email,
                 'rol' => RolDependencia::Lectura->value,
+                'componente_id' => $companero->componenteEn($alfa),
                 'activo' => 1,
             ])
             ->assertRedirect()

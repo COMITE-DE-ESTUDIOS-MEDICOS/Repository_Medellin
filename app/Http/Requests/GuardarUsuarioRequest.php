@@ -29,6 +29,18 @@ class GuardarUsuarioRequest extends FormRequest
             $this->merge(['usuario' => User::normalizarUsuario($this->input('usuario'))]);
         }
 
+        // DOC-25 (Edwar 2026-11-24): cada quien edita sus datos en su propia
+        // ficha, pero no su acceso: el rol, el componente y el estado se quedan
+        // como están (los de Administración los cambia el superadministrador).
+        if ($this->esPropia()) {
+            $dependencia = $this->dependenciaId();
+            $this->merge([
+                'rol' => $this->user()->rolEn($dependencia)?->value,
+                'componente_id' => $this->user()->componenteEn($dependencia),
+                'activo' => true,
+            ]);
+        }
+
     }
 
     public function rules(): array
@@ -47,6 +59,15 @@ class GuardarUsuarioRequest extends FormRequest
             // Al editar, el documento sigue siendo único: nadie puede
             // quedarse con el de otra cuenta y suplantarla al entrar.
             $documento[] = Rule::unique('users', 'documento')->ignore($usuario->id);
+        } else {
+            // DOC-25: «Dar acceso» a quien ya está aquí le pisaría rol y
+            // componente (Coordinación de Calle le quitaría una persona a
+            // Básica). Se edita desde la lista.
+            $documento[] = function (string $atributo, mixed $valor, \Closure $falla) {
+                if ($this->cuentaExistente()?->dependencias()->whereKey($this->dependenciaId())->exists()) {
+                    $falla('Esa persona ya tiene acceso aquí; edítala desde la lista.');
+                }
+            };
         }
 
         return [
@@ -79,7 +100,14 @@ class GuardarUsuarioRequest extends FormRequest
             // quien envía el formulario puede repartir. La lista de la
             // pantalla ya viene filtrada, pero eso solo esconde el botón; lo
             // que impide el ascenso de verdad es esta regla.
-            'rol' => ['required', Rule::in($this->rolesQuePuedeAsignar())],
+            'rol' => ['required', Rule::in($this->esPropia() ? [$this->input('rol')] : $this->rolesQuePuedeAsignar())],
+
+            // DOC-25: obligatorio salvo para Administración, que no tiene
+            // componente (el controlador guarda null). Coordinación solo da
+            // el suyo; Administración, cualquiera activo de la dependencia.
+            'componente_id' => $this->input('rol') === RolDependencia::Administracion->value || $this->esPropia()
+                ? ['nullable']
+                : ['required', Rule::in($this->user()?->componentesAsignablesEn($this->dependenciaId())->modelKeys() ?? [])],
             'activo' => ['boolean'],
 
             // El alias corto del formulario de emergencia: solo existe para
@@ -125,9 +153,20 @@ class GuardarUsuarioRequest extends FormRequest
     /** @return list<string> valores de rol que quien envía puede otorgar */
     protected function rolesQuePuedeAsignar(): array
     {
-        $suyo = $this->user()?->rolEn(app(\App\Services\ContextoDependencia::class)->id());
+        return array_map(fn (RolDependencia $rol) => $rol->value, $this->user()?->rolesAsignablesEn($this->dependenciaId()) ?? []);
+    }
 
-        return array_map(fn (RolDependencia $rol) => $rol->value, $suyo?->asignables() ?? []);
+    protected function dependenciaId(): int
+    {
+        return app(\App\Services\ContextoDependencia::class)->requerida()->id;
+    }
+
+    /** La ficha de quien la envía (el superadministrador, de plataforma, no cuenta). */
+    protected function esPropia(): bool
+    {
+        $usuario = $this->route('usuario');
+
+        return $usuario instanceof User && $usuario->is($this->user()) && ! $this->user()->es_superadmin;
     }
 
     /** DOC-22: solo el superadministrador tiene un usuario con letras (p. ej. «adminDocumenta»). */
@@ -153,6 +192,7 @@ class GuardarUsuarioRequest extends FormRequest
             'documento' => 'usuario',
             'usuario' => 'alias de emergencia',
             'email' => 'correo',
+            'componente_id' => 'componente',
         ];
     }
 
@@ -166,7 +206,9 @@ class GuardarUsuarioRequest extends FormRequest
                 : 'El usuario solo admite números (la cédula), sin puntos ni espacios.',
             'usuario.regex' => 'El alias usa minúsculas, números, puntos, guiones y guiones bajos, '
                 .'y debe llevar al menos una letra.',
-            'rol.in' => 'No puedes otorgar un rol por encima del tuyo.',
+            'rol.in' => 'No puedes otorgar ese rol: nunca uno por encima del tuyo, y Administración solo la da el superadministrador.',
+            'componente_id.required' => 'Elige el componente de la persona.',
+            'componente_id.in' => 'Solo puedes asignar un componente activo que tengas a cargo.',
         ];
     }
 }

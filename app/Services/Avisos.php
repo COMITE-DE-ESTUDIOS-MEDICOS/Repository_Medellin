@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Enums\RolDependencia;
 use App\Models\Aviso;
 use App\Models\Dependencia;
 use App\Models\User;
 use App\Notifications\AvisoDelSistema;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Manda avisos por la campana: a una dependencia (todos o ciertos roles) o
@@ -22,6 +24,13 @@ class Avisos
     public function enviar(string $titulo, string $mensaje, ?Dependencia $dependencia = null, ?array $roles = null, ?User $autor = null, ?string $version = null, ?array $componentes = null): Aviso
     {
         $destinatarios = $this->destinatarios($dependencia, $roles, $componentes);
+
+        // Uno de dependencia que no le llega a nadie no se guarda como «enviado».
+        if ($dependencia !== null && $destinatarios->isEmpty()) {
+            throw ValidationException::withMessages([
+                'componentes' => 'Con lo que marcaste, el aviso no le llega a nadie. Revisa los componentes y los roles.',
+            ]);
+        }
 
         $aviso = Aviso::create([
             'dependencia_id' => $dependencia?->id,
@@ -94,10 +103,12 @@ class Avisos
             $usuarios->wherePivotIn('rol', $roles);
         }
 
-        // DOC-25 (plan D10 y P-04): solo los usuarios de esos componentes.
-        // Administración, sin componente, no lo recibe.
+        // DOC-25 (plan D10; P-04 respondida por Edwar el 2026-11-24): los
+        // usuarios de esos componentes y Administración, que no tiene componente
+        // y lo recibe como antes (los roles marcados se siguen respetando).
         if ($componentes) {
-            $usuarios->wherePivotIn('componente_id', $componentes);
+            $usuarios->where(fn ($q) => $q->whereIn('dependencia_usuario.componente_id', $componentes)
+                ->orWhere('dependencia_usuario.rol', RolDependencia::Administracion->value));
         }
 
         return $usuarios->get();
