@@ -22,13 +22,15 @@ enum RolDependencia: string
     public function descripcion(): string
     {
         return match ($this) {
-            self::Lectura => 'Consulta y descarga los documentos autorizados. No modifica nada.',
+            self::Lectura => 'Consulta y descarga los documentos autorizados. No modifica nada. Trabaja en su componente.',
             self::Edicion => 'Sube archivos, crea, copia y mueve carpetas y documentos, y genera sus propios enlaces de carga. '
                 .'Puede inactivar las carpetas que creó, si no contienen nada de otras personas. '
-                .'Gestiona los turnos: enlaces, personas de campo, novedades y reporte.',
-            self::Coordinacion => 'Lo anterior, más gestionar usuarios, tipos, componentes de turnos, todos los enlaces de carga y auditoría. '
-                .'Inactiva y reactiva cualquier carpeta; los documentos los retira solo Administración.',
-            self::Administracion => 'Control total, incluido retirar carpetas y documentos de la vista.',
+                .'Gestiona los turnos: enlaces, personas de campo, novedades y reporte. Trabaja en su componente.',
+            self::Coordinacion => 'Lo anterior, más gestionar los usuarios, los nodos y las reglas de turnos de su componente, y ver su auditoría. '
+                .'Donde está el módulo Documentos (Calle), también los tipos de documento y todos los enlaces de carga, '
+                .'e inactiva y reactiva cualquier carpeta; los documentos los retira solo Administración.',
+            self::Administracion => 'Trabaja en todos los componentes de la dependencia (no tiene uno propio) y gestiona sus usuarios, '
+                .'salvo las cuentas de Administración. Puede retirar carpetas y documentos de la vista. Solo la da el superadministrador.',
         };
     }
 
