@@ -46,7 +46,7 @@ mensual con códigos para Nómina, recargos RN / RFD / RFN.
 | Persona | Papel |
 |---|---|
 | Edwar (Jorge Eduardo Muñoz Quintero) | Desarrollador y **Dueño de Producto**: aprueba specs y tareas |
-| José Amaya | Desarrollador |
+| José Amaya | Desarrollador y **Dueño de Producto** (las specs y tareas las aprueba Edwar) |
 | Claude | Asistente de desarrollo: redacta, programa y prueba; no aprueba ni publica |
 
 Una misma persona puede cumplir varios papeles; eso no se reporta como problema.
