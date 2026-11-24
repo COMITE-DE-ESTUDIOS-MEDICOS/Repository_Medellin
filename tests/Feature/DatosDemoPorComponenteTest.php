@@ -104,6 +104,21 @@ class DatosDemoPorComponenteTest extends TestCase
         $this->assertEqualsCanonicalizing(array_keys(Componente::MODULOS), $this->calle()->modulos);
     }
 
+    /**
+     * Con 60 personas, algunas salidas llegan después del cierre automático
+     * (DOC-21) y se rechazan. Antes eso detenía el comando a mitad y la suite
+     * fallaba según el caso; ahora se cuentan y el comando termina.
+     */
+    public function test_doc21_simular_dia_sigue_si_una_salida_llega_despues_del_cierre(): void
+    {
+        $this->artisan('turnos:simular-dia', ['fecha' => '2026-10-20', '--personas' => 60, '--semilla' => 7])
+            ->expectsOutputToContain('marcas rechazadas: el turno ya estaba cerrado')
+            ->assertSuccessful();
+
+        $this->assertFalse(\Illuminate\Support\Carbon::hasTestNow());
+        $this->assertModulosDeDemo($this->demo());
+    }
+
     public function test_doc25_acc13_simular_semana_deja_demo_con_sus_modulos(): void
     {
         $this->artisan('turnos:simular-semana', ['desde' => '2026-10-19', '--dias' => 1, '--personas' => 5])->assertSuccessful();
