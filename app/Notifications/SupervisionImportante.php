@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Notification as Notificaciones;
 
 /**
  * DOC-13 (RN-45): lo importante de una supervisión, de inmediato, a Edición y
- * Coordinación. Lo de todos los días se consulta en la lista, sin avisos.
+ * Coordinación de su componente y a Administración (DOC-25). Lo de todos los
+ * días se consulta en la lista, sin avisos.
  */
 class SupervisionImportante extends Notification
 {
@@ -37,8 +38,8 @@ class SupervisionImportante extends Notification
         }
 
         $quienes = Dependencia::find($supervision->dependencia_id)
-            ?->usuarios()
-            ->wherePivotIn('rol', [RolDependencia::Edicion->value, RolDependencia::Coordinacion->value])
+            ?->usuariosDelComponente($supervision->componente_id)
+            ->wherePivotIn('rol', [RolDependencia::Edicion->value, RolDependencia::Coordinacion->value, RolDependencia::Administracion->value])
             ->where('activo', true)
             ->get();
 
