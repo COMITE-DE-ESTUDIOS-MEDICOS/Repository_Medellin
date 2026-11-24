@@ -61,10 +61,9 @@ class AvisosTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.avisos.store'), ['titulo' => 'Hola', 'mensaje' => 'Para todos', 'componentes' => $this->componentesDe($dependencia)]);
 
-        Notification::assertSentTo($lector, AvisoDelSistema::class);
-        // DOC-25 (plan P-04): va a los usuarios de los componentes marcados;
-        // Administración, sin componente, no lo recibe.
-        Notification::assertNotSentTo([$admin, $ajeno], AvisoDelSistema::class);
+        // DOC-25 (P-04, Edwar 2026-11-24): Administración, sin componente, lo recibe como antes.
+        Notification::assertSentTo([$admin, $lector], AvisoDelSistema::class);
+        Notification::assertNotSentTo($ajeno, AvisoDelSistema::class);
     }
 
     /** DOC-25: el formulario exige al menos un componente; aquí, todos los de la dependencia. */

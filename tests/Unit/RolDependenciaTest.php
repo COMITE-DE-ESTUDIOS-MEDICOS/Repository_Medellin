@@ -54,8 +54,9 @@ class RolDependenciaTest extends TestCase
             array_column(RolDependencia::Coordinacion->asignables(), 'value'),
         );
 
+        // DOC-25 (PA-03): Administración la da solo el superadministrador.
         $this->assertSame(
-            ['lectura', 'edicion', 'coordinacion', 'administracion'],
+            ['lectura', 'edicion', 'coordinacion'],
             array_column(RolDependencia::Administracion->asignables(), 'value'),
         );
     }

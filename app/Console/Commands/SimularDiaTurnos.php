@@ -19,6 +19,7 @@ use App\Services\ContextoDependencia;
 use App\Services\Turnos\Marcador;
 use App\Services\Turnos\Programacion;
 use App\Services\Turnos\RevisorEntradas;
+use App\Services\Turnos\TurnoCerrado;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
 use Database\Seeders\DemoTurnosSeeder;
 use Illuminate\Console\Command;
@@ -101,6 +102,7 @@ class SimularDiaTurnos extends Command
         $this->info("Simulando {$dia->translatedFormat('l j \\d\\e F Y')}: {$personas} personas, {$plan->count()} esperadas…");
 
         $marcas = 0;
+        $rechazadas = 0;
         foreach ($eventos->sortBy(fn ($e) => $e['cuando']->getTimestamp())->values() as $e) {
             Carbon::setTestNow($e['cuando']);
 
@@ -111,10 +113,20 @@ class SimularDiaTurnos extends Command
             }
 
             // DOC-12: en la entrada, un 3 % dice que no recibió los EPP.
-            $marcador->marcar($e['persona'], $enlace, ['lat' => 6.2476, 'lng' => -75.5658, 'precision_m' => 10, 'municipio' => 'Medellín, Antioquia', 'epp' => mt_rand(1, 100) > 3]);
-            $marcas++;
+            // DOC-21: si el cierre automático ya cerró su turno, la salida se
+            // rechaza como a la persona real (igual que simular-semana).
+            try {
+                $marcador->marcar($e['persona'], $enlace, ['lat' => 6.2476, 'lng' => -75.5658, 'precision_m' => 10, 'municipio' => 'Medellín, Antioquia', 'epp' => mt_rand(1, 100) > 3]);
+                $marcas++;
+            } catch (TurnoCerrado) {
+                $rechazadas++;
+            }
         }
         Carbon::setTestNow();
+
+        if ($rechazadas) {
+            $this->warn("{$rechazadas} marcas rechazadas: el turno ya estaba cerrado (DOC-21).");
+        }
 
         $this->informe($componente, $dia, $plan, $marcas, microtime(true) - $inicio);
 

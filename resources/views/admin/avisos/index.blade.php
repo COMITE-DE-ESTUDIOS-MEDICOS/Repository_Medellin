@@ -35,7 +35,7 @@
 
         <fieldset>
             <legend class="text-sm font-medium text-[var(--text)]">Componentes *</legend>
-            <p class="text-xs text-[var(--muted)]">Marca al menos uno. Llega solo a las personas de esos componentes; Administración, que no tiene componente, no lo recibe.</p>
+            <p class="text-xs text-[var(--muted)]">Marca al menos uno. Llega a las personas de esos componentes y a Administración.</p>
             <div class="mt-2 flex flex-wrap gap-3">
                 @foreach($componentes as $componente)
                     <label class="flex items-center gap-1.5 text-sm text-[var(--text)]">

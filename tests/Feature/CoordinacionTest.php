@@ -82,6 +82,7 @@ class CoordinacionTest extends TestCase
                 'documento' => '1122334455',
                 'email' => 'nueva.auxiliar@medellin.gov.co',
                 'rol' => RolDependencia::Edicion->value,
+                'componente_id' => $this->coordinador->componenteEn($this->dependencia),
                 'activo' => 1,
                 'password' => 'ClaveNueva123',
                 'password_confirmation' => 'ClaveNueva123',
@@ -221,6 +222,7 @@ class CoordinacionTest extends TestCase
                 'documento' => $admin->documento,
                 'email' => $admin->email,
                 'rol' => RolDependencia::Lectura->value,
+                'componente_id' => $this->coordinador->componenteEn($this->dependencia),
                 'activo' => 1,
             ])
             ->assertForbidden();

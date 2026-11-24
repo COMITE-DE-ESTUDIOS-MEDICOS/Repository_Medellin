@@ -28,3 +28,6 @@ Thumbs.db
 
 # Lo escribe bin/deploy.sh en cada despliegue
 /VERSION
+
+# Salidas de trabajo con Claude: se quedan en cada equipo, no se versionan.
+/Claude outputs/

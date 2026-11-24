@@ -5,7 +5,7 @@
 | Historia | DOC-25 |
 | Tipo | Historia de usuario · cambia RN-01, RN-02, RN-03 y a quién avisan RN-23, RN-25, RN-33 y RN-45; agrega RN-49 a RN-51 |
 | Estado | **Aprobada** |
-| Versión | 1.2 |
+| Versión | 1.3 |
 | Fuentes | Pedido y decisiones de Edwar, 2026-11-20 y 2026-11-23. Documento «Sistema_HC_Especificacion_v1_6» (de otra persona; **aún no está en `fuentes/`**, se propone F-12), secciones 1, 7 y 8, de las que aquí solo se usan las decisiones que Edwar tomó. F-06 (reunión del 9-10-2026: componentes Calle, Básica, Estabilización) |
 | Redactó | Claude |
 | Aprobó (Dueño de Producto) | Edwar, 2026-11-23 |
@@ -118,7 +118,7 @@ de Administración quedan así:
 | Usuarios | Coordinación y Administración | Coordinación: solo los usuarios de su componente; crea usuarios solo en su componente y no puede pasarlos a otro. Administración: todos los usuarios, en cualquier componente |
 | Componentes y nodos | Coordinación y Administración | Coordinación: solo su componente (sus nodos y sus reglas). Administración: todos. Crear un componente y cambiar sus módulos: solo el superadministrador |
 | Tipos de documento, Grupos de custodia | Coordinación de Calle y Administración | Como hoy (son del módulo Documentos) |
-| Auditoría | Coordinación y Administración | Coordinación: lo que hicieron los usuarios de su componente (PA-06). Administración: todo |
+| Auditoría | Coordinación y Administración | Coordinación: lo de su componente, también lo de la vía pública y lo automático (PA-06). Administración: todo |
 | Enviar aviso | Administración | A los usuarios de los componentes que elija |
 | Manual de usuario | Todos | Como hoy |
 
@@ -169,7 +169,7 @@ excepción a «cada usuario ve solo los datos de su componente» del §4.
 | PA-03 | ¿Quién da el rol Administración (coordinador líder)? | **Resuelta (Edwar, 2026-11-23): solo el superadministrador.** Los usuarios que hoy tienen Administración siguen siéndolo; Edwar revisa la lista antes de desplegar, porque pasan a ver todos los componentes | — |
 | PA-04 | ¿Los usuarios actuales de Lectura, Edición y Coordinación pasan a Calle? | **Resuelta (Edwar, 2026-11-23): sí, todos a Calle.** Administración no lleva componente | — |
 | PA-05 | ¿Cómo trabaja Administración (el coordinador líder) con varios componentes? | **Aprobada con la spec (propuesta por defecto):** un selector de componente en el menú, debajo del de dependencia; parado en uno, ve lo de ese componente. Sin vista «todos juntos» por ahora | — |
-| PA-06 | Auditoría: ¿qué ve Coordinación de un componente? Los registros de auditoría no están ligados a un componente | **Aprobada con la spec (propuesta por defecto):** ve las acciones hechas por usuarios de su componente; Administración y el superadministrador, todo | — |
+| PA-06 | Auditoría: ¿qué ve Coordinación de un componente? Los registros de auditoría no están ligados a un componente | **Cambiada por Edwar (2026-11-24):** cada registro guarda su componente; Coordinación ve los de su componente, incluidos los de la vía pública y los automáticos (los anteriores a DOC-25, sin componente, los ve el componente con Documentos); Administración y el superadministrador, todo | — |
 | PA-07 | ¿Quién crea componentes y decide sus módulos? ¿Cambian los catálogos que ya existen? | **Resuelta (Edwar, 2026-11-23): crear componentes y decidir sus módulos es solo del superadministrador.** Los catálogos que ya existen (tipos de turno, puntos críticos, cargos, tipos de documento) siguen como hoy; «solo Edwar cambia las listas» aplica a las listas de Habitante de Calle | — |
 | PA-08 | El documento «Sistema_HC_Especificacion_v1_6» y las decisiones del 2026-11-20 no están en `documentacion/fuentes/` | Registrarlos como fuente (F-12) y como decisiones (D-NN) antes de aprobar, para poder citarlos | No |
 | PA-09 | ¿Básica y Estabilización necesitan nodos o reglas propias desde ya? | No: se crean vacíos y se completan con las specs de Habitante de Calle | No |
@@ -276,6 +276,7 @@ Esta spec no modifica `docs/context/`; al aprobarse, el contexto debe recibir:
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.3 | 2026-11-24 | Decisiones de Edwar tras la revisión de ACC-11: la auditoría guarda el componente (PA-06), y Administración recibe los avisos manuales (P-04 del plan) |
 | 1.2 | 2026-11-24 | Las «Reglas que cambian» pasan a `docs/context/` (RN-01, RN-02, RN-03, RN-23, RN-25, RN-33, RN-45; nuevas RN-49 a RN-51; actores y glosario) con ACC-15. Lo que depende de ACC-07 a ACC-10 queda marcado como pendiente allí |
 | 1.1 | 2026-11-24 | Aclaración de Edwar: los módulos de hoy son de Calle y la numeración DC no cambia; otro componente que necesite algo así tendrá su propio módulo |
 | 1.0 | 2026-11-23 | Aprobada por Edwar: Administración la da solo el superadministrador, usuarios actuales a Calle, un componente por usuario, componentes y módulos solo del superadministrador; PA-05 y PA-06 con la propuesta |

@@ -104,7 +104,7 @@
     <h4>La pantalla de bienvenida</h4>
     <p>Si al entrar ves «Hola, …» en lugar de una lista, lee el mensaje:</p>
     <ul>
-        <li><strong>«Tu componente todavía no tiene módulos activos»:</strong> tu cuenta está bien, pero tu componente aún no usa ninguna parte de Documenta. Cuando se activen, aparecerán en el menú. Si eres de Administración, cambia a otro componente desde el menú.</li>
+        <li><strong>«Este componente todavía no tiene módulos activos»:</strong> tu cuenta está bien, pero tu componente aún no usa ninguna parte de Documenta. Cuando se activen, aparecerán en el menú. Si eres de Administración, cambia a otro componente desde el menú.</li>
         <li><strong>«Pide a tu coordinación que te asigne un componente»:</strong> tu cuenta no tiene componente. Avísale a tu coordinación para que te lo asigne.</li>
     </ul>
     <p>Mientras tanto puedes abrir el manual, tu perfil y la campana.</p>
@@ -429,7 +429,7 @@
     <p>Un mensaje por la campana a los usuarios de la dependencia.</p>
     <ol class="pasos">
         <li>Escribe el título y el mensaje.</li>
-        <li>En <strong>Componentes</strong>, marca a cuáles va (al menos uno). Viene marcado el componente en el que estás. Llega solo a las personas de esos componentes: Administración, que no tiene componente, no lo recibe.</li>
+        <li>En <strong>Componentes</strong>, marca a cuáles va (al menos uno). Viene marcado el componente en el que estás. Llega a las personas de esos componentes y a Administración. Si con lo que marcaste no le llega a nadie, Documenta te avisa y no lo envía.</li>
         <li>En <strong>Para quién</strong>, marca roles si es solo para algunos; sin marcar ninguno, va para todos los roles.</li>
         <li>Toca <strong>Enviar aviso</strong>: Documenta te dice a cuántas personas llegó. El envío queda en la auditoría.</li>
     </ol>

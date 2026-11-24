@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\AccionAuditoria;
 use App\Enums\RolDependencia;
+use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\User;
 use App\Services\AuthentikProvisioner;
@@ -541,6 +542,7 @@ class AuthentikCuentasCompartidasTest extends TestCase
             'documento' => $documento,
             'email' => 'nueva@cem.test',
             'rol' => RolDependencia::Edicion->value,
+            'componente_id' => Componente::withoutGlobalScopes()->where('dependencia_id', $this->dependencia->id)->orderBy('id')->value('id'),
             'activo' => 1,
         ];
     }
@@ -553,6 +555,7 @@ class AuthentikCuentasCompartidasTest extends TestCase
             'documento' => $documento ?? $usuario->documento,
             'email' => $correo ?? $usuario->email,
             'rol' => RolDependencia::Edicion->value,
+            'componente_id' => Componente::withoutGlobalScopes()->where('dependencia_id', $this->dependencia->id)->orderBy('id')->value('id'),
             'activo' => $activo ? 1 : 0,
         ];
     }

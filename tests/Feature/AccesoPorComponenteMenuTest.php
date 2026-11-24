@@ -210,7 +210,7 @@ class AccesoPorComponenteMenuTest extends TestCase
         $editor = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia, $this->basica);
 
         $this->inicio($editor, ['sinComponente' => false])
-            ->assertSee('Tu componente todavía no tiene módulos activos')
+            ->assertSee('Este componente todavía no tiene módulos activos')
             ->assertSee('Básica')
             ->assertDontSee('Pide a tu coordinación que te asigne un componente');
     }
@@ -221,7 +221,7 @@ class AccesoPorComponenteMenuTest extends TestCase
         $this->calle->forceFill(['modulos' => []])->save(); // así queda parado en uno sin módulos
 
         $this->inicio($admin, ['sinComponente' => false])
-            ->assertSee('Tu componente todavía no tiene módulos activos')
+            ->assertSee('Este componente todavía no tiene módulos activos')
             ->assertSee('Puedes elegir otro componente en el menú');
     }
 
@@ -232,7 +232,7 @@ class AccesoPorComponenteMenuTest extends TestCase
 
         $this->inicio($editor, ['sinComponente' => true])
             ->assertSee('Pide a tu coordinación que te asigne un componente')
-            ->assertDontSee('Tu componente todavía no tiene módulos activos');
+            ->assertDontSee('Este componente todavía no tiene módulos activos');
     }
 
     public function test_doc25_ca04_inicio_sin_componente_aunque_el_controlador_no_pase_la_marca(): void
@@ -242,5 +242,15 @@ class AccesoPorComponenteMenuTest extends TestCase
 
         $this->inicio($editor)
             ->assertSee('Pide a tu coordinación que te asigne un componente');
+    }
+
+    public function test_doc25_ca04_administracion_sin_componentes_activos_no_lee_que_pida_uno(): void
+    {
+        $admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
+        Componente::withoutGlobalScopes()->where('dependencia_id', $this->dependencia->id)->update(['activo' => false]);
+
+        $this->actingAs($admin)->get(route('inicio'))->assertOk()
+            ->assertSee('Esta dependencia todavía no tiene componentes activos')
+            ->assertDontSee('Pide a tu coordinación que te asigne un componente');
     }
 }

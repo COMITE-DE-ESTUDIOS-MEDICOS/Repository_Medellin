@@ -25,6 +25,9 @@ class Auditor
     ): Auditoria {
         return Auditoria::create([
             'dependencia_id' => $this->contexto->id(),
+            // DOC-25: el del registro (vía pública, cierres automáticos) o, si
+            // no tiene, aquel donde está parado el usuario.
+            'componente_id' => $auditable?->getAttribute('componente_id') ?? $this->contexto->componenteId(),
             'user_id' => auth()->id(),
             'accion' => $accion->value,
             'auditable_type' => $auditable?->getMorphClass(),

@@ -58,9 +58,10 @@ class UsuariosTablaTest extends TestCase
         $admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
         $this->como($coordinador);
 
+        // DOC-25: Administración no tiene componente: Coordinación ni la ve.
         Livewire::test(Usuarios::class)
             ->assertActionHidden(TestAction::make('revocar')->table($coordinador))
-            ->assertActionHidden(TestAction::make('revocar')->table($admin))
+            ->assertCanNotSeeTableRecords([$admin])
             ->callAction(TestAction::make('revocar')->table($editor));
 
         $this->assertFalse($editor->fresh()->perteneceA($this->dependencia));
@@ -87,7 +88,7 @@ class UsuariosTablaTest extends TestCase
         $this->como($coordinador);
 
         Livewire::test(Usuarios::class)
-            ->assertActionHidden(TestAction::make('sincronizar')->table($admin))
+            ->assertCanNotSeeTableRecords([$admin])
             ->callAction(TestAction::make('sincronizar')->table($ana))
             ->assertNotified('Authentik: '.$ana->name.' quedó en el grupo de Documenta.');
 

@@ -13,6 +13,7 @@
 @php
     $componenteActual ??= null;
     $componentesDisponibles ??= collect();
+    $rolActual ??= null;
     $sinComponente = ($sinComponente ?? false) || $componenteActual === null;
     $puedeElegirOtro = ! $sinComponente && $componentesDisponibles->count() > 1;
 @endphp
@@ -32,12 +33,17 @@
         </h1>
 
         @if($sinComponente)
-            <p class="mt-2 text-sm text-[var(--text)]">Pide a tu coordinación que te asigne un componente.</p>
-            <p class="mt-2 text-sm text-[var(--muted)]">
-                Cuando lo tengas, aquí verás lo que te corresponde.
-            </p>
+            @if($rolActual?->puedeAdministrar())
+                {{-- Administración no tiene componente: lo que falta es que la dependencia tenga uno activo. --}}
+                <p class="mt-2 text-sm text-[var(--text)]">Esta dependencia todavía no tiene componentes activos.</p>
+            @else
+                <p class="mt-2 text-sm text-[var(--text)]">Pide a tu coordinación que te asigne un componente.</p>
+                <p class="mt-2 text-sm text-[var(--muted)]">
+                    Cuando lo tengas, aquí verás lo que te corresponde.
+                </p>
+            @endif
         @else
-            <p class="mt-2 text-sm text-[var(--text)]">Tu componente todavía no tiene módulos activos.</p>
+            <p class="mt-2 text-sm text-[var(--text)]">Este componente todavía no tiene módulos activos.</p>
             <p class="mt-2 text-sm text-[var(--muted)]">
                 Estás en <strong class="font-medium text-[var(--text)]">{{ $componenteActual->nombre }}</strong>.
                 @if($puedeElegirOtro)
