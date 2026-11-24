@@ -20,6 +20,7 @@ use App\Services\Turnos\Marcador;
 use App\Services\Turnos\Programacion;
 use App\Services\Turnos\RevisorEntradas;
 use Database\Seeders\CatalogoTurnosCalleSeeder;
+use Database\Seeders\DemoTurnosSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -126,7 +127,9 @@ class SimularDiaTurnos extends Command
             ['dependencia_id' => $dependencia->id, 'slug' => 'demo-calle'],
             ['nombre' => 'DEMO · Calle', 'activo' => true],
         );
-        $componente->update(['activo' => true, 'config' => ['foto_obligatoria' => false, 'autoregistro' => false] + ($componente->config ?? [])]);
+        // DOC-25: con Turnos, Derivaciones y Supervisión ('modulos' no es asignable en masa).
+        $componente->forceFill(['activo' => true, 'modulos' => DemoTurnosSeeder::MODULOS,
+            'config' => ['foto_obligatoria' => false, 'autoregistro' => false] + ($componente->config ?? [])])->save();
 
         foreach (['Nodo 1', 'Nodo 2', 'Nodo 3'] as $i => $nombre) {
             Nodo::firstOrCreate(['componente_id' => $componente->id, 'nombre' => $nombre], ['orden' => $i + 1, 'activo' => true]);

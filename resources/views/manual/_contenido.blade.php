@@ -54,7 +54,7 @@
 
     <div class="nota">
         <span class="nota-titulo">Cómo leer este manual</span>
-        Cada capítulo indica qué roles usan esa parte. Lo que ves en el menú depende de tu rol: si algo de este manual no te aparece, es porque tu rol no lo necesita.
+        Cada capítulo indica qué roles usan esa parte. Lo que ves en el menú depende de tu <strong>componente</strong> (Calle, Básica, Estabilización) y de tu rol: si algo de este manual no te aparece, es porque tu componente no lo usa o tu rol no lo necesita.
     </div>
 </section>
 
@@ -67,7 +67,7 @@
     <ol class="pasos">
         <li>Abre Documenta en el navegador y toca <strong>Entrar con la cuenta institucional</strong>.</li>
         <li>Te lleva a la página de acceso del Comité (Authentik). Es la <strong>misma cuenta</strong> de MedTech y de las otras aplicaciones: escribe tu <strong>usuario</strong> (por norma interna, tu cédula, sin puntos ni espacios), tu contraseña y, si te lo pide, tu segundo factor.</li>
-        <li>Al entrar llegas a <strong>Documentos</strong>.</li>
+        <li>Al entrar llegas a la primera parte que usa tu componente (en Calle, <strong>Documentos</strong>). Si tu componente todavía no usa ninguna, llegas a una pantalla de bienvenida (ver <strong>Tu componente</strong>, más abajo).</li>
     </ol>
     <p>La <strong>contraseña la defines tú en Authentik</strong>; Documenta no la conoce ni la cambia. La primera vez, quien administra los usuarios te entrega un enlace para crearla (ver <span class="ruta">Administración → Usuarios</span>).</p>
     <div class="nota">
@@ -82,15 +82,38 @@
     <ul>
         <li><strong>Menú lateral:</strong> los módulos agrupados (Turnos, Atención territorial, Administración). Cada grupo se pliega y el menú recuerda cómo lo dejaste. En el celular se abre con el botón <span class="tecla">☰</span>.</li>
         <li><strong>Dependencia:</strong> arriba del menú. Si trabajas en varias, cámbiala ahí; todo lo que ves es de la dependencia elegida.</li>
+        <li><strong>Componente:</strong> debajo de la dependencia, primero en el menú, con el nombre de tu componente a la derecha.</li>
         <li><strong>Barra superior:</strong> la campana de notificaciones, el cambio de tema claro u oscuro y tu cuenta (perfil y salir).</li>
         <li><strong>Versión:</strong> al pie del menú; las novedades de cada versión llegan por la campana.</li>
     </ul>
+
+    <h3>Tu componente</h3>
+    <p>Inclusión Social trabaja por <strong>componentes</strong>: Calle, Básica y Estabilización. Cada persona pertenece a uno y Documenta le muestra solo lo de su componente: las partes que ese componente usa (Documentos, Turnos, Atención territorial) y sus datos (personas de campo, marcaciones, casos, supervisiones). Hoy solo Calle usa esas partes; Básica y Estabilización tendrán las suyas más adelante.</p>
+    <ul>
+        <li><strong>Lectura, Edición y Coordinación:</strong> en el menú ves <strong>Componente</strong> con el nombre del tuyo. Trabajas solo en ese componente; si te corresponde otro, pídelo a quien administra los usuarios.</li>
+        <li><strong>Administración</strong> no pertenece a ningún componente: trabaja en todos, uno a la vez, y elige en cuál desde el menú.</li>
+    </ul>
+
+    <h4>Cambiar de componente <span class="rol si">Administración</span></h4>
+    <ol class="pasos">
+        <li>En el menú, toca <strong>Componente</strong>. A la derecha ves en cuál estás.</li>
+        <li>Se abre la lista de componentes; el actual aparece resaltado. Toca el que necesitas.</li>
+        <li>Documenta te muestra «Ahora estás en…» y desde ese momento el menú y todas las pantallas son de ese componente.</li>
+    </ol>
+
+    <h4>La pantalla de bienvenida</h4>
+    <p>Si al entrar ves «Hola, …» en lugar de una lista, lee el mensaje:</p>
+    <ul>
+        <li><strong>«Tu componente todavía no tiene módulos activos»:</strong> tu cuenta está bien, pero tu componente aún no usa ninguna parte de Documenta. Cuando se activen, aparecerán en el menú. Si eres de Administración, cambia a otro componente desde el menú.</li>
+        <li><strong>«Pide a tu coordinación que te asigne un componente»:</strong> tu cuenta no tiene componente. Avísale a tu coordinación para que te lo asigne.</li>
+    </ul>
+    <p>Mientras tanto puedes abrir el manual, tu perfil y la campana.</p>
 </section>
 
 {{-- ============================================================ --}}
 <section class="capitulo" id="roles">
     {!! $cap('roles') !!}
-    <p class="entrada">Cada persona tiene un rol en cada dependencia. Cada rol incluye lo del anterior.</p>
+    <p class="entrada">Cada persona tiene un rol en cada dependencia. Cada rol incluye lo del anterior. Lectura, Edición y Coordinación usan su rol <strong>dentro de su componente</strong>; Administración, en todos (ver <strong>Tu componente</strong>, en el capítulo anterior).</p>
 
     <table>
         <thead><tr><th>Puede…</th><th class="centro">Lectura</th><th class="centro">Edición</th><th class="centro">Coordinación</th><th class="centro">Administración</th></tr></thead>
@@ -102,7 +125,7 @@
             <tr><td>Ver versiones anteriores de un archivo; reactivar carpetas</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $hay !!}</td><td class="centro">{!! $hay !!}</td></tr>
             <tr><td>Usuarios, tipos de documento, grupos de custodia, componentes y nodos, auditoría</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $hay !!}</td><td class="centro">{!! $hay !!}</td></tr>
             <tr><td>Eliminar derivaciones</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $hay !!}</td><td class="centro">{!! $hay !!}</td></tr>
-            <tr><td>Ver lo inactivo y reactivar documentos; enviar avisos a todos</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $hay !!}</td></tr>
+            <tr><td>Ver lo inactivo y reactivar documentos; enviar avisos; trabajar en todos los componentes</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $no !!}</td><td class="centro">{!! $hay !!}</td></tr>
         </tbody>
     </table>
     <div class="nota">
@@ -351,7 +374,7 @@
     <div class="roles">{!! $roles('Coordinación', 'Administración') !!}</div>
 
     <h3>Componentes y nodos</h3>
-    <p>Crear componentes (Calle, Básica…), sus nodos y la lista de cargos, y ajustar sus reglas: jornada, tolerancia, tolerancia de horas extra (40 a 60 min), duración máxima por cargo, descanso, foto u ubicación obligatoria, autorregistro, turnos por día y cuándo reconocer el turno o avisar «no registró entrada». Todo en un panel lateral: <strong>Nuevo componente</strong> o <strong>Editar</strong> en su fila. Los nodos se agregan, se ordenan arrastrando y se desactivan ahí mismo (no se borran).</p>
+    <p>Crear componentes (Calle, Básica…), sus nodos y la lista de cargos, y ajustar sus reglas: jornada, tolerancia, tolerancia de horas extra (40 a 60 min), duración máxima por cargo, descanso, foto u ubicación obligatoria, autorregistro, turnos por día y cuándo reconocer el turno o avisar «no registró entrada». Todo en un panel lateral: <strong>Nuevo componente</strong> o <strong>Editar</strong> en su fila. Los nodos se agregan, se ordenan arrastrando y se desactivan ahí mismo (no se borran). Coordinación ve solo su componente; Administración, el que tenga elegido en el menú.</p>
     <ul>
         <li><strong>Cargos que supervisan:</strong> los cargos que pueden registrar supervisiones (en Calle, «Apoyo al control territorial»). Tiene que estar escrito igual que en «Cargos».</li>
         <li><strong>Salida mínima (minutos):</strong> volver a marcar antes de esto, después de la última marca, es un reintento: no cambia de entrada a salida ni al revés (30 de fábrica).</li>
@@ -369,6 +392,7 @@
         <li>Ve a <span class="ruta">Administración → Usuarios</span> → <strong>Dar acceso</strong>.</li>
         <li>Nombre, <strong>usuario</strong> (por norma interna, la cédula de la persona: solo números, sin puntos ni espacios) y correo. El único usuario con letras es el del superadministrador de Documenta (por ejemplo, <code>adminDocumenta</code>), que se crea a mano en Authentik y se escribe tal cual, con sus mayúsculas y minúsculas.</li>
         <li>Asigna el <strong>rol</strong> en cada dependencia. Puedes desactivar a alguien sin borrarlo.</li>
+        {{-- ACC-08: campo Componente en Usuarios --}}
         <li>Para un usuario de Edición, marca <strong>Aprueba novedades de turno</strong> si debe aprobarlas (Coordinación y Administración siempre pueden).</li>
     </ol>
     <p>Dar acceso le abre Documenta con su <strong>cuenta institucional de Authentik</strong> (la misma de MedTech). Si ya la tenía por otra aplicación, se usa esa. Documenta <strong>no pone ni cambia contraseñas</strong>: cada persona define la suya en Authentik.</p>
@@ -399,9 +423,16 @@
 
     <h3>Auditoría</h3>
     <p>Quién hizo qué y cuándo: cargas, cambios, inactivaciones, ingresos, comentarios… Filtra por usuario, acción y fechas, o busca por <strong>nombre de archivo</strong>. Cada carga muestra su <strong>origen</strong> (aplicación o enlace de carga) y la <strong>carpeta</strong> a la que fue.</p>
+    <p>Coordinación ve solo lo que hicieron los usuarios <strong>de su componente</strong>, y el filtro «Usuario» solo los ofrece a ellos. Administración ve todo lo de la dependencia.</p>
 
     <h3>Enviar aviso <span class="rol si">Administración</span></h3>
-    <p>Un mensaje por la campana a toda la dependencia o solo a ciertos roles.</p>
+    <p>Un mensaje por la campana a los usuarios de la dependencia.</p>
+    <ol class="pasos">
+        <li>Escribe el título y el mensaje.</li>
+        <li>En <strong>Componentes</strong>, marca a cuáles va (al menos uno). Viene marcado el componente en el que estás. Llega solo a las personas de esos componentes: Administración, que no tiene componente, no lo recibe.</li>
+        <li>En <strong>Para quién</strong>, marca roles si es solo para algunos; sin marcar ninguno, va para todos los roles.</li>
+        <li>Toca <strong>Enviar aviso</strong>: Documenta te dice a cuántas personas llegó. El envío queda en la auditoría.</li>
+    </ol>
 </section>
 
 {{-- ============================================================ --}}
@@ -426,6 +457,9 @@
     <dl class="preguntas">
         <dt>No veo una carpeta que antes veía.</dt>
         <dd>Puede estar inactiva o bajo custodia de un grupo al que no perteneces. Pregunta a Coordinación.</dd>
+
+        <dt>Entré y no veo Documentos, Turnos ni Atención territorial.</dt>
+        <dd>Lo que aparece depende de tu componente. Lee el mensaje de la pantalla de bienvenida (capítulo «Ingreso y primeros pasos», <strong>Tu componente</strong>). Si eres de Administración, revisa en el menú, en <strong>Componente</strong>, en cuál estás parado.</dd>
 
         <dt>Subí muchos archivos y llegaron menos.</dt>
         <dd>Documenta ahora te avisa si el servidor recibió menos de los enviados y no guarda nada a medias. Vuelve a intentar; si se repite, avisa a soporte.</dd>

@@ -13,7 +13,7 @@
 | Recepción externa | Lo que llega de fuera por enlaces de carga | `enlaces_carga`, `recepciones` |
 | Turnos | Personas de campo, marcación, novedades, catálogo de la malla, ausencias | `componentes`, `nodos`, `colaboradores`, `enlaces_turno`, `marcaciones`, `novedades_turno`, `tipos_turno`, `puntos_criticos`, `ausencias` |
 | Atención territorial | Derivaciones y su respuesta; supervisión territorial | `derivaciones`, `supervisiones` |
-| Administración | Dependencias, usuarios, auditoría, avisos | `dependencias`, `users`, `dependencia_usuario`, `auditorias`, `avisos`, `notifications` |
+| Administración | Dependencias, usuarios (con su rol y su componente, DOC-25), auditoría, avisos | `dependencias`, `users`, `dependencia_usuario`, `auditorias`, `avisos`, `notifications` |
 
 `enlaces_turno` lo comparten Turnos y Atención territorial: el mismo enlace por cédula
 sirve para marcar o para reportar una derivación según su `tipo`.
@@ -77,16 +77,32 @@ amenaza detectada, no se pudo verificar.
 
 ### Generales
 
-**RN-01. Cada dependencia ve solo lo suyo.** Ningún usuario ve datos de una dependencia a
-la que no pertenece, ni por enlace directo. El filtro va en la consulta.
-*Origen:* F-02 · *Código:* `DependenciaScope`, `ContextoDependencia`.
+**RN-01. Cada dependencia, y dentro de ella cada componente, ve solo lo suyo.** Ningún
+usuario ve datos de una dependencia a la que no pertenece, ni por enlace directo. El filtro
+va en la consulta. Desde DOC-25, dentro de la dependencia cada usuario ve y trabaja **solo
+los datos de su componente**: personas de campo, ausencias, enlaces por cédula, marcaciones,
+novedades, tipos de turno, puntos críticos, nodos, derivaciones y supervisiones. Un dato de
+otro componente da «No encontrado» o «No tienes permiso», también por dirección directa, y no
+sale en listas, contadores ni reportes. Administración y el superadministrador ven el
+componente que eligen en el menú (RN-50). Quien no tiene componente no ve ningún dato. Los
+documentos, carpetas y enlaces de carga no tienen componente (RN-51). La vía pública (enlaces
+por cédula) no cambia.
+*Origen:* F-02, DOC-25 · *Código:* `DependenciaScope`, `ComponenteScope`, trait `DelComponente`, `ContextoDependencia`, `EstablecerDependencia`.
 
-**RN-02. Rol por dependencia.** El rol (Lectura, Edición, Coordinación, Administración) se
-asigna por dependencia. Nadie gestiona a un usuario con rol mayor; la cuenta de
-plataforma solo la gestiona otro superadministrador.
-*Origen:* F-02 · *Código:* `RolDependencia`, `UsuarioController::verificarRango`, `Livewire\Usuarios::alcanza`.
+**RN-02. Rol por dependencia, dentro de un componente.** El rol (Lectura, Edición,
+Coordinación, Administración) se asigna por dependencia. Nadie gestiona a un usuario con rol
+mayor; la cuenta de plataforma solo la gestiona otro superadministrador. Desde DOC-25,
+Lectura, Edición y Coordinación se ejercen **dentro de un componente**: Coordinación es la
+coordinación de un componente y deja de ver toda la dependencia. Administración es el
+coordinador líder (RN-50): sin componente, con acceso total y administra los usuarios. Que
+solo el superadministrador dé el rol Administración y que Coordinación gestione solo los
+usuarios de su componente se aplica con ACC-07 (pendiente).
+*Origen:* F-02, DOC-25 · *Código:* `RolDependencia`, `UsuarioController::verificarRango`, `Livewire\Usuarios::alcanza`.
 
 **RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante. Desde
+DOC-25, dar acceso a una persona exige elegir **su componente** (uno solo por dependencia),
+salvo con rol Administración, que no lleva componente (se aplica con ACC-07 y ACC-08,
+pendientes; hoy el componente de los usuarios lo dejó la migración: todos en Calle). Desde
 DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
 
 - su usuario es la cédula (`^[0-9A-Z]{3,20}$`);
@@ -99,12 +115,40 @@ DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
   correo;
 - el formulario propio queda solo para el superadministrador, como acceso de emergencia.
 
-*Origen:* F-02, DOC-22 · *Código:* `UsuarioController`, `AuthentikProvisioner`, `Auth\AuthentikController`, `Auth\SesionController`.
+*Origen:* F-02, DOC-22, DOC-25 · *Código:* `UsuarioController`, `AuthentikProvisioner`, `Auth\AuthentikController`, `Auth\SesionController`.
 
 **RN-04. Todo cambio deja auditoría.** Quién, qué, cuándo, IP y navegador. Inactivar
 exige motivo.
 *Origen:* F-01, F-02 · *Código:* `Auditor`, `AccionAuditoria`.
 ⚠️ Excepción encontrada: borrar un comentario no se audita (`ComentarioDocumentoController::destroy`). Ver C-01.
+
+**RN-49. Módulos por componente.** Cada componente tiene su lista de módulos; un usuario
+solo abre los módulos de su componente y, dentro de ellos, lo que su rol permite. La lista
+la cambia solo el superadministrador. Los módulos son Documentos, Turnos, Derivaciones y
+Supervisión; Calle tiene los cuatro y Básica y Estabilización, ninguno por ahora. El menú
+muestra solo los módulos del componente, y abrir por dirección directa una pantalla, una
+descarga o un reporte de un módulo que el componente no tiene da «No tienes permiso». Al
+entrar, cada quien llega al primer módulo que puede abrir; si no hay ninguno, a una pantalla
+de bienvenida que dice que su componente todavía no tiene módulos activos (o, sin componente,
+que pida a su coordinación que se lo asignen). Perfil, campana, manual y tema siguen para
+todos. La pantalla para que el superadministrador cambie los módulos llega con ACC-09
+(pendiente); hasta entonces se cambian solo por migración.
+*Origen:* DOC-25 · *Código:* `Componente::MODULOS`, `componentes.modulos`, Gate `modulo`, rutas `can:modulo,'…'`, trait `ExigeModulo` en las Policies, `InicioController`, `inicio.blade.php`.
+
+**RN-50. Coordinador líder.** Es el rol Administración: no pertenece a ningún componente,
+ve y trabaja todos los de la dependencia y da los permisos (crea usuarios y les asigna
+componente y rol). Trabaja un componente a la vez: lo elige en el grupo «Componente» del
+menú y ve lo que vería una persona de ese componente con acceso total. El superadministrador
+hace lo mismo en todas las dependencias. El rol Administración lo da solo el
+superadministrador. Asignar componente al crear o editar usuarios llega con ACC-07 y ACC-08
+(pendientes).
+*Origen:* DOC-25 (decisiones de Edwar del 2026-11-23, PA-01, PA-03, PA-05) · *Código:* `EstablecerDependencia` (componente de la sesión), `InicioController::cambiarComponente`.
+
+**RN-51. Documentos es de Calle.** El repositorio documental pertenece a un solo componente
+mientras documentos y carpetas no tengan componente. Encender el módulo Documentos en un
+segundo componente mostraría los documentos de Calle; impedirlo en la pantalla de módulos
+llega con ACC-09 (pendiente).
+*Origen:* DOC-25 (decisión de Edwar del 2026-11-20) · *Código:* rutas `can:modulo,'documentos'`, `DocumentoPolicy`, `CarpetaPolicy`, `EnlaceCargaPolicy` con `ExigeModulo`.
 
 ### Repositorio
 
@@ -218,8 +262,11 @@ tolerancia, nace «Turno corto». Las dos quedan pendientes.
 **RN-23. Quién aprueba novedades de turno.** Coordinación y Administración siempre; de
 Edición, solo quien tenga «Aprueba novedades de turno» (se marca por persona en
 Usuarios). Rechazar exige comentario. A quien aprueba le llegan las novedades por la
-campana.
-*Origen:* F-04 §2, D-13 · *Código:* `User::puedeAprobarNovedadesEn`.
+campana. Desde DOC-25, cada quien aprueba solo las novedades de su componente (RN-01), y el
+aviso va a quienes aprueban **en el componente de la persona de campo**, más el coordinador
+líder (RN-50), no a toda la dependencia. *El cambio del aviso se aplica con ACC-10
+(pendiente): hoy sigue llegando a quienes aprueban en toda la dependencia.*
+*Origen:* F-04 §2, D-13, DOC-25 · *Código:* `User::puedeAprobarNovedadesEn`, `Novedades::avisar`.
 
 **RN-24. El turno se reconoce por la entrada y la salida.** Entran los turnos cuyo inicio cae
 entre 90 min antes y 180 min después de la entrada. Al marcar la entrada se elige el de inicio
@@ -232,8 +279,10 @@ se corrige o se ajusta sola cuando la salida cambia el turno.
 **RN-25. «No registró entrada».** A quien se esperaba (turno habitual que aplica ese día,
 sin día de descanso ni ausencia) y 30 min después del inicio no ha marcado, le nace la
 novedad y se avisa a Edición, Coordinación y Administración. Si marca después, se cierra
-sola como «Corregida» y queda la tardanza.
-*Origen:* F-04, D-08 · *Código:* `RevisorEntradas`, `turnos:revisar-entradas` (cada 15 min).
+sola como «Corregida» y queda la tardanza. Desde DOC-25 el aviso va a Edición y Coordinación
+**del componente de la persona** y al coordinador líder (RN-50), no a toda la dependencia.
+*Se aplica con ACC-10 (pendiente): hoy sigue llegando a toda la dependencia.*
+*Origen:* F-04, D-08, DOC-25 · *Código:* `RevisorEntradas`, `turnos:revisar-entradas` (cada 15 min).
 
 **RN-26. Ausencias.** Por rango de fechas, con un código que no es turno (D, VAC, I, P,
 PNR, F, EVENT). Esos días no se espera a la persona.
@@ -280,8 +329,11 @@ nacen con las horas del archivo; corregirlas después sigue siendo del superadmi
 
 **RN-33. Avisos de derivaciones.** Un solo aviso cuando el caso pasa 3 h sin atención,
 para Edición y Coordinación de la dependencia. Al atenderse, quien lo creó recibe el suyo
-y se retira el de vencido. Ya no hay recordatorio cada 30 min.
-*Origen:* D-19, D-21, DOC-20 · *Código:* `DerivacionPendiente`, `CasoAtendido`, `derivaciones:recordar`.
+y se retira el de vencido. Ya no hay recordatorio cada 30 min. Desde DOC-25 el aviso de
+vencido va a Edición y Coordinación **del componente del caso** y al coordinador líder
+(RN-50): Administración pasa a recibirlo. *Se aplica con ACC-10 (pendiente): hoy sigue
+llegando a Edición y Coordinación de toda la dependencia.*
+*Origen:* D-19, D-21, DOC-20, DOC-25 · *Código:* `DerivacionPendiente`, `CasoAtendido`, `derivaciones:recordar`.
 
 **RN-34. Trazabilidad.** La lista y la ficha muestran quién creó el caso y cuándo, quién
 lo atendió (persona de campo y nodo) y cuándo, el tiempo, la meta y el «¿Se cumplió?». Los
@@ -333,8 +385,10 @@ también tienen que estar en turno.
 
 **RN-45. Avisos de supervisión.** Incidencia Relevante o Crítica, casos escalados o
 calificación global de 1 o 2 avisan por la campana a Edición y Coordinación, en la pestaña
-«Supervisión».
-*Origen:* DOC-13 · *Código:* `SupervisionImportante`.
+«Supervisión». Desde DOC-25 el aviso va a Edición y Coordinación **del componente de la
+supervisión** y al coordinador líder (RN-50): Administración pasa a recibirlo. *Se aplica con
+ACC-10 (pendiente): hoy sigue llegando a Edición y Coordinación de toda la dependencia.*
+*Origen:* DOC-13, DOC-25 · *Código:* `SupervisionImportante`.
 
 **RN-46. Ubicación imprecisa.** Una ubicación con error mayor a la «Precisión mínima» del
 componente (500 m de fábrica; típico de un iPhone con «Ubicación precisa» apagada) se
@@ -378,6 +432,7 @@ No hay tabla `parametros` (constitución, stack). Los valores viven en tres luga
 |---|---|---|
 | `config/repositorio.php` | Formatos y tamaño máximo (25 MB), cargas por tandas (300 / 50 / 150 MB), lado máximo de las fotos, horario hábil, festivos 2026–2027, elementos por página | Desarrollo (y variables del `.env`) |
 | Reglas del componente (`Componente::REGLAS`, pantalla «Componentes y nodos») | Jornada esperada, tolerancia, duración máxima, turnos por día, tramos de descanso, ventanas de reconocimiento (90/180 min), aviso «no registró entrada» (30 min), foto y ubicación obligatorias, autorregistro, cargos | Coordinación en adelante |
+| Módulos del componente (`componentes.modulos`, DOC-25) | Qué módulos abre cada componente: Documentos, Turnos, Derivaciones, Supervisión (RN-49) | Solo el superadministrador. Hoy por migración; la pantalla llega con ACC-09 |
 | Catálogo de la malla («Tipos de turno», «Puntos críticos») | Códigos, horarios, días y horas de nómina; puntos con ubicación | Edición en adelante |
 | Constantes en código | Meta de derivaciones (180 min), recordatorio (30 min), 42 h semanales, 200 documentos por lote | Desarrollo. Candidatas a parámetro (C-02) |
 
@@ -393,7 +448,7 @@ No hay tabla `parametros` (constitución, stack). Los valores viven en tres luga
 | PA-06 | EVENT tiene 0 horas de nómina: ¿cuenta como día laborado? | Nómina | DOC-9 |
 | PA-07 | ¿Las horas de 12 a 6 a. m. de un domingo, en un turno que empezó el sábado, van al 125 %? ¿Cómo se combinan extras y recargos? (F-05 §5) | Nómina | DOC-10 |
 | PA-08 | ¿N1 y N1. pasan a N1 y N2 para no confundirse? | Nómina | No |
-| PA-09 | ¿Coordinación y Administración también deben recibir los avisos de derivaciones? ¿O solo los líderes del nodo del caso? | Edwar | No |
+| ~~PA-09~~ | Resuelta en DOC-25: el aviso de derivación vencida va a Edición y Coordinación del componente del caso y al coordinador líder (Administración). Se aplica con ACC-10 (RN-33) | Edwar | No |
 | PA-10 | Plazos de retención de las fotos de turnos (se propuso: reducir a los 3 meses, borrar a los 3 años) | Talento Humano / jurídica | No |
 
 ## Candidatos para la siguiente versión

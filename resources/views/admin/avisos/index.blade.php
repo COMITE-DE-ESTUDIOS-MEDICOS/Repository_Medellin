@@ -15,7 +15,7 @@
         <div>
             <h1 class="text-lg font-semibold text-[var(--text)]">Enviar un aviso</h1>
             <p class="text-sm text-[var(--muted)]">
-                Llega por la campana a los usuarios de {{ $dependenciaActual->nombre }}.
+                Llega por la campana a los usuarios de {{ $dependenciaActual->nombre }} en los componentes que marques.
                 Los cambios de cada versión se anuncian solos.
             </p>
         </div>
@@ -32,6 +32,23 @@
                       placeholder="Ej: El sábado de 8 a 10 a. m. Documenta no estará disponible."
                       class="{{ $campo }}">{{ old('mensaje') }}</textarea>
         </div>
+
+        <fieldset>
+            <legend class="text-sm font-medium text-[var(--text)]">Componentes *</legend>
+            <p class="text-xs text-[var(--muted)]">Marca al menos uno. Llega solo a las personas de esos componentes; Administración, que no tiene componente, no lo recibe.</p>
+            <div class="mt-2 flex flex-wrap gap-3">
+                @foreach($componentes as $componente)
+                    <label class="flex items-center gap-1.5 text-sm text-[var(--text)]">
+                        <input type="checkbox" name="componentes[]" value="{{ $componente->id }}" class="accent-[var(--primary)]"
+                               @checked(in_array($componente->id, array_map('intval', old('componentes', array_filter([$componentePorDefecto]))), true))>
+                        {{ $componente->nombre }}
+                    </label>
+                @endforeach
+            </div>
+            @error('componentes')
+                <p class="mt-1 text-xs text-[var(--danger)]">{{ $message }}</p>
+            @enderror
+        </fieldset>
 
         <fieldset>
             <legend class="text-sm font-medium text-[var(--text)]">Para quién</legend>

@@ -5,11 +5,14 @@
 | Término | Significado |
 |---|---|
 | **Dependencia** | Unidad del Comité que usa Documenta con sus propios datos (Inclusión Social; Salud Mental, inactiva). Nada se ve entre dependencias |
-| **Componente** | Programa dentro de una dependencia: Calle, Básica, Estabilización. Tiene sus reglas de turno, cargos y catálogo (`componentes`) |
+| **Componente** | Programa dentro de una dependencia: Calle, Básica, Estabilización. Tiene sus reglas de turno, cargos y catálogo, y desde DOC-25 **sus módulos**: cada usuario pertenece a uno y ve solo sus módulos y sus datos (`componentes`, RN-01, RN-49) |
+| **Módulo** | Parte de Documenta que un componente usa o no: Documentos, Turnos, Derivaciones, Supervisión. Calle tiene los cuatro; Básica y Estabilización, ninguno por ahora. Los decide solo el superadministrador (`componentes.modulos`, `Componente::MODULOS`, RN-49, DOC-25) |
 | **Nodo** | Equipo o zona de un componente (Nodo 1…). Puede tener centro y radio para saber si una marca quedó lejos (`nodos`) |
 | **Punto crítico** | Lugar de la calle que se cubre en un turno (Parque Bolívar, Terminal del Norte…), con enlace al mapa (`puntos_criticos`) |
 | **Persona de campo** | Quien trabaja en la calle y se identifica solo con su cédula; no tiene cuenta (`colaboradores`) |
-| **Usuario** | Quien entra a Documenta con cuenta (`users`) |
+| **Usuario** | Quien entra a Documenta con cuenta (`users`). El documento de origen de Habitante de Calle lo llama «Funcionario». Desde DOC-25 pertenece a un componente en cada dependencia, salvo con rol Administración (`dependencia_usuario.componente_id`) |
+| **Coordinador líder** | Quien tiene el rol **Administración**: no pertenece a ningún componente, trabaja todos los de la dependencia (elige en el menú en cuál está parado) y da los permisos. No es un rol ni una marca aparte. El documento de origen lo llama «Coordinador general» (RN-50, DOC-25) |
+| **Usuario HC** | Habitante de calle atendido en Básica o Estabilización. El módulo se llamará «Usuarios HC» (DOC-26, por construir). No es un usuario con cuenta ni una persona de campo (DOC-25) |
 | **Líder** | Usuario con rol Edición que gestiona turnos y derivaciones de su componente o nodo |
 | **Documento** | Ficha de un archivo del repositorio; el archivo físico está en sus versiones |
 | **Versión** | Cada carga física de un documento. Nunca se sobrescribe (`documento_versiones`) |
@@ -38,5 +41,5 @@
 | **EPP** | Elementos de protección personal. Al marcar entrada se responde si se recibieron |
 | **Evidencia** | Foto con sello de hora y lugar, de un envío, una marcación o una derivación |
 | **Sello** | Franja estampada en la foto: hora grande, fecha, dirección y coordenadas (D-01) |
-| **Aviso** | Mensaje por la campana a usuarios (de versión o enviado por Administración) |
+| **Aviso** | Mensaje por la campana a usuarios: de versión, para todos, o enviado por Administración a los componentes que elija (DOC-25) |
 | **RN / RFD / RFN** | Recargo nocturno / festivo-dominical diurno / festivo-dominical nocturno (Nómina, F-09) |

@@ -60,6 +60,7 @@ enum AccionAuditoria: string
     case CasoComentarioBorrado = 'caso.comentario_borrado';
     case CarpetaCustodia = 'carpeta.custodia';
     case GrupoCustodiaGuardado = 'grupo_custodia.guardado';
+    case AvisoEnviado = 'aviso.enviado';
 
     public function etiqueta(): string
     {
@@ -118,6 +119,7 @@ enum AccionAuditoria: string
             self::CasoComentarioBorrado => 'Borró un comentario de un caso',
             self::CarpetaCustodia => 'Cambió la custodia de una carpeta',
             self::GrupoCustodiaGuardado => 'Creó o cambió un grupo de custodia',
+            self::AvisoEnviado => 'Envió un aviso por la campana',
         };
     }
 }

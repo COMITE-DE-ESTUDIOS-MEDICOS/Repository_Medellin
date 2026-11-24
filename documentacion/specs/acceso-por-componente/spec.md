@@ -5,7 +5,7 @@
 | Historia | DOC-25 |
 | Tipo | Historia de usuario · cambia RN-01, RN-02, RN-03 y a quién avisan RN-23, RN-25, RN-33 y RN-45; agrega RN-49 a RN-51 |
 | Estado | **Aprobada** |
-| Versión | 1.1 |
+| Versión | 1.2 |
 | Fuentes | Pedido y decisiones de Edwar, 2026-11-20 y 2026-11-23. Documento «Sistema_HC_Especificacion_v1_6» (de otra persona; **aún no está en `fuentes/`**, se propone F-12), secciones 1, 7 y 8, de las que aquí solo se usan las decisiones que Edwar tomó. F-06 (reunión del 9-10-2026: componentes Calle, Básica, Estabilización) |
 | Redactó | Claude |
 | Aprobó (Dueño de Producto) | Edwar, 2026-11-23 |
@@ -276,6 +276,7 @@ Esta spec no modifica `docs/context/`; al aprobarse, el contexto debe recibir:
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.2 | 2026-11-24 | Las «Reglas que cambian» pasan a `docs/context/` (RN-01, RN-02, RN-03, RN-23, RN-25, RN-33, RN-45; nuevas RN-49 a RN-51; actores y glosario) con ACC-15. Lo que depende de ACC-07 a ACC-10 queda marcado como pendiente allí |
 | 1.1 | 2026-11-24 | Aclaración de Edwar: los módulos de hoy son de Calle y la numeración DC no cambia; otro componente que necesite algo así tendrá su propio módulo |
 | 1.0 | 2026-11-23 | Aprobada por Edwar: Administración la da solo el superadministrador, usuarios actuales a Calle, un componente por usuario, componentes y módulos solo del superadministrador; PA-05 y PA-06 con la propuesta |
 | 0.3 | 2026-11-23 | Decisiones de Edwar: Coordinación atada a su componente; Administración es el coordinador líder (sin componente, acceso total, da los permisos); sin marca aparte. PA-01 resuelta; PA-03 y PA-04 reformuladas |

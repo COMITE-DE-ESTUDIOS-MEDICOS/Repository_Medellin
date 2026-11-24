@@ -10,6 +10,23 @@ sola versión. La siguiente sección se abre después de esa fusión.
 
 Cada viñeta, corta y para quien no programa.
 
+<!--
+  «Sin publicar» (DOC-25): al fusionar a main, cambia el título por el número de la versión;
+  el aviso de la campana solo lee secciones «## vN.N». Este comentario va fuera de la sección
+  para que no salga en el aviso.
+  Pendiente de ACC-10, agregar cuando esté construido: «Los avisos de casos vencidos y de
+  supervisiones importantes llegan a Edición y Coordinación del componente y también a
+  Administración».
+-->
+
+## Sin publicar
+
+- Cada persona trabaja en su **componente** (Calle, Básica o Estabilización) y ve solo lo de ese componente: sus pantallas y sus datos. Quienes ya usan Documenta quedan en Calle y ven lo mismo que antes.
+- Se crearon los componentes **Básica** y **Estabilización**, todavía sin pantallas activas: quien entra en uno de ellos ve una bienvenida que lo explica.
+- El menú muestra arriba el **componente** en el que estás. Administración trabaja en todos: toca «Componente» y elige otro.
+- **Auditoría:** Coordinación ve solo lo que hicieron los usuarios de su componente.
+- **Enviar aviso:** se marcan los componentes a los que va (llega solo a las personas de esos componentes), y cada envío queda en la auditoría.
+
 ## v2.2
 
 - Derivaciones con código de caso: la oficina crea el caso (DC-001, DC-002…) desde el celular en Atención territorial → Derivaciones → **Nuevo caso**, con el mensaje, quién lo envía (Alcaldía, Autoridades locales del sector u Otra), la ubicación y el soporte. Desde ese momento corren las 3 horas.

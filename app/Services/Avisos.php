@@ -17,10 +17,11 @@ class Avisos
 {
     /**
      * @param  list<string>|null  $roles  valores de RolDependencia; null = todos
+     * @param  list<int>|null  $componentes  DOC-25: ids de componentes; null = todos (los de versión)
      */
-    public function enviar(string $titulo, string $mensaje, ?Dependencia $dependencia = null, ?array $roles = null, ?User $autor = null, ?string $version = null): Aviso
+    public function enviar(string $titulo, string $mensaje, ?Dependencia $dependencia = null, ?array $roles = null, ?User $autor = null, ?string $version = null, ?array $componentes = null): Aviso
     {
-        $destinatarios = $this->destinatarios($dependencia, $roles);
+        $destinatarios = $this->destinatarios($dependencia, $roles, $componentes);
 
         $aviso = Aviso::create([
             'dependencia_id' => $dependencia?->id,
@@ -79,7 +80,7 @@ class Avisos
         return $lineas->isEmpty() ? null : $lineas->join(' · ');
     }
 
-    protected function destinatarios(?Dependencia $dependencia, ?array $roles)
+    protected function destinatarios(?Dependencia $dependencia, ?array $roles, ?array $componentes = null)
     {
         if ($dependencia === null) {
             return User::where('activo', true)->get();
@@ -91,6 +92,12 @@ class Avisos
         // que no sabe de la tabla intermedia, y el filtro no hacía nada útil.
         if ($roles) {
             $usuarios->wherePivotIn('rol', $roles);
+        }
+
+        // DOC-25 (plan D10 y P-04): solo los usuarios de esos componentes.
+        // Administración, sin componente, no lo recibe.
+        if ($componentes) {
+            $usuarios->wherePivotIn('componente_id', $componentes);
         }
 
         return $usuarios->get();

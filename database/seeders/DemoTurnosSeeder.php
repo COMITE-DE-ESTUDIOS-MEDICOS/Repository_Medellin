@@ -34,6 +34,13 @@ class DemoTurnosSeeder extends Seeder
     protected const MES = '2026-09';
 
     /**
+     * DOC-25: los módulos del componente de demostración. Documentos no: es
+     * solo de Calle (los documentos no son de un componente). También los usan
+     * turnos:simular-dia y turnos:simular-semana.
+     */
+    public const MODULOS = ['turnos', 'derivaciones', 'supervisiones'];
+
+    /**
      * Cada persona y cómo trabaja. 'entra' y 'horas' son la hora de llegada y
      * cuánto se queda en el sitio; 'descansa' es su día libre (0 = domingo).
      */
@@ -64,6 +71,8 @@ class DemoTurnosSeeder extends Seeder
                 'cargos' => ['Conductor camioneta', 'Conductor microbús', 'Operador terapéutico', 'Monitor de ruta'],
             ]],
         );
+        // 'modulos' no es asignable en masa: solo lo cambia el superadministrador.
+        $componente->forceFill(['modulos' => self::MODULOS])->save();
 
         // Se puede volver a correr: lo de la demostración anterior se borra
         // entero (las marcaciones de verdad nunca se tocan: solo este componente).
