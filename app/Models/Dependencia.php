@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RolDependencia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -25,6 +26,13 @@ class Dependencia extends Model
         return $this->belongsToMany(User::class, 'dependencia_usuario')
             ->withPivot('rol', 'aprueba_novedades', 'componente_id')
             ->withTimestamps();
+    }
+
+    /** DOC-25 (CA-12): los usuarios de un componente más Administración (el coordinador líder). */
+    public function usuariosDelComponente(int $componenteId): BelongsToMany
+    {
+        return $this->usuarios()->where(fn ($q) => $q->where('dependencia_usuario.componente_id', $componenteId)
+            ->orWhere('dependencia_usuario.rol', RolDependencia::Administracion->value));
     }
 
     public function carpetas(): HasMany

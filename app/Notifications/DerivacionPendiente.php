@@ -19,14 +19,14 @@ class DerivacionPendiente extends Notification
     {
     }
 
-    /** Avisa a Edición y Coordinación de su dependencia y anota que ya se avisó. */
+    /** Avisa a Edición y Coordinación del componente del caso y a Administración (DOC-25), y anota que ya se avisó. */
     public static function enviar(Derivacion $derivacion): void
     {
         self::retirar($derivacion);
 
         $destinatarios = Dependencia::find($derivacion->dependencia_id)
-            ?->usuarios()
-            ->wherePivotIn('rol', [RolDependencia::Edicion->value, RolDependencia::Coordinacion->value])
+            ?->usuariosDelComponente($derivacion->componente_id)
+            ->wherePivotIn('rol', [RolDependencia::Edicion->value, RolDependencia::Coordinacion->value, RolDependencia::Administracion->value])
             ->where('activo', true)
             ->get();
 

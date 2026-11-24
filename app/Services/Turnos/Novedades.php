@@ -266,8 +266,9 @@ class Novedades
     }
 
     /**
-     * A Coordinación, Administración y quien aprueba novedades de la
-     * dependencia (y a toda Edición si se pide), por la campana.
+     * A Coordinación, Administración y quien aprueba novedades del componente
+     * de la novedad (y a toda Edición si se pide), por la campana. DOC-25:
+     * Administración no tiene componente y recibe todas.
      */
     protected function avisar(array $novedades, bool $conLideres = false): void
     {
@@ -283,7 +284,7 @@ class Novedades
             }
 
             $quienes = Dependencia::find($novedad->dependencia_id)
-                ?->usuarios()
+                ?->usuariosDelComponente($novedad->componente_id)
                 ->where(fn ($q) => $q->whereIn('dependencia_usuario.rol', $roles)
                     ->orWhere('dependencia_usuario.aprueba_novedades', true))
                 ->where('activo', true)

@@ -138,6 +138,7 @@ class AuditoriaYAvisosPorComponenteTest extends TestCase
         $auditor = app(\App\Services\Auditor::class);
         $this->assertSame($this->basica->id, $auditor->registrar(AccionAuditoria::DocumentoCreado, $colaborador)->componente_id, 'El del dato manda.');
         $this->assertSame($this->calle->id, $auditor->registrar(AccionAuditoria::DocumentoCreado)->componente_id, 'Sin dato, el del usuario.');
+        $this->assertSame($this->basica->id, $auditor->registrar(AccionAuditoria::DocumentoCreado, $this->basica)->componente_id, 'Un componente es el suyo.');
     }
 
     public function test_doc25_ca13_un_aviso_que_no_llega_a_nadie_no_se_envia(): void
