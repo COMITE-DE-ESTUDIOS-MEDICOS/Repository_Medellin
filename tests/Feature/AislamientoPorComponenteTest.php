@@ -154,7 +154,9 @@ class AislamientoPorComponenteTest extends TestCase
         foreach ($listados as [$url, $clave, $texto]) {
             $propio = $texto($mio[$clave]);
             $otro = $texto($ajeno[$clave]);
-            $html = $this->get($url)->assertOk()->getContent();
+            // Sin el menú lateral: el de Administración lista todos los
+            // componentes para elegir (PA-05); los contadores se revisan aparte.
+            $html = preg_replace('#<aside id="menu-lateral".*?</aside>#s', '', $this->get($url)->assertOk()->getContent());
             $this->assertStringContainsString(e($propio), $html, "{$url} debía mostrar lo propio");
             $this->assertStringNotContainsString(e($otro), $html, "{$url} mostró lo de otro componente");
         }

@@ -46,6 +46,9 @@ class MenuPorGruposTest extends TestCase
 
     public function test_administracion_ve_los_componentes_en_administracion(): void
     {
+        // DOC-25: Administración no tiene componente propio; se para en uno de la
+        // dependencia, y sin ninguno no ve los enlaces que piden un módulo.
+        Componente::factory()->create(['dependencia_id' => $this->dependencia->id]);
         $admin = $this->usuarioCon(RolDependencia::Administracion, $this->dependencia);
 
         $this->actingAs($admin)->get(route('documentos.index'))

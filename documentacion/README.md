@@ -75,7 +75,7 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Cuentas de Authentik compartidas entre las apps | DOC-22 | [Aprobada](specs/authentik-cuentas-compartidas/spec.md) | Construida |
 | Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
 | Casos: soporte opcional y carga única de casos ya atendidos | DOC-24 | [Aprobada](specs/casos-soporte-opcional-y-carga-masiva/spec.md) | Construida · falta probar con un Excel real (PA-03) |
-| Acceso por componente · componentes Básica y Estabilización | DOC-25 | [Aprobada](specs/acceso-por-componente/spec.md) | Por planear |
+| Acceso por componente · componentes Básica y Estabilización | DOC-25 | [Aprobada](specs/acceso-por-componente/spec.md) | En construcción |
 | Usuarios HC: ficha, caracterización, búsqueda y edición con historial | DOC-26 | [Borrador](specs/usuarios-hc/spec.md) | Por aprobar |
 | Ingresos y egresos de Usuarios HC · sedes y capacidad | DOC-27 | [Borrador](specs/ingresos-y-egresos-hc/spec.md) | Por aprobar |
 | Dashboard de Habitante de Calle: cupos/día y ocupación | DOC-28 | [Borrador](specs/dashboard-hc/spec.md) | Por aprobar |

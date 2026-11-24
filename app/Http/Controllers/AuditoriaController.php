@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Auditoria;
 use App\Services\ContextoDependencia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AuditoriaController extends Controller
@@ -17,8 +18,20 @@ class AuditoriaController extends Controller
     {
         abort_unless($this->contexto->puedeGestionar(), 403, 'No tienes permiso para consultar la auditoría.');
 
+        $dependencia = $this->contexto->requerida();
+
+        // DOC-25 (PA-06): Coordinación ve lo que hicieron los usuarios de su
+        // componente; Administración y el superadministrador, todo. Subconsulta
+        // y no junta: la lista y el filtro «Usuario» salen de la misma.
+        $delComponente = $this->contexto->puedeAdministrar() ? null : DB::table('dependencia_usuario')
+            ->select('user_id')
+            ->where('dependencia_id', $dependencia->id)
+            // Sin componente no ve nada (CA-15): null no debe encontrar a Administración.
+            ->where('componente_id', $this->contexto->componenteId() ?? 0);
+
         $registros = Auditoria::query()
-            ->where('dependencia_id', $this->contexto->requerida()->id)
+            ->where('dependencia_id', $dependencia->id)
+            ->when($delComponente, fn ($q) => $q->whereIn('user_id', $delComponente))
             // Por el nombre del archivo o de quien lo envió: va en la descripción.
             ->when($request->filled('q'), fn ($q) => $q->where('descripcion', 'like', '%'.$request->string('q').'%'))
             ->when($request->filled('accion'), fn ($q) => $q->where('accion', $request->string('accion')))
@@ -32,7 +45,10 @@ class AuditoriaController extends Controller
 
         return view('auditorias.index', [
             'registros' => $registros,
-            'usuarios' => $this->contexto->requerida()->usuarios()->orderBy('name')->get(),
+            'usuarios' => $dependencia->usuarios()
+                ->when($delComponente, fn ($q) => $q->whereIn('users.id', $delComponente))
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RolDependencia;
 use App\Models\Aviso;
+use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Notifications\AvisoDelSistema;
 use App\Services\Avisos;
@@ -40,7 +41,7 @@ class AvisosTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('admin.avisos.store'), [
-                'titulo' => 'Mantenimiento', 'mensaje' => 'El sábado no habrá servicio.', 'roles' => ['edicion'],
+                'titulo' => 'Mantenimiento', 'mensaje' => 'El sábado no habrá servicio.', 'roles' => ['edicion'], 'componentes' => $this->componentesDe($dependencia),
             ])
             ->assertSessionHas('exito', 'Aviso enviado a 1 persona.');
 
@@ -58,10 +59,18 @@ class AvisosTest extends TestCase
         $lector = $this->usuarioCon(RolDependencia::Lectura, $dependencia);
         $ajeno = $this->usuarioCon(RolDependencia::Lectura, Dependencia::factory()->create());
 
-        $this->actingAs($admin)->post(route('admin.avisos.store'), ['titulo' => 'Hola', 'mensaje' => 'Para todos']);
+        $this->actingAs($admin)->post(route('admin.avisos.store'), ['titulo' => 'Hola', 'mensaje' => 'Para todos', 'componentes' => $this->componentesDe($dependencia)]);
 
-        Notification::assertSentTo([$admin, $lector], AvisoDelSistema::class);
-        Notification::assertNotSentTo($ajeno, AvisoDelSistema::class);
+        Notification::assertSentTo($lector, AvisoDelSistema::class);
+        // DOC-25 (plan P-04): va a los usuarios de los componentes marcados;
+        // Administración, sin componente, no lo recibe.
+        Notification::assertNotSentTo([$admin, $ajeno], AvisoDelSistema::class);
+    }
+
+    /** DOC-25: el formulario exige al menos un componente; aquí, todos los de la dependencia. */
+    private function componentesDe(Dependencia $dependencia): array
+    {
+        return Componente::withoutGlobalScopes()->where('dependencia_id', $dependencia->id)->pluck('id')->all();
     }
 
     public function test_coordinacion_no_envia_avisos(): void

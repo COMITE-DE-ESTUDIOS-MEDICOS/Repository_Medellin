@@ -22,12 +22,21 @@ Documentación oficial: <https://filamentphp.com/docs> (secciones *Tables*, *For
 1. **Cada acción con su `authorize()`.** Fuera del panel Filament no revisa permisos
    solo: `CreateAction::make()->authorize('create', Modelo::class)`,
    `EditAction::make()->authorize('update')`, `DeleteAction::make()->authorize('delete')`.
-2. **La consulta de la tabla filtra por dependencia.** Si el modelo no tiene
-   `dependencia_id`, por su padre: `Modelo::query()->whereHas('componente')`.
+2. **La consulta de la tabla filtra por dependencia y por componente** (DOC-25). Lo hacen
+   los global scopes: `DependenciaScope` y `ComponenteScope` (trait `DelComponente`, que
+   además rechaza guardar en otro componente). Si el modelo no tiene `dependencia_id` o
+   `componente_id`, por su padre: `Modelo::query()->whereHas('componente')` (así hereda los
+   dos). Quien se salta el de componente a propósito usa
+   `withoutGlobalScope(ComponenteScope::class)`, **nunca** `withoutGlobalScopes()`, que quita
+   también el de dependencia. Hoy solo lo hacen el selector de componente
+   (`EstablecerDependencia`, `InicioController`) y los componentes de «Enviar aviso»
+   (`AvisoController`); con ACC-07 y ACC-09 se suman el campo «Componente» de Usuarios y
+   `Componentes::nombreUnico()` (plan D4).
 3. **No quitar los middlewares persistentes** de `AppServiceProvider`
    (`Livewire::addPersistentMiddleware`): cada clic de la tabla es una petición nueva y,
    sin `EstablecerDependencia`, `DependenciaScope` no filtra y se verían datos de todas
-   las dependencias. Lo vigila `CatalogosMallaTest`.
+   las dependencias (y, desde DOC-25, de todos los componentes: el mismo middleware fija el
+   componente). Lo vigila `CatalogosMallaTest`.
 4. **La ruta de la página lleva su permiso**: `->middleware('can:viewAny,App\Models\Modelo')`.
 5. **Parámetros por nombre.** En los closures de Filament se inyecta por nombre:
    `$data`, `$record`, `$state`, `$get`, `$rule`… Con otro nombre (`$datos`, `$regla`)
@@ -41,7 +50,10 @@ Documentación oficial: <https://filamentphp.com/docs> (secciones *Tables*, *For
    mismos `@push('estilos')` / `@push('scripts')`.
 4. Prueba con `Livewire::test(...)`: acciones con `TestAction::make(...)->table()`,
    visibilidad con `assertCanSeeTableRecords` / `assertCanNotSeeTableRecords`. Livewire::test
-   no pasa por los middlewares: establecer la dependencia a mano.
+   no pasa por los middlewares: establecer la dependencia y el componente a mano
+   (`$contexto->establecer($dependencia)` y `$contexto->establecerComponente($componente)`,
+   con `$contexto = app(ContextoDependencia::class)`). Sin `establecerComponente`,
+   `ComponenteScope` no filtra.
 
 ## Despliegue
 
