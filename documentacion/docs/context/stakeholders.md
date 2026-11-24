@@ -42,9 +42,8 @@ pertenecen a un componente y la tabla de arriba vale **dentro de ese componente*
 los módulos que su componente tiene y ven solo sus datos (RN-01, RN-49). Administración es el
 coordinador líder: sin componente y con acceso a todos los de la dependencia, uno a la vez
 (RN-50). En la Auditoría, Coordinación ve solo lo de su componente (también lo de la vía pública y lo
-automático); Administración, todo. Lo que falta de la pantalla de Usuarios (Coordinación gestiona solo los
-de su componente; Administración la da solo el superadministrador) se aplica con ACC-07 y
-ACC-08.
+automático); Administración, todo. En Usuarios, Coordinación gestiona solo los de su componente
+y el rol Administración lo da solo el superadministrador.
 
 ## Componentes y nodos
 

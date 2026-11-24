@@ -25,6 +25,7 @@ Cada viñeta, corta y para quien no programa.
 - Se crearon los componentes **Básica** y **Estabilización**, todavía sin pantallas activas: quien entra en uno de ellos ve una bienvenida que lo explica.
 - El menú muestra arriba el **componente** en el que estás. Administración trabaja en todos: toca «Componente» y elige otro.
 - **Auditoría:** Coordinación ve solo lo de su componente, incluidas las marcas por QR, lo que llega por los enlaces y los cierres automáticos.
+- **Usuarios:** al dar acceso o editar a alguien se elige su componente. Coordinación lo pone en el suyo; el rol Administración solo lo da el superadministrador.
 - **Enviar aviso:** se marcan los componentes a los que va (llega a las personas de esos componentes y a Administración), y cada envío queda en la auditoría.
 
 ## v2.2

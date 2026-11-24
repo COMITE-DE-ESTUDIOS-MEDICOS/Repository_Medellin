@@ -392,7 +392,8 @@
         <li>Ve a <span class="ruta">Administración → Usuarios</span> → <strong>Dar acceso</strong>.</li>
         <li>Nombre, <strong>usuario</strong> (por norma interna, la cédula de la persona: solo números, sin puntos ni espacios) y correo. El único usuario con letras es el del superadministrador de Documenta (por ejemplo, <code>adminDocumenta</code>), que se crea a mano en Authentik y se escribe tal cual, con sus mayúsculas y minúsculas.</li>
         <li>Asigna el <strong>rol</strong> en cada dependencia. Puedes desactivar a alguien sin borrarlo.</li>
-        {{-- ACC-08: campo Componente en Usuarios --}}
+        <li>Elige el <strong>componente</strong> en que trabaja (Calle, Básica o Estabilización): solo verá lo de ese componente. Es obligatorio salvo para Administración, que no tiene componente y trabaja en todos. Si eres de Coordinación, la persona queda en tu componente y no se puede cambiar. El rol Administración solo lo da el superadministrador.</li>
+        <li>En tu propia ficha corriges tus datos, pero no cambias tu rol ni tu componente, ni desactivas tu cuenta: eso lo hace otra persona. Si el componente de alguien quedó inactivo, al editarlo Documenta te pide elegir otro.</li>
         <li>Para un usuario de Edición, marca <strong>Aprueba novedades de turno</strong> si debe aprobarlas (Coordinación y Administración siempre pueden).</li>
     </ol>
     <p>Dar acceso le abre Documenta con su <strong>cuenta institucional de Authentik</strong> (la misma de MedTech). Si ya la tenía por otra aplicación, se usa esa. Documenta <strong>no pone ni cambia contraseñas</strong>: cada persona define la suya en Authentik.</p>

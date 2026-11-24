@@ -101,8 +101,9 @@ usuarios de su componente se aplica con ACC-07 (pendiente).
 
 **RN-03. No hay registro público.** Las cuentas las crea Coordinación en adelante. Desde
 DOC-25, dar acceso a una persona exige elegir **su componente** (uno solo por dependencia),
-salvo con rol Administración, que no lleva componente (se aplica con ACC-07 y ACC-08,
-pendientes; hoy el componente de los usuarios lo dejó la migración: todos en Calle). Desde
+salvo con rol Administración, que no lleva componente. Coordinación solo asigna el suyo. En
+su propia ficha nadie cambia su rol, su componente ni el estado de su cuenta, salvo el
+superadministrador. Desde
 DOC-22 la cuenta de Authentik es **una por persona, compartida entre las apps**:
 
 - su usuario es la cédula (`^[0-9A-Z]{3,20}$`);
@@ -140,8 +141,8 @@ ve y trabaja todos los de la dependencia y da los permisos (crea usuarios y les 
 componente y rol). Trabaja un componente a la vez: lo elige en el grupo «Componente» del
 menú y ve lo que vería una persona de ese componente con acceso total. El superadministrador
 hace lo mismo en todas las dependencias. El rol Administración lo da solo el
-superadministrador. Asignar componente al crear o editar usuarios llega con ACC-07 y ACC-08
-(pendientes).
+superadministrador, y solo él cambia el acceso de esas cuentas; cada una corrige sus propios
+datos en su ficha.
 *Origen:* DOC-25 (decisiones de Edwar del 2026-11-23, PA-01, PA-03, PA-05) · *Código:* `EstablecerDependencia` (componente de la sesión), `InicioController::cambiarComponente`.
 
 **RN-51. Documentos es de Calle.** El repositorio documental pertenece a un solo componente
