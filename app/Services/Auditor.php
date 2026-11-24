@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\AccionAuditoria;
 use App\Models\Auditoria;
+use App\Models\Componente;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -27,7 +28,8 @@ class Auditor
             'dependencia_id' => $this->contexto->id(),
             // DOC-25: el del registro (vía pública, cierres automáticos) o, si
             // no tiene, aquel donde está parado el usuario.
-            'componente_id' => $auditable?->getAttribute('componente_id') ?? $this->contexto->componenteId(),
+            'componente_id' => ($auditable instanceof Componente ? $auditable->getKey() : $auditable?->getAttribute('componente_id'))
+                ?? $this->contexto->componenteId(),
             'user_id' => auth()->id(),
             'accion' => $accion->value,
             'auditable_type' => $auditable?->getMorphClass(),

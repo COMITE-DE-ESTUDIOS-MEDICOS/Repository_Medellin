@@ -25,6 +25,9 @@ class AdminComponentesTest extends TestCase
 
     private User $admin;
 
+    /** DOC-25 (CA-10): crear un componente es solo del superadministrador. */
+    private User $superadmin;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,6 +36,7 @@ class AdminComponentesTest extends TestCase
         // Sin el «Calle» que el helper crea (ACC-04): cada prueba crea el suyo. Solo Livewire::test.
         $this->admin = User::factory()->create();
         $this->admin->dependencias()->attach($this->dependencia->id, ['rol' => RolDependencia::Administracion->value]);
+        $this->superadmin = User::factory()->superadmin()->create();
     }
 
     /** Livewire::test no pasa por los middlewares: la dependencia se pone a mano. */
@@ -58,7 +62,7 @@ class AdminComponentesTest extends TestCase
 
     public function test_crear_un_componente_guarda_reglas_cargos_limpios_y_nodos(): void
     {
-        $this->como($this->admin);
+        $this->como($this->superadmin);
 
         Livewire::test(Componentes::class)
             ->callAction(TestAction::make(CreateAction::class)->table(), $this->datos([
@@ -94,7 +98,7 @@ class AdminComponentesTest extends TestCase
     public function test_no_se_repite_el_nombre_en_la_misma_dependencia(): void
     {
         Componente::factory()->create(['dependencia_id' => $this->dependencia->id, 'nombre' => 'Calle', 'slug' => 'calle']);
-        $this->como($this->admin);
+        $this->como($this->superadmin);
 
         Livewire::test(Componentes::class)
             ->callAction(TestAction::make(CreateAction::class)->table(), $this->datos(['nombre' => 'calle']))
@@ -103,7 +107,7 @@ class AdminComponentesTest extends TestCase
 
     public function test_las_reglas_se_validan_entre_si(): void
     {
-        $this->como($this->admin);
+        $this->como($this->superadmin);
 
         Livewire::test(Componentes::class)
             ->callAction(TestAction::make(CreateAction::class)->table(), $this->datos([

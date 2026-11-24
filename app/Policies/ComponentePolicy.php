@@ -7,8 +7,9 @@ use App\Models\User;
 use App\Services\ContextoDependencia;
 
 /**
- * Crear Básica o Estabilización, o cambiar sus reglas, cambia cómo trabaja
- * todo un equipo: es de Coordinación en adelante. Sus nodos van con él.
+ * Cambiar las reglas de un componente cambia cómo trabaja todo un equipo: es
+ * de Coordinación en adelante, cada quien en el suyo (ComponenteScope). Sus
+ * nodos van con él. Crearlo y cambiar sus módulos: solo el superadministrador.
  */
 class ComponentePolicy
 {
@@ -17,9 +18,10 @@ class ComponentePolicy
         return $usuario->puedeGestionarEn(app(ContextoDependencia::class)->id());
     }
 
+    /** DOC-25 (PA-07, CA-10): crear un componente es solo del superadministrador. */
     public function create(User $usuario): bool
     {
-        return $this->viewAny($usuario);
+        return (bool) $usuario->es_superadmin;
     }
 
     public function update(User $usuario, Componente $componente): bool

@@ -4,6 +4,7 @@ namespace App\Livewire\Turnos;
 
 use App\Enums\AccionAuditoria;
 use App\Models\Componente;
+use App\Models\Scopes\ComponenteScope;
 use App\Services\Auditor;
 use App\Services\ContextoDependencia;
 use Closure;
@@ -11,6 +12,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
@@ -29,6 +31,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
@@ -36,7 +39,8 @@ use Livewire\Component;
  * Calle, Básica, Estabilización… con sus reglas, cargos y nodos. Crear uno es
  * lo único que hace falta para llevar los turnos a otro equipo: sus
  * diferencias van en las reglas. Tabla y panel lateral de Filament dentro
- * de Documenta. De Coordinación en adelante (ComponentePolicy).
+ * de Documenta. De Coordinación en adelante (ComponentePolicy); crear uno y
+ * cambiar sus módulos, solo el superadministrador (DOC-25, CA-10).
  *
  * Los nodos no se borran: se desactivan, y siguen existiendo para lo que ya
  * se marcó en ellos.
@@ -82,6 +86,9 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                         'dependencia_id' => app(ContextoDependencia::class)->requerida()->id,
                         'activo' => true,
                     ])
+                    ->using(fn (array $data) => self::guardar(new Componente, $data))
+                    // DOC-25 (P-01): la tabla muestra el componente donde está parado.
+                    ->successNotificationTitle(fn (Componente $record) => "Componente {$record->nombre} creado. Para verlo y trabajarlo, elígelo en el selector de componente.")
                     ->after(fn (Componente $record) => app(Auditor::class)->registrar(
                         AccionAuditoria::ComponenteGuardado, $record, "Creó el componente {$record->nombre}",
                     )),
@@ -100,13 +107,14 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                         return $data;
                     })
                     ->mutateDataUsing(fn (array $data, Componente $record) => self::preparar($data, $record))
+                    ->using(fn (array $data, Componente $record) => self::guardar($record, $data))
                     ->after(fn (Componente $record) => app(Auditor::class)->registrar(
                         AccionAuditoria::ComponenteGuardado, $record, "Actualizó el componente {$record->nombre}",
                         ['cambios' => array_keys($record->getChanges())],
                     )),
             ])
             ->emptyStateHeading('Aún no hay componentes')
-            ->emptyStateDescription('Crea Calle, Básica, Estabilización… con sus reglas y sus nodos.');
+            ->emptyStateDescription('Los componentes (Calle, Básica, Estabilización…) los crea el superadministrador.');
     }
 
     /** El mismo formulario para crear y para editar. */
@@ -121,6 +129,15 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
                         ->required()
                         ->maxLength(100)
                         ->rule(fn (?Componente $record) => self::nombreUnico($record)),
+                    // DOC-25 (D9): oculto no se deshidrata; guardar() lo vuelve a exigir.
+                    CheckboxList::make('modulos')
+                        ->label('Módulos')
+                        ->helperText('Lo que ven los usuarios de este componente en el menú. Solo lo cambia el superadministrador.')
+                        ->options(array_map(fn (array $m) => $m[0], Componente::MODULOS))
+                        ->default([])
+                        ->columns(2)
+                        ->visible(fn () => (bool) auth()->user()?->es_superadmin)
+                        ->rule(fn (?Componente $record) => self::documentosEnUno($record)),
                     TagsInput::make('config.cargos')
                         ->label('Cargos')
                         ->placeholder('Escribe un cargo y presiona Enter')
@@ -304,11 +321,53 @@ class Componentes extends Component implements HasActions, HasSchemas, HasTable
         ];
     }
 
-    /** Dos componentes no se llaman igual en la misma dependencia (el slug es único). */
+    /**
+     * DOC-25 (D9): 'modulos' no es fillable. Solo el superadministrador lo
+     * guarda, aunque alguien más lo meta en la petición.
+     */
+    protected static function guardar(Componente $componente, array $data): Componente
+    {
+        $componente->fill(Arr::except($data, 'modulos'));
+
+        if (auth()->user()?->es_superadmin && array_key_exists('modulos', $data)) {
+            $componente->forceFill(['modulos' => array_values((array) $data['modulos'])]);
+        }
+
+        $componente->save();
+
+        return $componente;
+    }
+
+    /**
+     * RN-51: Documentos en un solo componente por dependencia (documentos y
+     * carpetas no tienen componente). Se revisa en PHP, sin consultas JSON.
+     */
+    protected static function documentosEnUno(?Componente $record): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($record) {
+            if (! in_array('documentos', (array) $value, true)) {
+                return;
+            }
+
+            $otro = Componente::withoutGlobalScope(ComponenteScope::class)
+                ->when($record, fn ($q) => $q->whereKeyNot($record->id))
+                ->get()
+                ->first(fn (Componente $c) => $c->tieneModulo('documentos'));
+
+            if ($otro) {
+                $fail("Documentos ya es de {$otro->nombre}: no se puede usar en dos componentes (RN-51).");
+            }
+        };
+    }
+
+    /**
+     * Dos componentes no se llaman igual en la misma dependencia (el slug es
+     * único). En todos los componentes, no solo donde está parado (DOC-25, D4).
+     */
     protected static function nombreUnico(?Componente $record): Closure
     {
         return function (string $attribute, mixed $value, Closure $fail) use ($record) {
-            $existe = Componente::where('slug', Str::slug((string) $value))
+            $existe = Componente::withoutGlobalScope(ComponenteScope::class)->where('slug', Str::slug((string) $value))
                 ->when($record, fn ($q) => $q->whereKeyNot($record->id))
                 ->exists();
 
