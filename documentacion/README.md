@@ -76,8 +76,8 @@ geolocalización, interfaz, puesta en marcha) y se enlazan desde aquí; no se du
 | Casos: comuna, gestión realizada, comentarios y paginación | DOC-23 | [Aprobada](specs/casos-comuna-gestion-y-comentarios/spec.md) | Construida |
 | Casos: soporte opcional y carga única de casos ya atendidos | DOC-24 | [Aprobada](specs/casos-soporte-opcional-y-carga-masiva/spec.md) | Construida · falta probar con un Excel real (PA-03) |
 | Acceso por componente · componentes Básica y Estabilización | DOC-25 | [Aprobada](specs/acceso-por-componente/spec.md) | En construcción |
-| Usuarios HC: ficha, caracterización, búsqueda y edición con historial | DOC-26 | [Borrador](specs/usuarios-hc/spec.md) | Por aprobar |
-| Ingresos y egresos de Usuarios HC · sedes y capacidad | DOC-27 | [Borrador](specs/ingresos-y-egresos-hc/spec.md) | Por aprobar |
+| Usuarios HC: ficha, caracterización, búsqueda y edición con historial | DOC-26 | [Aprobada v1.1](specs/usuarios-hc/spec.md) | En construcción (plan y tareas) |
+| Ingresos y egresos de Usuarios HC · sedes y capacidad | DOC-27 | [Aprobada v1.0](specs/ingresos-y-egresos-hc/spec.md) | Plan y tareas aprobados (arranca 1/12) |
 | Dashboard de Habitante de Calle: cupos/día y ocupación | DOC-28 | [Borrador](specs/dashboard-hc/spec.md) | Por aprobar |
 | Reportes de Habitante de Calle: reporte de cupos | DOC-29 | [Borrador](specs/reportes-hc/spec.md) | Por aprobar |
 | Cierres de periodo de Habitante de Calle | DOC-30 | [Borrador resumido](specs/cierres-hc/spec.md) | Por aprobar |

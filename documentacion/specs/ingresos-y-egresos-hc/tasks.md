@@ -1,0 +1,171 @@
+# Tareas: Ingresos y egresos de Usuarios HC (DOC-27)
+
+> **Estado: Aprobadas por Edwar (2026-11-24)**, con el plan (P-01 a P-07 por defecto; UHC-11 al 11/12). Spec v1.0 aprobada.
+
+Prefijo `IYE`. Plan: [plan.md](plan.md). Spec: [spec.md](spec.md) v1.0. Pruebas en
+`tests/Feature/IngresosEgresos/`, con nombres `test_doc27_caNN_…`. Una tarea a la vez, cada una
+con la suite completa pasando.
+
+**Reparto:** Edwar construye desde el 1/12 (antes está con DOC-26: UHC-01 y UHC-04). José ayuda el
+**7, 9 y 10/12**; el resto del tiempo está en DOC-26 y no toca estos archivos. Las tareas UHC-19 a
+UHC-22 son de DOC-26 pero se hacen aquí, porque las habilita DOC-27 (plan D10).
+
+Estimación en días-persona. **Depende** nombra también las tareas de DOC-26 (UHC-NN) y la fecha en
+que llegan a `develop`.
+
+## Hasta el 15/12
+
+| Tarea | Qué | CA | Tipo | Quién | Est. | Depende | Estado |
+|---|---|---|---|---|---|---|---|
+| IYE-01 | **Módulo y rutas.** `ingresos_egresos` en `Componente::MODULOS` después de `usuarios_hc`; `routes/ingresos-egresos.php` con la pantalla vacía y su carga en `bootstrap/app.php` con `"can:modulo,'ingresos_egresos'"`; línea en `sidebar.blade.php` para todos los roles; `ModulosPorComponenteTest` (parámetro `estadia`, Policies nuevas). Sin migración de encendido | CA-21 | Backend | Edwar | 0,25 | UHC-01 (30/11) | Pendiente |
+| IYE-02 | **Esquema, modelos y días.** Migración `2026_12_01_000001_crear_ingresos_y_egresos` (`sedes`, `sede_capacidades`, `estadias` con `activa_usuario_hc_id` único, `estadia_respuestas`, `estadia_cambios`); modelos con `DependenciaScope` + `DelComponente` (`Sede`, `Estadia`); `Estadia::dePersona()` (único salto de `ComponenteScope`) y `componente()` sin él; cast `App\Casts\HoraColombia` (segundos en 00); `Estadia::diasDeEstadia()` y accessor; `Sede::capacidadEn()`; bloque `ingresos_egresos` en `config/repositorio.php` y constantes de los tres códigos con efecto; fábricas `Sede` y `Estadia` (`activa`, `egresada`, `anulada`). Prueba de días con `America/Bogota` y con `UTC` | CA-23, CA-02 (al minuto) | Backend | Edwar | 1 | UHC-02, UHC-03 (30/11) | Pendiente |
+| IYE-03 | **Permisos y auditoría.** `EstadiaPolicy` (`before` con módulo, dependencia y componente; `viewAny`, `view`, `create`, `registrarEgreso`, `corregir`, `pasarDelMes`, `reabrir`, `anular`) y `SedePolicy` (solo superadministrador); acciones nuevas de `AccionAuditoria` (plan D8). Pruebas de la Policy: Lectura, Edición, Coordinación, líder y superadministrador; otro componente; otra dependencia en cada método; Calle sin módulo | CA-16, CA-18, CA-32 (Policy), CA-01 (Policy) | Backend | Edwar | 0,5 | IYE-02 | Pendiente |
+| IYE-04 | **Registrar ingreso y egreso, servidor.** `App\Services\Estadias::registrarIngreso` y `registrarEgreso` (plan D5): transacción, bloqueo de la persona, revisión, cuenta activa, Viva, sede activa, opciones vigentes, una activa (mensaje con solo el componente), cruces, retroactiva, no futura, un mes (salvo `pasarDelMes`), salida ≥ llegada, comuna solo con calle, destino solo con derivación, excluyentes, `UniqueConstraintViolationException` → mismo mensaje; aviso de capacidad; egreso por Fallecimiento → `FichasUsuariosHc::cambiarEstadoVital` (si UHC-12 no está el 4/12, ese efecto pasa a IYE-10); auditoría | CA-02 a CA-11, CA-17 (egreso), CA-20 (servidor), CA-25, CA-29, CA-30, CA-33, CA-34 | Backend | Edwar | 1,5 | IYE-03, UHC-05 (30/11), UHC-12 (3/12, acuerdo de firma en el plan) | Pendiente |
+| IYE-05 | **Pantalla mínima: tabla y ventanas de ingreso y egreso.** `index.blade.php` y `Livewire\IngresosEgresos\Estadias` (tabla Filament con los scopes, columnas de §2, días, orden por ingreso); acción de encabezado «Registrar ingreso» (persona buscada con `scopeBuscar` sin fallecidas ni activas, sede puesta si hay una, `datetime-local` vacío, comuna visible solo con calle); acción «Registrar egreso» (fecha vacía, destino visible solo con derivación, fecha de fallecimiento propuesta); «Ver usuario HC»; `defaultAction` para abrir el ingreso con la persona puesta; aviso de capacidad. Cada acción con `->authorize()`. **Con esto se mira el punto de control del 4/12** | CA-02 (formulario vacío), CA-03 (no se ofrece), CA-20 (conserva lo escrito), CA-22 (solo el componente de la sesión) | Frontend | Edwar | 0,75 | IYE-04 | Pendiente |
+| IYE-06 | **Lista completa.** En `Estadias.php`: búsqueda (`whereIn` sobre `UsuarioHc::buscar`), filtros de fechas (rango con permanencia, del 1 del mes a hoy en Colombia), estado (Todas sin anuladas, Activa, Egresada, Anuladas) y sede (con las inactivas); búsqueda, filtros y página que se conservan; «—» en días de una anulada. **Antes** de que Edwar agregue ahí las acciones de IYE-09 e IYE-10 | CA-22 | Frontend | José | 0,5 | IYE-05 | Pendiente |
+| IYE-07 | **Sedes (superadministrador).** `Livewire\IngresosEgresos\Sedes` dentro de la pantalla, con `@can('viewAny', Sede::class)`: crear (nombre, capacidad, vigente desde), renombrar, cambiar capacidad (nueva, desde, motivo; muestra las anteriores), activar y desactivar (rechazo con cuántas activas tiene); `SedeGuardada`; `->authorize()` en cada acción. Pieza aparte, para moverla si Edwar responde distinto a P-01 | CA-01, CA-26 | Backend + frontend | José | 0,75 | IYE-03 | Pendiente |
+| IYE-08 | **Ver estadía.** `EstadiaController@show` con `can:view` y `EstadiaConsultada` cada vez; vista con ingreso (condiciones incluidas), egreso, quién registró y cuándo (`->setTimezone(zona)->fechaHora()`) e historial; Lectura recibe rechazo; otro componente u otra dependencia, 404 | CA-18, CA-19, CA-32 (ruta) | Backend + frontend | José | 0,5 | IYE-03 | Pendiente |
+| IYE-09 | **Corregir ingreso y egreso.** `Estadias::corregirIngreso` y `corregirEgreso`: motivo obligatorio, revisión, límite del mes para la fecha nueva **y** la vieja (salvo `pasarDelMes`), cruces, opción retirada que la estadía ya tiene se acepta sin cambiarla, historial por campo (destino quitado incluido), corrección **a** Fallecimiento deja Fallecida y **desde** Fallecimiento pregunta «¿La persona está viva?»; `EstadiaCorregida` solo con campos y motivo (la prueba abre la pantalla de Auditoría). Acciones en la tabla | CA-10 (historial), CA-12, CA-13, CA-17 (corrección), CA-24, CA-28, CA-33 (corrección), CA-32 (acción) | Backend | Edwar | 1,25 | IYE-04, IYE-06 | Pendiente |
+| IYE-10 | **Reabrir y anular.** `Estadias::reabrir` (otra activa o cruce sin fin → rechazo diciendo el conflicto; egreso al historial; Activa) y `anular` (activa o egresada; motivo; fuera de activas y conteos); pregunta «¿La persona está viva?» con egreso por Fallecimiento (Sí → Viva con historial en la ficha; No → no se hace). Acciones en la tabla con confirmación, solo Coordinación en adelante | CA-14, CA-15, CA-16, CA-17 (reabrir y anular), CA-27, CA-32 (acción) | Backend | Edwar | 1 | IYE-09, UHC-19 | Pendiente |
+| UHC-19 | (DOC-26) `conocidaPor` y `editablePor` con `Estadia::dePersona()`: válida = activa o egresada | DOC-26 CA-24, CA-25; DOC-27 CA-27, CA-30 | Backend | Edwar | 0,5 | IYE-02, UHC-04 | Pendiente |
+| UHC-21 | (DOC-26) «Fallecida» desde la ficha con estadía activa: aviso a la Coordinación de ese componente y al líder (`usuariosDelComponente`), tipo nuevo en la campana; no egresa | DOC-26 CA-26; DOC-27 CA-31 | Backend | Edwar | 0,25 | IYE-02, UHC-12 | Pendiente |
+| UHC-20 | (DOC-26) Lista de Usuarios HC: «componente o estado» y filtro de estado, con `Estadia::dePersona()` | DOC-26 CA-23 | Frontend | José | 0,5 | IYE-02, UHC-06 | Pendiente |
+| UHC-22 | (DOC-26) «Registrar ingreso» en la lista de Usuarios HC (enlace con `defaultAction`), solo para quien puede y personas vivas sin activa | DOC-26 CA-27 | Frontend | José | 0,25 | IYE-05, UHC-06 | Pendiente |
+| IYE-11 | **Verificación.** Suite completa; `IngresosEgresos` contra MySQL (`DB_CONNECTION=mysql DB_DATABASE=documenta_pruebas_mysql DB_URL= php artisan test --filter=IngresosEgresos`) con las 8 consultas del plan; zona horaria de cada servidor; encender el módulo en Básica y Estabilización del servidor de pruebas; recorrido con un usuario de cada rol en Básica, Estabilización y Calle, en celular | — (repite CA-04, CA-08, CA-22, CA-23 en MySQL) | Backend | Edwar | 0,5 | todas las anteriores | Pendiente |
+| IYE-12 | **Documentación.** La lista del plan («Documentación»): RN-57 a RN-61, RN-49, RN-04, RN-06, RN-13, estados, glosario, `docs/FILAMENT.md` (saltos de scope, `datetime-local`), `CHANGELOG.md`, estado de la spec, `README`. Sin el manual | — | Frontend (docs) | José | 0,25 | IYE-10 (lo que falte lo cierra Edwar en IYE-11) | Pendiente |
+
+**Suma hasta el 15/12:** IYE 8,75 días-persona (Edwar 6,75; José 2) + UHC de DOC-27 1,5 (Edwar
+0,75; José 0,75) = **10,25**.
+
+## Después del 15/12 (recortes de la spec, §9)
+
+| Tarea | Qué | CA | Tipo | Quién | Est. | Depende | Estado |
+|---|---|---|---|---|---|---|---|
+| IYE-13 | **Fotos de ingreso y egreso.** Migración `estadia_fotos`; recodificación GD compartida con UHC-09 (se extrae si quedó dentro de `FichasUsuariosHc`); campo sin sello (UHC-10); ruta con `verFotos`, `no-store`, CSP, `EstadiaFotoVista` cada vez; reabrir conserva la foto de egreso en el historial. Prueba con JPEG con EXIF y GPS subido sin navegador | CA-35, CA-19 (foto), CA-32 (foto) | Backend + frontend | Por asignar | 1 | UHC-09, UHC-10 | Recortada |
+| IYE-14 | **Diagnósticos de ingreso.** `estadia_respuestas` con `campo = diagnosticos`, `fuente = cie10`; selector como UHC-14 con el texto guardado; oculto sin catálogo; en ingreso y en corregir ingreso | CA-36 | Backend + frontend | Por asignar | 0,5 | UHC-14 (y UHC-15 para el uso real) | Recortada |
+| IYE-15 | **Manual y datos de demostración.** Sección del manual; `DemoIngresosEgresosSeeder` (local, ficticio) | — | Frontend (docs) + backend | Por asignar | 0,5 | IYE-12 | Recortada |
+
+**2 días-persona** después del 15/12, antes de producción (que espera además a jurídica y a las
+sedes reales).
+
+## Criterios y pruebas
+
+| CA | Tarea | Prueba |
+|---|---|---|
+| CA-01 | IYE-07, IYE-03 | `test_doc27_ca01_solo_el_superadministrador_gestiona_sedes_y_capacidad_con_motivo_e_historial` |
+| CA-02 | IYE-04, IYE-05, IYE-02 | `test_doc27_ca02_el_ingreso_abre_vacio_y_se_guarda_al_minuto` |
+| CA-03 | IYE-04, IYE-05 | `test_doc27_ca03_activa_en_otro_componente_o_fallecida_no_ingresa_y_solo_dice_el_componente` |
+| CA-04 | IYE-04 (+ MySQL) | `test_doc27_ca04_estadias_que_se_cruzan_se_rechazan_y_la_hora_exacta_se_acepta` |
+| CA-05 | IYE-04 | `test_doc27_ca05_futuro_salida_antes_de_llegada_y_mes_para_edicion_se_rechazan` |
+| CA-06 | IYE-04 | `test_doc27_ca06_el_mes_cuenta_el_dia_completo_y_el_ultimo_dia_del_mes_corto` |
+| CA-07 | IYE-04 | `test_doc27_ca07_la_capacidad_avisa_y_deja_guardar` |
+| CA-08 | IYE-04 (+ MySQL) | `test_doc27_ca08_dos_envios_crean_un_solo_movimiento` |
+| CA-09 | IYE-04 | `test_doc27_ca09_condiciones_excluyentes_no_se_combinan` |
+| CA-10 | IYE-04, IYE-09 | `test_doc27_ca10_comuna_solo_con_calle_y_destino_solo_con_derivacion` · `test_doc27_ca10_cambiar_el_motivo_quita_el_destino_y_queda_en_el_historial` |
+| CA-11 | IYE-04 | `test_doc27_ca11_el_egreso_deja_egresada_y_la_derivacion_no_crea_ingreso` |
+| CA-12 | IYE-09 | `test_doc27_ca12_corregir_exige_motivo_y_deja_antes_y_despues_en_el_historial` |
+| CA-13 | IYE-09 | `test_doc27_ca13_el_segundo_guardado_se_rechaza_con_aviso` |
+| CA-14 | IYE-10 | `test_doc27_ca14_reabrir_conserva_el_egreso_y_se_bloquea_con_conflicto` |
+| CA-15 | IYE-10 | `test_doc27_ca15_anular_una_activa_la_saca_de_activas_y_conteos` |
+| CA-16 | IYE-03, IYE-10 | `test_doc27_ca16_edicion_y_coordinacion_de_otro_componente_no_reabren_ni_anulan` |
+| CA-17 | IYE-04, IYE-09, IYE-10 | `test_doc27_ca17_egreso_por_fallecimiento_y_la_pregunta_de_si_esta_viva` |
+| CA-18 | IYE-03, IYE-05, IYE-08 | `test_doc27_ca18_otro_componente_recibe_rechazo_y_lectura_solo_ve_la_lista` |
+| CA-19 | IYE-08, IYE-13 | `test_doc27_ca19_abrir_una_estadia_queda_auditado_cada_vez` (la foto, en IYE-13) |
+| CA-20 | IYE-04, IYE-05 | `test_doc27_ca20_si_falla_una_regla_no_se_guarda_nada_y_se_conserva_lo_escrito` |
+| CA-21 | IYE-01 | `test_doc27_ca21_sin_el_modulo_no_hay_menu_ni_direccion_y_calle_no_lo_tiene` (además, `ModulosPorComponenteTest`) |
+| CA-22 | IYE-05, IYE-06 (+ MySQL) | `test_doc27_ca22_solo_el_componente_de_la_sesion_rango_con_permanencia_y_anuladas_aparte` |
+| CA-23 | IYE-02 | `test_doc27_ca23_dias_de_estadia_en_hora_de_colombia_con_cualquier_zona_del_servidor` |
+| CA-24 | IYE-09 | `test_doc27_ca24_la_auditoria_lleva_campos_y_motivo_sin_valores` (abre la pantalla de Auditoría) |
+| CA-25 | IYE-04 | `test_doc27_ca25_traslado_de_sede_cierra_y_el_ingreso_a_la_misma_hora_se_acepta` |
+| CA-26 | IYE-07, IYE-04 | `test_doc27_ca26_sede_con_personas_no_se_desactiva_e_inactiva_sigue_en_lo_anterior` |
+| CA-27 | IYE-10, UHC-19 | `test_doc27_ca27_coordinacion_anula_una_egresada_y_quita_el_acceso_a_la_caracterizacion` |
+| CA-28 | IYE-09 | `test_doc27_ca28_edicion_no_corrige_una_fecha_de_hace_mas_de_un_mes` |
+| CA-29 | IYE-04 | `test_doc27_ca29_ingreso_antes_del_ultimo_egreso_se_rechaza` |
+| CA-30 | IYE-04, UHC-19 | `test_doc27_ca30_otro_componente_ingresa_a_la_persona_queda_auditado_y_ve_la_caracterizacion` |
+| CA-31 | UHC-21 | La de DOC-26 CA-26: `test_doc26_ca26_fallecida_con_estadia_activa_avisa_y_no_egresa` |
+| CA-32 | IYE-03, IYE-08, IYE-09, IYE-10, IYE-13 | `test_doc27_ca32_otra_dependencia_da_no_encontrado_lectura_y_sin_sesion_rechazo` (cada tarea agrega su caso) |
+| CA-33 | IYE-04, IYE-09 | `test_doc27_ca33_opcion_renombrada_o_retirada_conserva_su_texto` |
+| CA-34 | IYE-04 | `test_doc27_ca34_cambios_entre_abrir_y_guardar_rechazan_con_el_motivo` |
+| CA-35 | IYE-13 (después del 15/12) | `test_doc27_ca35_fotos_sin_exif_solo_del_componente_y_sin_cache` |
+| CA-36 | IYE-14 (después del 15/12) | `test_doc27_ca36_diagnosticos_por_estadia_con_el_texto_guardado` |
+
+## Orden y paralelo
+
+```
+(DOC-26 en develop el 30/11: UHC-01 a UHC-05, UHC-10)
+IYE-01 ─ IYE-02 ─ IYE-03 ─ IYE-04 ─ IYE-05 ── punto de control 4/12
+                     │                 └─ IYE-06 (José) ─ IYE-09 ─ IYE-10
+                     ├─ IYE-07 (José), IYE-08 (José)
+IYE-02 ─ UHC-19 ─ IYE-10 · IYE-02 ─ UHC-21 · IYE-02 ─ UHC-20 (José) · IYE-05 ─ UHC-22 (José)
+todo ─ IYE-11 (Edwar) · IYE-10 ─ IYE-12 (José)
+```
+
+**Archivos compartidos:** `Componente.php`, `bootstrap/app.php`, `sidebar.blade.php` y las pruebas
+de DOC-25 solo en IYE-01 (Edwar). `Estadias.php`: Edwar hasta IYE-05; José en IYE-06 el 7/12;
+Edwar de nuevo desde IYE-09 (9/12). IYE-07 e IYE-08 son archivos nuevos de José. UHC-20 y UHC-22
+tocan `Listado.php` de DOC-26, que para entonces José ya terminó (UHC-06, 1/12).
+
+## Calendario
+
+Días hábiles del 1 al 15/12 (el 8/12 es festivo): 1, 2, 3, 4, 7, 9, 10, 11, 14 y 15 = **10 días
+de Edwar**. José: **7, 9 y 10/12 = 3 días**. Edwar tiene además en esos días UHC-11 (0,5) y
+UHC-17 (0,75) de DOC-26.
+
+| Fecha | Edwar | José |
+|---|---|---|
+| 1/12 | IYE-01 (0,25), IYE-02 (0,75) | DOC-26 |
+| 2/12 | IYE-02 (0,25), IYE-03 (0,5), IYE-04 (0,25) | DOC-26 (UHC-12) |
+| 3/12 | IYE-04 (1) | DOC-26 (UHC-12 a `develop`) |
+| **4/12** | IYE-04 (0,25), IYE-05 (0,75); fusionar a `develop`, sedes de prueba con `tinker` (P-07). **Punto de control** | DOC-26 |
+| 7/12 | IYE-09, servicio y pruebas (1) | IYE-06 (0,5), IYE-07 (0,5) |
+| 9/12 | IYE-09, acciones en la tabla (0,25), UHC-19 (0,5), IYE-10 (0,25) | IYE-07 (0,25), IYE-08 (0,5), UHC-22 (0,25) |
+| 10/12 | IYE-10 (0,75), UHC-21 (0,25) | UHC-20 (0,5), IYE-12 (0,25); holgura 0,25 |
+| 11/12 | UHC-11 de DOC-26 (0,5, P-03); holgura 0,5 | DOC-26 |
+| 14/12 | IYE-11 (0,5); holgura 0,5 (correcciones de QA) | DOC-26 |
+| 15/12 | UHC-17 de DOC-26 (0,75); cierre | DOC-26 |
+
+**La cuenta:**
+
+| | Edwar | José |
+|---|---|---|
+| Disponible | 10 | 3 |
+| IYE | 6,75 | 2 |
+| UHC dentro de DOC-27 (19, 21 · 20, 22) | 0,75 | 0,75 |
+| UHC-11 y UHC-17 (DOC-26) | 1,25 | — |
+| **Holgura** | **1,25** (toda en la semana del 7/12) | **0,25** |
+
+**¿Cabe al 15/12?** **Sí, con los recortes de la spec** (fotos, diagnósticos y manual después), y
+con una condición: **la semana del 1 al 4/12 no tiene holgura**. Suma 4 días de trabajo en 4 días
+**solo si UHC-11 sale de esa semana** (P-03); con UHC-11 dentro, serían 4,5 y el punto de control
+del 4/12 no llega. La fusión a `develop` y el despliegue del 4/12 tampoco están contados.
+
+**Si el 4/12 no llega:**
+
+- Retraso de medio día: la holgura de la semana del 7/12 (1,25) lo absorbe; todo sigue al 15/12.
+- Retraso de más de un día: se aplica el recorte de la spec (P-04): IYE-09 e IYE-10 (corregir,
+  reabrir y anular, 2,25 días) pasan a la semana del 14 al 18/12. El 15/12 sale ingreso, egreso,
+  lista, sedes y ver estadía. **Ojo:** sin IYE-10 no hay prueba de CA-27 y UHC-19 queda probada
+  solo con estadías activas y egresadas.
+- Lo que no se recorta nunca: rechazos, aislamiento, auditoría, historial y las reglas de §7.
+
+**Riesgo propio de José:** su parte de DOC-26 ya iba con 0,25 días de falta (usuarios-hc/tasks.md,
+«Calendario»). Si DOC-26 lo necesita el 7, 9 o 10/12, lo primero que se corre es IYE-12
+(documentación, la cierra Edwar) y después UHC-20; IYE-06, IYE-07 e IYE-08 no deberían moverse.
+
+## Solo Edwar
+
+| Qué | Para qué | Cuándo |
+|---|---|---|
+| ~~Aprobar este plan; responder P-01 a P-07~~ Hecho (Edwar, 2026-11-24) | Arrancar el 1/12 | Antes del 1/12 |
+| Acordar con José las dos firmas del plan (UHC-03 opciones genéricas, UHC-12 `cambiarEstadoVital`) | IYE-04 | 30/11 |
+| Confirmar `APP_TIMEZONE=America/Bogota` en pruebas y producción | Turnos (DOC-27 ya no depende) | Al desplegar |
+| Encender «Ingresos y egresos» en Básica y Estabilización desde «Componentes y nodos» | Servidor de pruebas (4/12) y producción (con DOC-26) | Al desplegar |
+| Crear sedes de prueba en el servidor de pruebas (`tinker` el 4/12, o la pantalla desde el 9/12) | Punto de control | 4/12 |
+| Guardar en `fuentes/` las sedes reales (PA-01) y la confirmación escrita del mes y la capacidad (PA-09) | Producción | Cuando lleguen |
+
+## Pendiente para salir a producción
+
+- PA-01 (sedes reales) y PA-09 (confirmación escrita).
+- DOC-26 completa y las respuestas de jurídica (DOC-26 PA-09 y PA-18): salen juntas.
+- IYE-13, IYE-14 e IYE-15 si las fotos, los diagnósticos y el manual salen con esta versión.
+- `CHANGELOG.md` con la sección de la versión.

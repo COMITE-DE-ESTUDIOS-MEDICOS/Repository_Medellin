@@ -291,6 +291,19 @@ SELECT u.name, u.documento, d.slug FROM dependencia_usuario du JOIN users u ON u
 SELECT COUNT(*) FROM colaboradores WHERE componente_id IS NULL;
 ```
 
+### Después de desplegar (Edwar, en producción, solo lectura; agregado en ACC-14)
+
+```sql
+-- Nadie, salvo Administración, sin componente: debe dar 0
+SELECT COUNT(*) FROM dependencia_usuario WHERE componente_id IS NULL AND rol <> 'administracion';
+-- Calle con sus cuatro módulos; Básica y Estabilización con []
+SELECT slug, modulos, activo FROM componentes ORDER BY id;
+-- La auditoría empieza a guardar el componente: tras unos minutos de uso, mayor que 0
+SELECT COUNT(*) FROM auditorias WHERE componente_id IS NOT NULL;
+```
+
+Todas estas consultas se probaron en MySQL local el 2026-11-24 (ACC-14).
+
 ## Documentación (al cerrar)
 
 `documentacion/docs/context/`: RN-01, RN-02, RN-03, RN-23, RN-25, RN-33, RN-45; nuevas RN-49 a
