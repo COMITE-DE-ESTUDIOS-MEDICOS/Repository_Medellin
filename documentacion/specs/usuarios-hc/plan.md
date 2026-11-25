@@ -1,172 +1,212 @@
 # Plan: Usuarios HC · ficha, caracterización, búsqueda y edición con historial (DOC-26)
 
-> **Estado: Borrador, sujeto a la aprobación de la spec DOC-26. No se escribe código hasta que
-> Edwar la apruebe.**
+> **Estado: Aprobado con la spec DOC-26 v1.1 (Edwar, 2026-11-24).** PA-09 y PA-18 bloquean solo
+> el paso a producción.
 
-Spec: [spec.md](spec.md) v0.2, en borrador (11 preguntas que bloquean). Tareas: [tasks.md](tasks.md).
-Lo pidió José (Dueño de Producto) para adelantar trabajo. Donde una decisión depende de una
-pregunta abierta se marca **[PA-NN]**: va la propuesta por defecto de la spec y, en una línea,
-qué cambia si Edwar responde distinto.
+| | |
+|---|---|
+| Spec | [spec.md](spec.md) **v1.1, aprobada** (Edwar, 2026-11-24). Tareas: [tasks.md](tasks.md) |
+| Dueño de Producto | Edwar (aprueba la spec y este plan) |
+| Redactó | José (desarrollador), sobre la v0.2. Corregido el 2026-11-24 (arquitecto) para alinearlo con la v0.3 y después con la v1.0 |
+| Decisiones de Edwar que este plan recoge (2026-11-24) | PA-06 y PA-13 (catálogos cargados **una sola vez**), PA-14 (termina hacia el 15/12, producción con DOC-27), PA-17 (fotos solo al abrir la ficha), PA-20 (la ficha se escribe con guion, pero «F120» y «F-120» son **la misma ficha**: ajuste de Edwar del 2026-11-24, spec v1.1), PA-27 (el archivo de SISPRO va **fuera** del repositorio y se carga con un comando), PA-28 y P-17 (la respuesta anterior queda completa en el historial), PA-29 (el módulo lo enciende Edwar desde «Componentes y nodos») |
+| Bloquean producción, no el desarrollo | PA-09 (retención) y PA-18 (autorización de tratamiento) |
 
-Base: DOC-25 construida (ACC-01 a ACC-06, ACC-11 a ACC-13). Lo que este plan necesita de lo
-que falta de DOC-25: **ACC-07 y ACC-08** para tener usuarios reales de Básica y Estabilización
-en el servidor de pruebas (las pruebas automáticas no los necesitan: `usuarioCon` ya asigna
-componente) y **ACC-10** solo para el aviso de «Fallecida» (con DOC-27).
+Donde una decisión sale de una pregunta de la spec se marca **[PA-NN]**. Las líneas «si Edwar
+responde distinto» quedan como rastro de la alternativa descartada. Las preguntas técnicas de este
+plan están al final (P-15, P-18 y P-19 abiertas; P-17 resuelta).
+
+**Base: DOC-25 construida** en todo lo que este plan usa: módulos por componente y la pantalla
+«Componentes y nodos» donde el superadministrador los enciende (ACC-09), usuarios con componente
+(ACC-07, ACC-08), avisos por componente (ACC-10) y auditoría por componente (ACC-11). De DOC-25
+queda ACC-14 en producción (Edwar) y ACC-15, documentación (José, ~0,5 días); ninguna bloquea
+DOC-26.
+
+**DOC-27 depende de este plan:** necesita en `develop`, **el 30/11/2026**, la tabla y el modelo
+(UHC-02), la Policy (UHC-04) y `scopeBuscar` (UHC-05). Las tareas están ordenadas para que eso
+salga primero (tasks.md, «Calendario»).
 
 ## La idea en una línea
 
-Una tabla `usuarios_hc` con el filtro de **dependencia** y sin el de componente; todo lo
-sensible (caracterización, historial) cuelga de ella en tablas aparte que solo se abren después
-de una Policy que pregunta «¿el componente donde estás parado conoce a esta persona?». La
-búsqueda compara columnas normalizadas en PHP, así no depende del motor. Lo demás es lo que ya
-existe: módulo de DOC-25, `Auditor`, el disco del repositorio, `x-campo-archivo` y Filament.
+Una tabla `usuarios_hc` con el filtro de **dependencia** y sin el de componente; todo lo sensible
+(caracterización, historial) cuelga de ella en tablas aparte, que solo se abren después de una
+Policy que pregunta «¿es de mi dependencia y el componente donde estoy parado conoce a esta
+persona?». La búsqueda compara columnas normalizadas en PHP a `[a-z0-9 ]` (nombres) y `[A-Z0-9]`
+(documento y ficha), así no depende del motor. Lo demás ya existe: el módulo de DOC-25, `Auditor`, el disco del repositorio,
+`x-campo-archivo` y Filament.
 
 ## Decisiones
 
-### D1. Modelo de datos (una migración de esquema, nada se borra)
+### D1. Modelo de datos (una migración de esquema, fechada antes que las de DOC-27)
 
 Todas las tablas nuevas cuelgan de `usuarios_hc`, que es la única con `dependencia_id`
-(constitución III: «o colgar de algo que pertenece»). Ninguna lleva `SoftDeletes` ni se borra.
+(constitución III: «o colgar de algo que pertenece»). Ninguna lleva `SoftDeletes`.
+
+**Una sola migración de esquema**, `2026_11_25_000001_crear_usuarios_hc.php`, con todas las
+tablas de DOC-26, **también las de los catálogos** (vacías hasta que se carguen, D9). Así todo el
+esquema de DOC-26 queda fechado antes que las migraciones de DOC-27 (que van desde el 1/12). La
+carga de los catálogos no es una migración: es un comando que Edwar corre en cada servidor (D9).
 
 **`usuarios_hc`** (la ficha; modelo `UsuarioHc`, `#[ScopedBy([DependenciaScope::class])]`):
 
 | Columna | Para qué |
 |---|---|
 | `dependencia_id` FK | Aislamiento por dependencia |
-| `componente_registro_id` FK `componentes` | Componente de registro (PA-03). Se llena con `ContextoDependencia::componenteId()` al crear, **nunca desde el formulario**, y no está en `$fillable` de edición (CA-20) |
+| `componente_registro_id` FK `componentes` | Componente de registro (PA-03). Se llena con `ContextoDependencia::componenteId()` al crear, **nunca desde el formulario**, y no está en `$fillable` (CA-20) |
 | `tipo_documento`, `tipo_documento_texto` | Código de la lista y el texto que se vio (§7) |
-| `numero_documento` (20, nulo) · `documento_normalizado` (20, nulo) | Tal como se escribió (recortado: CA-08) · en mayúsculas, para comparar y buscar |
-| `numero_ficha` (30, nulo) · `ficha_normalizada` (30, nulo) | Igual que el documento |
+| `numero_documento` (20, nulo) · `documento_normalizado` (20, nulo) | Como se escribió, sin espacios en los extremos (CA-08) · en mayúsculas, solo `[0-9A-Z]` (D5, CA-28) |
+| `numero_ficha` (30, nulo) · `ficha_normalizada` (30, nulo) | Lo escrito, en mayúsculas, sin espacios en los extremos y **con sus guiones**: es lo que se muestra (PA-20) · igual que el documento, **sin guion**: solo `[0-9A-Z]` (D5, CA-29). «F-120» y «F120» dan `F120` |
 | `primer_nombre`, `segundo_nombre`, `primer_apellido`, `segundo_apellido`, `alias` | Identificación |
 | `nombre_completo` | Se arma en `saving` (partes que existan, un espacio). Para mostrar y ordenar |
-| `nombre_busqueda`, `alias_busqueda` | Normalizados (D5) |
+| `nombre_busqueda`, `alias_busqueda` | Normalizados a `[a-z0-9 ]` (D5) |
 | `estado_vital` (`viva`/`fallecida`, por defecto `viva`) · `fecha_fallecimiento` (nula) | Estados fijos, no lista configurable |
 | `foto_id` (nulo, con índice, **sin FK**) | La foto vigente. Sin restricción porque `usuario_hc_fotos` apunta a `usuarios_hc` (circular); la relación exige además que la foto sea de la ficha |
 | `revision` (entero, 0) | Concurrencia (D7) |
-| `creado_por`, `actualizado_por` FK `users` · `timestamps` | Quién la creó, cuándo y en qué componente (con `componente_registro_id`) |
+| `creado_por`, `actualizado_por` FK `users` · `timestamps` | Quién la creó y cuándo |
 
 Índices: **único** `(dependencia_id, tipo_documento, documento_normalizado)` y **único**
-`(dependencia_id, ficha_normalizada)`. Los dos admiten varios `NULL` en SQLite, MySQL y
-PostgreSQL: «Sin documento» y la ficha vacía no chocan (CA-05, CA-06). El índice es la última
-defensa; la validación da el mensaje claro antes. Índice `(dependencia_id, nombre_completo)`
-para ordenar la lista.
+`(dependencia_id, ficha_normalizada)`. Admiten varios `NULL` en SQLite y en MySQL: «Sin
+documento» y la ficha vacía no chocan (CA-05, CA-06). Como las dos columnas solo guardan ASCII
+en mayúsculas `[0-9A-Z]`, `utf8mb4_unicode_ci` y SQLite comparan igual (CA-28, CA-29). El guion
+nunca llega a la columna única: «F-120» y «F120» chocan por igual en los dos motores; UHC-17 lo
+comprueba contra MySQL. El índice es la última defensa; la validación da antes el mensaje claro. Índice `(dependencia_id,
+nombre_completo)` para ordenar la lista.
 
-**`usuario_hc_identidades`** (identidades anteriores, D5): `usuario_hc_id`, `campo`
-(`nombre`, `documento`, `ficha`), `valor` (como se veía: «Juan Pérez», «CC 0012AB», «F-120»),
-`valor_busqueda` (normalizado), `user_id`, `componente_id`, `created_at`. Índice
-`(campo, valor_busqueda)`. Se escribe una fila cada vez que se corrige el nombre, el documento o
-la ficha. DOC-31 agregará las de la ficha absorbida sin cambiar la tabla.
+**`usuario_hc_identidades`** (identidades anteriores, D5): `usuario_hc_id`, `campo` (`nombre`,
+`documento`, `ficha`), `valor` (como se veía), `valor_busqueda` (normalizado), `user_id`,
+`componente_id`, `created_at`. Índice `(campo, valor_busqueda)`. DOC-31 agregará las de la ficha
+absorbida sin cambiar la tabla.
 
-**`usuario_hc_caracterizaciones`** (1 a 1, solo los campos que no son listas):
-`usuario_hc_id` único, `fecha_nacimiento`, `fecha_ingreso_sistema`, `calle_anios`,
-`calle_meses`, `calle_semanas` (enteros sin signo, nulos: vacío es «no informado», CA-09 y
-CA-11). En tabla aparte de la ficha **a propósito**: la lista y la búsqueda consultan
-`usuarios_hc` y nunca tocan una columna sensible (CA-21).
+**`usuario_hc_caracterizaciones`** (1 a 1, los campos que no son listas): `usuario_hc_id` único,
+`fecha_nacimiento`, `fecha_ingreso_sistema`, `calle_anios`, `calle_meses`, `calle_semanas`
+(enteros sin signo, nulos: vacío es «no informado», CA-09, CA-11). En tabla aparte **a
+propósito**: la lista y la búsqueda consultan `usuarios_hc` y nunca tocan una columna sensible
+(CA-21).
 
-**`usuario_hc_respuestas`** (todas las respuestas de listas, de una o de varias opciones):
-`usuario_hc_id`, `campo`, `fuente` (de dónde salió la opción: el nombre de la lista o
-`cie10`, `paises`, `comunas`), `opcion` (el código), `texto` (el texto que vio quien la
-registró), `principal` (bool, solo diagnósticos de medicina general), `timestamps`. Único
-`(usuario_hc_id, campo, opcion)`; índice `(campo, opcion)` para contar después (DOC-28/29).
+**`usuario_hc_respuestas`** (la respuesta **vigente** de cada lista, de una o de varias
+opciones): `usuario_hc_id`, `campo`, `fuente` (la lista de la configuración, `cie10`, `paises`,
+`comunas`), `opcion` (el código), `texto` (el que vio quien la registró), `principal` (bool,
+solo medicina general), `timestamps`. Único `(usuario_hc_id, campo, opcion)`; índice `(campo,
+opcion)` para contar después (DOC-28/29).
 
 - Cumple §7 sin JSON: el **código** permite contar una opción aunque cambie de nombre; el
-  **texto** es lo que se muestra siempre, aunque la opción se renombre o se retire (CA-18).
-- Una o varias opciones se guardan igual (una fila por opción elegida); limpiar una selección
-  es no tener fila.
-- Los diagnósticos guardan `fuente` = `cie10`, `opcion` = código SISPRO (`F200`) y `texto` = el
-  nombre oficial del momento; nacionalidad, código ISO numérico (`170`) y nombre; comuna, número
-  y nombre. Sin FK a los catálogos: recargar un catálogo no cambia lo ya registrado.
-- **`fuente` es lo que deja la puerta abierta a la CIE-11** (D9): cada diagnóstico dice con qué
-  clasificación se registró. Cuando llegue la CIE-11 (fin de la transición hacia el 14-ago-2027),
-  sus códigos entran con `fuente = cie11`, en filas nuevas o con columnas opcionales para la
-  doble codificación, sin migrar lo que ya hay. No se construye nada de la CIE-11 ahora.
-- Cambiar una respuesta reemplaza su fila (como cambiar una columna) y el valor anterior queda
-  en el historial. Ver **P-05** en las preguntas.
+  **texto** se muestra siempre, aunque la opción se renombre o se retire (CA-18, CA-33).
+- Una o varias opciones se guardan igual: una fila por opción elegida; limpiar es no tener fila.
+- Sin FK a los catálogos: lo registrado no depende de lo que diga el catálogo después.
+- `fuente` deja la puerta abierta a la CIE-11 (PA-26): cada diagnóstico dice con qué
+  clasificación se registró. No se construye nada de la CIE-11 ahora.
+- **Cambiar o quitar una respuesta [PA-28, P-17 resuelta]:** la fila de la respuesta vigente se
+  reemplaza y la anterior queda completa en `usuario_hc_cambios`, con `codigo_antes`/`codigo_despues`
+  y el texto (D7, CA-34). El historial es el registro de verdad: así se cumple «nada se borra».
+  `usuario_hc_respuestas` no lleva columna de estado.
 
-**`usuario_hc_cambios`** (historial de la ficha): `usuario_hc_id`, `user_id`, `componente_id`
-(nulo solo si quien edita no está parado en ninguno, que con el módulo no puede pasar),
-`seccion` (`identificacion`, `caracterizacion`, `foto`), `campo`, `antes`, `despues` (texto
-legible: los textos de las opciones, unidos con «, » en las de varias), `motivo` (nulo solo
-donde PA-04 no lo pide), `created_at`. Una fila por campo cambiado; las de un mismo guardado
-comparten autor, motivo y hora. Sin JSON y sin agrupación para mostrarlo (CA-14).
+**`usuario_hc_cambios`** (historial de la ficha): `usuario_hc_id`, `user_id`, `componente_id`,
+`seccion` (`identificacion`, `caracterizacion`, `foto`), `campo`, `codigo_antes`,
+`codigo_despues` (nulos; el código de la opción en las listas, PA-28), `antes`, `despues` (texto
+legible), `motivo` (nulo solo donde PA-04 no lo pide), `created_at`.
 
-**`usuario_hc_fotos`**: `usuario_hc_id`, `ruta`, `mime`, `tamano`, `hash`, `ancho`, `alto`,
-`subida_por`, `created_at`. Cambiar la foto crea una fila nueva y mueve `usuarios_hc.foto_id`;
-quitarla pone `foto_id` en nulo. Ninguna fila ni archivo se borra (constitución IV, CA-22).
+- Una fila por campo cambiado; en las listas de varias opciones, **una fila por opción que sale
+  o entra** (§5). Las de un mismo guardado comparten autor, motivo y hora.
+- Sin JSON y sin agrupación para mostrarlo (CA-14).
 
-**Catálogos (D9):** sin `dependencia_id`: son datos de referencia externos, iguales para todos
+**`usuario_hc_fotos`**: `usuario_hc_id`, `ruta`, `tamano`, `subida_por`, `created_at`. Siempre
+JPEG (D10), por eso no guarda el tipo. Cambiar la foto crea una fila y mueve
+`usuarios_hc.foto_id`; quitarla pone `foto_id` en nulo. Ninguna fila ni archivo se borra
+(constitución IV, CA-22).
+
+**Catálogos (D9)**, sin `dependencia_id`: datos de referencia externos, iguales para todos
 **[PA-13]**.
 
-- `catalogo_cie10`: `codigo` (4, único: `F200`, `F03X`), `nombre` (texto oficial tal cual,
-  hasta 255), `categoria` (`F20`), `categoria_nombre`, `capitulo`, `sexo` (`A`, `M`, `F`),
-  `edad_minima`, `edad_maxima` (nulos), `habilitado`, `nombre_busqueda`, `fecha_fuente`
-  (la fecha de la tabla de SISPRO), `timestamps`.
-- `catalogo_paises`: `codigo` (3, **texto**, único: `004`, `170`), `alfa2`, `alfa3`, `nombre`
-  (el que se muestra), `nombre_oficial` (el de SISPRO), `habilitado`, `nombre_busqueda`,
-  `fecha_fuente`, `timestamps`.
+- `catalogo_cie10`: `codigo` (4, único: `F200`, `F03X`), `nombre` (texto oficial tal cual, 255),
+  `nombre_busqueda`, `habilitado`.
+- `catalogo_paises`: `codigo` (3, **texto**, único: `004`, `170`), `nombre` (el que se
+  muestra), `nombre_oficial` (el de SISPRO), `nombre_busqueda`, `habilitado`.
+- Sin sexo ni edad por código: la spec no los usa (PA-25). Si un día se avisa por ellos, se
+  agregan con la recarga (candidato).
 
 Modelos: `UsuarioHc`, `IdentidadUsuarioHc`, `CaracterizacionUsuarioHc`, `RespuestaUsuarioHc`,
 `CambioUsuarioHc`, `FotoUsuarioHc`, `Cie10`, `Pais`. Solo `UsuarioHc` lleva scope; los demás se
-leen siempre por su relación con la ficha (`$ficha->respuestas`), después de la Policy.
+leen siempre por su relación con la ficha, después de la Policy.
 
-**Una trampa de DOC-25:** `Componente` lleva `ComponenteScope('id')`. La relación
-`UsuarioHc::componenteRegistro()` tiene que ir con `->withoutGlobalScope(ComponenteScope::class)`:
-si no, un usuario parado en Básica vería vacía la columna «componente» de las fichas creadas en
-Estabilización (CA-02). Lo mismo el nombre del componente en el historial y las opciones del
-filtro de componente. Son **saltos a propósito**, por escrito (DOC-25 D4): van a la lista de
-`docs/FILAMENT.md`, regla 2.
+**Trampa de DOC-25:** `Componente` lleva `ComponenteScope('id')`. La relación
+`UsuarioHc::componenteRegistro()` va con `->withoutGlobalScope(ComponenteScope::class)`; si no,
+un usuario parado en Básica vería vacía la columna «componente» de las fichas de Estabilización
+(CA-02). Lo mismo el componente en el historial y las opciones del filtro. Son **saltos a
+propósito y por escrito** (DOC-25 D4): van a `docs/FILAMENT.md`, regla 2.
 
-### D2. El módulo `usuarios_hc`
+### D2. El módulo `usuarios_hc` [PA-29]
 
-- **`Componente::MODULOS`**: se agrega al final
-  `'usuarios_hc' => ['Usuarios HC', 'usuarios-hc.index']`. La clave no choca con ningún
-  parámetro de ruta (el de la ficha es `{usuarioHc}`) y en las rutas va entre comillas
-  (`"can:modulo,'usuarios_hc'"`), la lección de `supervisiones`. Al final para que Calle (que no
-  lo tiene) y las pruebas con todos los módulos sigan llegando a Documentos. La pantalla de
-  módulos de ACC-09, cuando exista, lo ofrecerá sola: lee la constante.
-- **Encenderlo en Básica y Estabilización** mientras no exista ACC-09: migración de datos que
-  llama a `Database\Seeders\UsuariosHcModuloSeeder`, con el mismo patrón que
-  `sembrar_basica_y_estabilizacion`: `DB::table`, idempotente, solo Inclusión Social, lee
-  `modulos` en PHP, agrega `usuarios_hc` si falta y lo vuelve a guardar (sin consultas JSON).
-  `down()` vacío. `DatabaseSeeder` lo llama después de `AccesoPorComponenteSeeder`.
+- **`Componente::MODULOS`**: al final, `'usuarios_hc' => ['Usuarios HC', 'usuarios-hc.index']`.
+  La clave no choca con ningún parámetro de ruta (el de la ficha es `{usuarioHc}`) y en las rutas
+  va entre comillas (`"can:modulo,'usuarios_hc'"`), la lección de `supervisiones`.
+- **Encenderlo: sin migración ni seeder.** Lo hace Edwar como superadministrador en «Componentes
+  y nodos» de cada servidor (ACC-09): la casilla sale sola porque
+  `App\Livewire\Turnos\Componentes` arma las opciones desde `Componente::MODULOS` (CA-35).
+- **Pruebas de DOC-25 que cambian** (archivos de Edwar; los toca él en UHC-01):
+  - `tests/Feature/AccesoPorComponenteTest.php:45`,
+    `assertSame(array_keys(Componente::MODULOS), $componentes['calle']->modulos)`, deja de ser
+    cierta: Calle no tiene Usuarios HC. **Se quita la línea**: la 44 ya dice que Calle tiene sus
+    cuatro (lo mismo que `AccesoPorComponenteSeeder::MODULOS_CALLE`). **Cambia lo que verifica**:
+    de «Calle tiene todos los módulos que existen» a «Calle tiene sus cuatro», que es lo que dice
+    RN-49.
+  - `ModulosPorComponenteTest`: `parametrosEn()` agrega `usuarioHc` (una ficha en la dependencia)
+    y la lista de Policies agrega `UsuarioHc::class`. Con eso, la prueba que recorre cada ruta
+    `GET` de cada módulo cubre sola todas las de Usuarios HC (403 en Básica sin el módulo) y exige
+    que el grupo exista (línea 112). Su Calle de fábrica tiene todos los módulos, así que
+    `usuarios-hc.index` tiene que abrir para Coordinación de Calle (línea 151).
+  - Sin cambio: `AccesoPorComponenteTest:139` y `:222` y `DatosDemoPorComponenteTest` (la fábrica
+    sigue con todos los módulos).
 - **Rutas:** archivo propio `routes/usuarios-hc.php`, cargado en `bootstrap/app.php` como el de
-  turnos («uno por dueño, para que no choquen en git»), con
-  `['web', 'auth', 'usuario.activo', 'dependencia', "can:modulo,'usuarios_hc'"]`, prefijo
-  `usuarios-hc` y nombres `usuarios-hc.*`. Así José no vuelve a tocar `routes/web.php`.
+  turnos, con `['web', 'auth', 'usuario.activo', 'dependencia', "can:modulo,'usuarios_hc'"]`,
+  prefijo `usuarios-hc` y nombres `usuarios-hc.*`.
 
-  | Método y dirección | Qué | Permiso de la ruta |
-  |---|---|---|
-  | `GET usuarios-hc` | Lista (tabla Filament) | `can:viewAny,App\Models\UsuarioHc` |
-  | `GET usuarios-hc/nuevo` · `POST usuarios-hc` | Crear | `can:create,…` |
-  | `GET usuarios-hc/coincidencias` | Aviso de coincidencias mientras se escribe (HTML parcial, solo identificación) | `can:create,…` + `throttle` |
-  | `GET usuarios-hc/{usuarioHc}` | Ficha: identificación | `can:view,usuarioHc` |
-  | `GET usuarios-hc/{usuarioHc}/caracterizacion` | Caracterización (auditada) | `can:verCaracterizacion,usuarioHc` |
-  | `GET usuarios-hc/{usuarioHc}/historial` | Historial (auditado) | `can:verCaracterizacion,usuarioHc` |
-  | `GET …/{usuarioHc}/editar` · `PUT …/{usuarioHc}` | Corregir identificación y estado vital | `can:update,usuarioHc` |
-  | `GET …/{usuarioHc}/caracterizacion/editar` | Editar caracterización (Livewire) | `can:update,usuarioHc` |
-  | `POST …/{usuarioHc}/foto` · `PATCH …/{usuarioHc}/foto/quitar` | Cambiar o quitar la foto | `can:update,usuarioHc` |
-  | `GET …/{usuarioHc}/foto` | Ver la foto vigente (auditada) | `can:view,usuarioHc` |
-  | `GET …/{usuarioHc}/foto/miniatura` | Miniatura de la lista, firmada y con vencimiento **[PA-17]** | `signed` + `can:view,usuarioHc` |
+  | Método y dirección | Qué | Permiso de la ruta | Tarea |
+  |---|---|---|---|
+  | `GET usuarios-hc` | Lista (tabla Filament) | `can:viewAny,App\Models\UsuarioHc` | UHC-01 (vacía), UHC-06 |
+  | `GET usuarios-hc/nuevo` · `POST usuarios-hc` | Crear (con la foto, si viene) | `can:create,…` | UHC-07 |
+  | `POST usuarios-hc/coincidencias` | Aviso de coincidencias mientras se escribe (HTML parcial, solo identificación). **`POST`**, para que documentos y nombres no queden en los registros de nginx | `can:create,…` + `throttle:30,1` | UHC-07 |
+  | `GET usuarios-hc/{usuarioHc}` | Ficha: identificación con la foto | `can:view,usuarioHc` | UHC-11 |
+  | `GET usuarios-hc/{usuarioHc}/caracterizacion` | Caracterización: **una sola pantalla** para ver y editar (D8), auditada | `can:verCaracterizacion,usuarioHc` | UHC-14 |
+  | `GET usuarios-hc/{usuarioHc}/historial` | Historial, auditado | `can:verCaracterizacion,usuarioHc` | UHC-11 |
+  | `GET …/{usuarioHc}/editar` · `PUT …/{usuarioHc}` | Corregir identificación, estado vital y foto | `can:update,usuarioHc` | UHC-12, UHC-09 |
+  | `GET …/{usuarioHc}/foto` | La foto vigente, auditada, sin caché | `can:view,usuarioHc` | UHC-09 |
 
-  `{usuarioHc}` con `whereNumber`. La vinculación usa el scope de dependencia: una ficha de
-  otra dependencia da 404.
-- **Menú** (`sidebar.blade.php`): `$conUsuariosHc = Gate::allows('modulo', 'usuarios_hc')` y una
-  línea en el grupo `principal`, para todos los roles (Lectura incluida).
-- **Llegada** (`InicioController`): hoy solo Documentos se abre desde Lectura. Se cambia la
-  condición fija por una constante junto a `MODULOS`:
-  `Componente::MODULOS_DESDE_LECTURA = ['documentos', 'usuarios_hc']`. Un usuario de Básica de
-  cualquier rol llega a Usuarios HC; Calle sigue llegando a Documentos (CA-01).
+  `{usuarioHc}` con `whereNumber`. La vinculación usa el scope de dependencia: una ficha de otra
+  dependencia da **404** (CA-31). No hay ruta firmada ni miniatura (PA-17).
+- **Menú** (`sidebar.blade.php`): una línea en el grupo `principal`, con
+  `Gate::allows('modulo', 'usuarios_hc')`, para todos los roles (Lectura incluida).
+- **Llegada** (`InicioController`): hoy solo Documentos se abre desde Lectura. La condición pasa
+  a `in_array($modulo, ['documentos', 'usuarios_hc'], true) || $contexto->rol()?->puedeEditar()`.
+  Un usuario de Básica de cualquier rol llega a Usuarios HC; Calle sigue llegando a Documentos
+  (CA-01).
 
-### D3. Permisos: `UsuarioHcPolicy`, con `ExigeModulo`
+### D3. Permisos: `UsuarioHcPolicy` [PA-02, PA-03, PA-11]
 
-`const MODULO = 'usuarios_hc'`: sin el módulo se niega todo, también al superadministrador, y
-cubre las acciones de Filament y el menú. Después, el rol **[PA-02]**:
+**Primero la dependencia y el módulo, en un `before` para todos los métodos (CA-31).** La
+Policy usa `ExigeModulo` (`const MODULO = 'usuarios_hc'`) y redefine su `before` (Laravel le
+pasa la ficha como tercer argumento):
+
+```php
+use ExigeModulo { before as exigeModulo; }
+
+public function before(User $usuario, string $habilidad, mixed $ficha = null): ?bool
+{
+    if ($this->exigeModulo($usuario) === false) {
+        return false;
+    }
+
+    return $ficha instanceof UsuarioHc && $ficha->dependencia_id !== app(ContextoDependencia::class)->id() ? false : null;
+}
+```
+
+Sin el módulo se niega todo, también al superadministrador; una ficha de otra dependencia se
+niega en **todos** los métodos (`view`, `verCaracterizacion`, `update`), no solo en `view`. Es la
+segunda defensa: la primera es el 404 de la vinculación por el scope. Después, el rol:
 
 | Método | Regla (DOC-26 sola) |
 |---|---|
-| `viewAny`, `view` | Pertenece a la dependencia (cualquier rol). `view` además exige `$ficha->dependencia_id` = la actual |
+| `viewAny`, `view` | Cualquier rol de la dependencia. La foto va con `view`: es identificación (§6) |
 | `create` | `puedeEditarEn` y hay componente en el contexto (será el de registro) |
-| `verCaracterizacion` (caracterización e historial) | `puedeEditarEn` **y** (es coordinador líder **o** `$ficha->conocidaPor($componenteId)`). Lectura, nunca **[PA-11]** |
+| `verCaracterizacion` (caracterización e historial) | `puedeEditarEn` **y** (coordinador líder **o** `$ficha->conocidaPor($componenteId)`). Lectura, nunca **[PA-11]** |
 | `update` (identificación, estado vital, foto y caracterización) | `puedeEditarEn` **y** (coordinador líder **o** `$ficha->editablePor($componenteId)`) |
 
 - «Coordinador líder» = `rolEn(dependencia) === Administracion` (el superadministrador ya
@@ -174,144 +214,181 @@ cubre las acciones de Filament y el menú. Después, el rol **[PA-02]**:
 - Las dos preguntas del componente viven en el modelo, en un solo lugar, para que DOC-27 las
   cambie sin tocar la Policy:
   - `conocidaPor(int $id)`: con DOC-26 sola, `componente_registro_id === $id` **[PA-03]**. Con
-    DOC-27 (UHC-19): o tiene una estadía activa o egresada en ese componente.
+    DOC-27 (UHC-19), también si tiene una estadía activa o egresada en ese componente.
   - `editablePor(int $id)`: con DOC-26 sola, igual. Con DOC-27: la estadía activa está en ese
-    componente; si nunca tuvo estadía válida, el de registro; si tuvo y hoy no está activa, nadie
-    salvo el líder.
-- Rutas, controladores (`$this->authorize`) y cada acción de Filament (`->authorize()`) pasan por
-  aquí. El guardado vuelve a autorizar (CA-13: «al guardar»).
-- Sin el módulo (Calle): 403 en la ruta y `false` en la Policy (CA-01).
-- [PA-01] Si Edwar no acepta que la búsqueda cruce componentes: `viewAny`/`view` y la consulta
-  de la lista se limitan a `conocidaPor`, y el aviso de duplicados solo vería el propio componente.
-- [PA-02] Si pide permisos sueltos: una columna booleana en `dependencia_usuario` como
-  `aprueba_novedades` y una condición más en `update`; es otra tarea.
+    componente; si nunca tuvo estadía válida, el de registro; si tuvo y hoy no está activa,
+    nadie salvo el líder.
+- Rutas, controladores (`$this->authorize`) y cada acción de Filament (`->authorize()`) pasan
+  por aquí. Guardar vuelve a autorizar (CA-13).
+- **Livewire restaura los modelos sin los scopes globales** (`newQueryForRestoration`). Por eso
+  los componentes de Usuarios HC no guardan la ficha como propiedad: guardan `public int
+  $fichaId` y la buscan con `UsuarioHc::findOrFail()` (con scope) en cada petición. Una ficha de
+  otra dependencia da 404 también al guardar (CA-31).
+- [PA-01] Si Edwar no acepta que la búsqueda cruce componentes: `viewAny`/`view` y la consulta de
+  la lista se limitan a `conocidaPor`, y el aviso de coincidencias solo ve su componente.
+- [PA-02] Si pide permisos sueltos: una columna booleana en `dependencia_usuario` (como
+  `aprueba_novedades`) y una condición más en `update`; es otra tarea.
 
-### D4. Auditoría
+### D4. Auditoría (CA-17, CA-30)
 
-Cinco acciones nuevas en `AccionAuditoria`, todas con `Auditor::registrar`: las cuatro de la
-tabla, con la ficha como auditable, y `CatalogoHcCargado` para cada carga de un catálogo (D9).
+Cuatro acciones nuevas en `AccionAuditoria`, todas con `Auditor::registrar` y la ficha como
+auditable:
 
 | Acción | Cuándo | `datos` |
 |---|---|---|
-| `UsuarioHcCreado` («Creó un Usuario HC») | Al crear | Identificación guardada |
-| `UsuarioHcActualizado` («Corrigió un Usuario HC») | Cada guardado de identificación, caracterización o foto | `['cambios' => [campo => ['antes' => …, 'despues' => …]], 'motivo' => …]` (lo mismo que el historial) |
-| `UsuarioHcConsultado` («Abrió la caracterización de un Usuario HC») | Abrir caracterización, historial o la edición de la caracterización | `['parte' => 'caracterizacion'|'historial'|'edicion']` |
-| `UsuarioHcFotoVista` («Vio la foto de un Usuario HC») | Abrir la foto; una página de la lista con fotos | `['fichas' => [ids]]` para la página |
+| `UsuarioHcCreado` («Creó un Usuario HC») | Al crear | `[]`; la descripción dice el nombre |
+| `UsuarioHcActualizado` («Corrigió un Usuario HC») | Cada guardado de identificación, caracterización o foto | **`['cambios' => [etiquetas de los campos], 'motivo' => …]`**, sin valores |
+| `UsuarioHcConsultado` («Abrió la caracterización de un Usuario HC») | Abrir la caracterización o el historial | `['parte' => 'caracterizacion'|'historial']` |
+| `UsuarioHcFotoVista` («Vio la foto de un Usuario HC») | **Cada** vez que se pide la foto | `[]` |
 
+- **Sin valores en la auditoría general (CA-30):** el mismo formato que
+  `Admin\Turnos\DerivacionController:245`. Los valores quedan solo en `usuario_hc_cambios`,
+  detrás de `verCaracterizacion`. Además, la pantalla de Auditoría
+  (`resources/views/auditorias/index.blade.php:77`) hace `implode` de cada valor de `datos`: un
+  arreglo anidado (`['cambios' => [campo => ['antes' => …]]]`, el formato del plan anterior) la
+  rompe con un error 500. La prueba de CA-30 abre esa pantalla con un registro de Usuarios HC.
 - `auditorias.datos` ya es JSON y aquí solo se escribe; nada consulta dentro de él.
+- Sin miniaturas ni registro por página (PA-17): la lista no muestra fotos.
 - La pantalla de Auditoría no cambia: Coordinación sigue viendo solo lo de los usuarios de su
   componente (ACC-11), que es lo que pide §6.1.
-- **Miniaturas [PA-17]:** la lista arma, para cada fila con foto, una URL firmada con vencimiento
-  de 10 minutos (`URL::temporarySignedRoute`) que además lleva el id del usuario y se compara con
-  el de la sesión. La ruta de miniatura exige sesión, firma y `can:view`, y **no** audita por foto:
-  el componente de la lista deja un solo registro `UsuarioHcFotoVista` por página mostrada (solo
-  cuando cambia el conjunto de fichas con foto, para no repetir al abrir una ventana). La ruta
-  normal de la foto sí audita cada vez. Sin la firma, ver una foto suelta siempre queda auditado.
-  - Si Edwar elige la alternativa (sin fotos en la lista): se quitan la columna, la ruta de
-    miniatura y el registro por página.
+- **La carga de los catálogos no pasa por `Auditor::registrar` y no es una excepción a la
+  constitución IV.** No la hace un usuario desde la aplicación, sino Edwar con un comando en el
+  servidor (D9), y no cambia datos de nadie: llena una vez tablas de referencia vacías. El rastro
+  queda en dos lugares: el log del servidor (`Log::info` con el archivo, la cantidad de códigos y
+  la fecha) y la sección de la versión en `CHANGELOG.md`, que dice qué archivo de SISPRO se cargó
+  y de qué fecha. No sale en la pantalla de Auditoría.
 
-### D5. Búsqueda sin tildes ni mayúsculas, igual en cualquier motor
+### D5. Búsqueda normalizada, igual en cualquier motor (CA-03, CA-04)
 
-**Técnica: columnas normalizadas calculadas en PHP**, en `saving` del modelo, con una sola
-función:
+**Dos funciones, en `UsuarioHc`, que usan la ficha, las identidades y los catálogos:**
 
-- `UsuarioHc::normalizarTexto($t) = Str::of($t)->ascii()->lower()->squish()`: «Peña Álvarez» →
-  «pena alvarez». Para `nombre_busqueda`, `alias_busqueda`, `valor_busqueda` de nombres y
-  `descripcion_busqueda` / `nombre_busqueda` de los catálogos.
-- `UsuarioHc::normalizarCodigo($t) = mb_strtoupper(trim($t))`: documento y ficha.
-- **La «ñ» se busca como «n»** (es lo que ya hace `utf8mb4_unicode_ci` en los servidores, y
-  `Str::ascii` hace lo mismo). Ver **P-10**.
+```php
+public static function normalizarTexto(?string $t): string   // nombres, alias, nombres de catálogo
+{
+    return trim(preg_replace('/[^a-z0-9]+/', ' ', strtolower(Str::ascii((string) $t))));
+}
 
-Como las columnas guardan ASCII en minúsculas (o mayúsculas, los códigos), `LIKE` se comporta
-igual en SQLite, MariaDB 10.4, MySQL y PostgreSQL: el término se normaliza con la misma función y
-se escapan `%` y `_`. No hace falta collation, extensión ni columna generada.
+public static function normalizarCodigo(?string $t): string  // documento, ficha y CIE-10
+{
+    return preg_replace('/[^A-Z0-9]/', '', strtoupper(Str::ascii((string) $t)));
+}
+```
 
-Scope `UsuarioHc::scopeBuscar(Builder $query, string $texto)`, que también usará DOC-27 para su
-propia búsqueda:
+- «Peña Álvarez, J.» → `pena alvarez j`; «12.345 67» → `1234567`; «F20.0» → `F200`; la ficha
+  «f-120 », «F-120» y «F120» → `F120` (PA-20, spec v1.1). La «ñ» cuenta como «n» (PA-23) y los
+  signos como espacio (PA-22).
+- **Un solo normalizador de código** para documento y ficha: no hay variante con guion. La ficha
+  lo usa en `ficha_normalizada`, en el `valor_busqueda` de las identidades con campo `ficha`, en
+  el término de la búsqueda y en la unicidad. `numero_ficha` guarda lo escrito con sus guiones
+  (en mayúsculas y recortado, D6) solo para mostrarlo; nada compara contra esa columna.
+- Se calculan en `saving`: `nombre_busqueda`, `alias_busqueda`, `valor_busqueda` de las
+  identidades y `nombre_busqueda` de los dos catálogos (D1; no existe una columna
+  `descripcion_busqueda`).
+- **Nada que escapar en `LIKE`:** el término se normaliza con la misma función y solo puede
+  traer `[a-z0-9 ]` o `[A-Z0-9]` (la ficha además se compara con `=`); nunca `%` ni `_` (su escape no funciona igual en SQLite y en
+  MySQL). Las columnas guardan ASCII, así que `LIKE` da lo mismo en los dos motores sin collation
+  ni columnas generadas.
+- **La validación no usa estas funciones** (D6): el documento y la ficha se validan sin quitar
+  tildes ni «ñ», para rechazarlas en vez de convertirlas en silencio (CA-28).
+- Si el término queda vacío al normalizar («...»), la búsqueda no filtra.
 
-- **Nombre y alias:** cada palabra del término debe aparecer en `nombre_busqueda` o en
-  `alias_busqueda`, en cualquier orden («perez juan» encuentra a «Juan Carlos Pérez») (P-09).
-- **Documento:** `documento_normalizado LIKE %TÉRMINO%` (parte del número).
-- **Ficha:** `ficha_normalizada = TÉRMINO` (exacto).
-- **Identidades anteriores:** `usuarios_hc.id IN (SELECT usuario_hc_id FROM usuario_hc_identidades WHERE …)`
-  con la misma regla por campo. Una subconsulta `whereIn`, sin juntas ni `GROUP BY`; el scope de
-  dependencia queda en la consulta de afuera.
-- **Ficha reasignada:** antes de armar la consulta, un `exists` sobre `ficha_normalizada`. Si
-  alguien tiene ese número vigente, las identidades con campo `ficha` no entran; si nadie lo
-  tiene, sí.
+`UsuarioHc::scopeBuscar(Builder $query, string $texto)`, que también usará DOC-27:
+
+- **Nombre y alias** [PA-22]: cada palabra tiene que estar (`LIKE %palabra%`) en
+  `nombre_busqueda` o en `alias_busqueda`, en cualquier orden.
+- **Documento:** `documento_normalizado LIKE %TÉRMINO%`.
+- **Ficha:** `ficha_normalizada = TÉRMINO` (exacta).
+  Del mismo texto salen **dos términos**: palabras para nombre y alias, y código sin signos para
+  el documento y la ficha. Buscar «F120» o «f-120» encuentra la ficha «F-120», que se muestra
+  como se escribió (PA-20, spec v1.1).
+- **Identidades anteriores:** `usuarios_hc.id IN (SELECT usuario_hc_id FROM
+  usuario_hc_identidades WHERE …)`, con la misma regla por campo. Una subconsulta, sin juntas ni
+  `GROUP BY`; el scope de dependencia queda en la consulta de afuera.
+- **Ficha reasignada:** antes, un `exists` sobre `ficha_normalizada`. Si alguien tiene ese
+  número vigente, las identidades con campo `ficha` no entran; si nadie lo tiene, sí.
 - **«Coincide con un dato anterior»:** para las filas de la página, si el término no casa con
-  sus datos vigentes, la lista dice «Coincide con un nombre anterior» (o documento, o ficha). No
-  muestra el valor viejo (CA-04).
+  sus datos vigentes, la lista dice «Coincide con un nombre anterior» (o documento, o ficha), sin
+  mostrar el valor viejo (CA-04).
 
-**Rendimiento:** `LIKE '%…%'` no usa índice; se recorre la tabla. Con las fichas que puede tener
-Medellín (miles, no millones) y una sola tabla, es suficiente. Si un día no lo es: tabla de
-palabras o búsqueda de texto completo (candidato). La ficha exacta sí usa su índice.
+**Rendimiento:** `LIKE '%…%'` recorre la tabla; con miles de fichas basta. La ficha exacta usa
+su índice.
 
-**Cómo se prueba CA-03:** las pruebas (SQLite) cubren tildes, mayúsculas, «ñ», partes del
-nombre, alias, documento con letras y ficha exacta. UHC-17 corre **la misma clase de pruebas
-contra MySQL o MariaDB** con una base de pruebas aparte, sin tocar el `.env`:
+**CA-03 en los dos motores:** UHC-05 corre `UsuariosHcBusquedaTest` también contra MySQL, con
+una base de pruebas aparte y sin tocar el `.env`, como en ACC-14:
 `DB_CONNECTION=mysql DB_DATABASE=documenta_pruebas php artisan test --filter=UsuariosHcBusquedaTest`.
+Va antes del 30/11 porque DOC-27 usa este scope.
 
-### D6. Crear, coincidencias y unicidad
+### D6. Crear, coincidencias y unicidad (CA-05 a CA-08, CA-21, CA-28, CA-29)
 
 - **Pantalla:** Blade y controlador (`UsuarioHcController@create/store`), como Personas de campo,
   porque la foto va en el mismo formulario y `x-campo-archivo` ya reduce la imagen en el
-  navegador. La foto es opcional (§2).
+  navegador. La foto es opcional.
 - **Validación** (`GuardarUsuarioHcRequest`, compartida con la corrección):
-  - `tipo_documento` en las opciones vigentes de la lista;
-  - `numero_documento` obligatorio salvo «Sin documento», prohibido con «Sin documento»
-    (`prohibited_if`), solo letras y números, hasta 20 (P-02);
-  - unicidad de tipo + documento normalizado y de ficha normalizada en la dependencia,
-    ignorando la propia ficha al corregir. **La consulta de unicidad mira toda la dependencia**
-    (no hay `ComponenteScope` en la ficha): CA-06 con fichas de otro componente. El índice único
-    respalda una carrera entre dos personas; la `QueryException` se traduce al mismo mensaje.
-- **Mensajes de repetido** (CA-21): «Ya existe una ficha con ese documento: Juan Pérez, ficha
-  F-120», con un enlace a la ficha. Solo identificación.
-- **Coincidencias mientras se escribe** (CA-07): `GET usuarios-hc/coincidencias` con primer
-  nombre, primer apellido, tipo, documento y ficha; devuelve un HTML parcial con hasta 10 fichas
-  (nombre, documento, ficha, componente de registro). Coinciden: mismo documento (con cualquier
-  tipo), misma ficha vigente, o `nombre_busqueda` que contiene el primer nombre y el primer
-  apellido normalizados, o el alias igual (P-08). Avisa; solo el documento o la ficha repetidos
-  bloquean, y eso lo hace la validación al guardar.
-- **Al guardar:** `componente_registro_id`, `creado_por` y el texto del tipo de documento se
-  ponen en el servidor; `estado_vital = viva`. Auditoría `UsuarioHcCreado`.
+  - `tipo_documento` en las opciones vigentes; **al corregir, también el tipo que la ficha ya
+    tiene aunque se haya retirado** (CA-18).
+  - `numero_documento`: obligatorio salvo «Sin documento», prohibido con «Sin documento»
+    (`prohibited_if`). Antes de validar se recorta; la regla es
+    `regex:/^[0-9A-Z]{1,20}$/` sobre `strtoupper(trim(...))`, **ASCII, sin la bandera `u`**: no
+    `alpha_num`, que acepta letras Unicode (tildes, «ñ») y en MySQL `utf8mb4_unicode_ci` trata
+    «Ñ» y «N» como iguales y SQLite no [PA-19]. Mensaje: «Escribe el número solo con letras y
+    números, sin puntos, guiones ni espacios».
+  - `numero_ficha`: antes de validar, `strtoupper(trim(...))`, y eso es lo que se guarda (con sus
+    guiones). Reglas: `regex:/^[0-9A-Z-]{1,30}$/` [PA-20] (A–Z sin tildes ni «ñ», 0–9 y «-») y
+    `regex:/[0-9A-Z]/` (al menos una letra o un número: «---» se rechaza). Mensajes: «Escribe la
+    ficha solo con letras, números y guiones, sin puntos ni espacios» y «La ficha necesita al
+    menos una letra o un número». `ficha_normalizada` es `normalizarCodigo($ficha)`: quita los
+    guiones y cabe en 30.
+  - Unicidad de tipo + documento normalizado y de ficha normalizada (sin guion: «F120» choca con
+    «F-120») en **toda la dependencia**
+    (la ficha no tiene `ComponenteScope`), ignorando la propia al corregir (CA-06). La
+    `QueryException` del índice único (carrera entre dos personas) da el mismo mensaje.
+- **Mensaje de repetido** (CA-21): «Ya existe una ficha con ese documento: Juan Pérez, ficha
+  F-120» (la ficha como se escribió), con enlace a la ficha. Solo identificación.
+- **Coincidencias mientras se escribe** (CA-07, PA-21): `POST usuarios-hc/coincidencias` con
+  primer nombre, primer apellido, alias, tipo, documento y ficha; devuelve un HTML parcial con
+  hasta 10 fichas (nombre, documento, ficha, componente de registro). Coinciden: el mismo
+  documento con otro tipo, la misma ficha vigente, el mismo primer nombre y primer apellido
+  normalizados, o el mismo alias. Avisa; solo bloquean el documento o la ficha repetidos, y eso
+  lo hace la validación al guardar.
+- **Al guardar:** `componente_registro_id`, `creado_por` y el texto del tipo de documento los
+  pone el servidor; `estado_vital = viva`. Auditoría `UsuarioHcCreado`.
 
-### D7. Editar con motivo, historial y concurrencia (CA-13 a CA-15)
+### D7. Editar con motivo, historial y concurrencia (CA-13 a CA-15, CA-19, CA-20, CA-30, CA-34, CA-37)
 
-Un servicio, `App\Services\FichasUsuariosHc`, hace todo guardado de la ficha en una
-transacción, en este orden: autorizar → comprobar la revisión → comparar valores → exigir motivo
-→ guardar → historial → auditoría. Lo usan el controlador (identificación, foto) y el componente
-Livewire (caracterización).
+Un servicio, `App\Services\FichasUsuariosHc`, hace todo guardado en una transacción: autorizar →
+comprobar la revisión → comparar → exigir motivo → guardar → historial → auditoría. Lo usan el
+controlador (identificación y foto) y el componente Livewire (caracterización).
 
-- **Concurrencia, sin depender del motor:** cada formulario lleva la `revision` que tenía la
-  ficha al abrirse. Al guardar:
-  `UsuarioHc::whereKey($id)->where('revision', $enviada)->increment('revision')`. Es una sola
-  sentencia `UPDATE … WHERE revision = ?`, atómica en cualquier motor: si devuelve 0, alguien
-  guardó antes y se rechaza con «Otra persona cambió esta ficha mientras la editabas. Recarga la
-  página para ver sus cambios», sin guardar nada (CA-15). Cubre identificación, caracterización y
-  foto: cualquiera de las tres sube la revisión. Sin bloqueos de fila ni fechas con segundos.
-- **Motivo [PA-04]:** identificación (incluidos foto y estado vital): siempre. Caracterización:
+- **Concurrencia:** cada formulario lleva la `revision` con que se abrió. Al guardar,
+  `UsuarioHc::whereKey($id)->where('revision', $enviada)->increment('revision')`: una sola
+  sentencia atómica en cualquier motor. Si devuelve 0, se rechaza con «Otra persona cambió esta
+  ficha mientras la editabas. Recarga la página para ver sus cambios», sin guardar (CA-15).
+- **Motivo [PA-04]:** identificación (incluidos foto y estado vital), siempre. Caracterización,
   si cambia un campo que ya tenía valor; llenar uno vacío no lo pide, pero queda en el historial.
-  - Si Edwar responde «motivo siempre»: se quita la comparación y el motivo es obligatorio en
-    todo guardado.
-- **Historial:** una fila de `usuario_hc_cambios` por campo cambiado, con el componente del
-  contexto (para el líder, en el que está parado) (CA-14).
+  Si Edwar responde «motivo siempre», se quita la comparación.
+- **Historial:** una fila de `usuario_hc_cambios` por campo, o por opción que sale o entra en las
+  de varias, con `codigo_antes`/`codigo_despues` y los textos (CA-14, CA-34). Componente: el del
+  contexto (para el líder, en el que está parado).
+- **Respuestas de listas [PA-28, P-17 resuelta]:** en la misma transacción, primero la fila del
+  historial con `codigo_antes`/`codigo_despues` y los textos, después se reemplaza la fila vigente.
+  Si falla una, no queda ninguna.
 - **Identidades anteriores:** si cambian el nombre completo, el documento (tipo o número) o la
-  ficha, se guarda el valor anterior en `usuario_hc_identidades` (CA-04). El número de ficha
-  viejo queda libre para otra persona (§1).
-- **Componente de registro:** no se toca al editar (CA-20).
-- **Estado vital [con DOC-26 sola]:** «Fallecida» con motivo e historial y sin ningún aviso
-  (CA-19). El aviso llega con UHC-21 (DOC-27 y ACC-10).
+  ficha, el valor anterior va a `usuario_hc_identidades` (CA-04). El número de ficha viejo queda
+  libre para otra persona (§1).
+- **Auditoría:** `UsuarioHcActualizado` con las etiquetas de los campos y el motivo (D4).
+- **Componente de registro:** no se toca (CA-20).
+- **Estado vital, con DOC-26 sola:** «Fallecida» con motivo e historial, sin avisos (CA-19). El
+  aviso llega con UHC-21.
 
-### D8. Caracterización: listas en la configuración y formulario de Filament
+### D8. Caracterización: listas en la configuración y una sola pantalla (CA-09 a CA-12, CA-18, CA-33, CA-34)
 
-- **Qué campos hay** es código (un campo nuevo es un cambio de la spec, §7): constante
+- **Qué campos hay** es código (un campo nuevo cambia la spec, §7): constante
   `UsuarioHc::CAMPOS`, con etiqueta, tipo (`una`, `varias`, `varias_con_principal`) y de dónde
   salen las opciones (una lista de la configuración, `comunas`, `catalogo:paises`,
   `catalogo:cie10`). Las fechas y el tiempo en calle son columnas de
   `usuario_hc_caracterizaciones`.
-- **Las opciones de las listas cortas** son dato, en `config/repositorio.php` **[PA-05]**, un
-  bloque `usuarios_hc` junto a `comunas`:
+- **Listas cortas** en `config/repositorio.php` **[PA-05]**, un bloque `usuarios_hc` junto a
+  `comunas`:
 
   ```php
   'usuarios_hc' => [
@@ -326,136 +403,142 @@ Livewire (caracterización).
   ```
 
   - `excluyentes`: una opción así no se guarda con ninguna otra; cubre «No consume» y
-    «Ninguna»/«Sin información» entre sí (CA-10), sin `if` por campo.
-  - Opciones que se ofrecen = `opciones` menos `retiradas`, más las que **esta ficha ya tiene**
-    (con su texto guardado y «(retirada)»), para que editar no las borre en silencio. La
-    validación acepta un código si está vigente o si la ficha ya lo tenía (CA-18).
-  - Comuna: la lista `repositorio.comunas` que ya usan los casos (DOC-23), sin copiarla.
+    «Ninguna»/«Sin información» entre sí (CA-10), sin un `if` por campo.
+  - Opciones que se ofrecen = `opciones` − `retiradas` + las que **esta ficha ya tiene** (con su
+    texto guardado y «(retirada)»). La validación acepta un código vigente o uno que la ficha ya
+    tenía (CA-18).
+  - Comuna: `repositorio.comunas`, la que ya usan los casos (DOC-23), sin copiarla.
   - EPS **[PA-07]**: si Edwar no autoriza la EPS, se quitan la lista y el campo.
-  - Si Edwar prefiere otra cosa que la configuración: tabla de solo lectura cargada por
-    despliegue, como los catálogos (D9).
-- **Formulario:** componente Livewire `App\Livewire\UsuariosHc\Caracterizacion` con un
-  formulario de Filament dentro de la página de Documenta: `Select` con
-  `placeholder` (se puede limpiar), `CheckboxList` para las de varias, `Select::searchable()`
-  con `getSearchResultsUsing` para países y CIE-10 (no hace falta escribir un buscador en JS),
-  `Repeater` simple o `Select::multiple()` más un `Radio` de «principal» para medicina general.
-  Recordar la lección: los closures reciben `$state`, `$get`, `$search` por nombre.
-- **Reglas** (CA-09 a CA-12): todo opcional; fecha de nacimiento no futura (comparada con el día
-  en `America/Bogota`, la zona de `repositorio.horario.zona`); tiempos enteros desde 0, sin
-  convertir ni rellenar; medicina general con diagnósticos exige uno principal; «Otros
-  diagnósticos de psiquiatría» sin principal **[PA-08]**. La **edad** es un accessor
-  (`fecha_nacimiento->age`, o «Sin información»).
-- Abrir la edición registra `UsuarioHcConsultado` (muestra la caracterización). Guardar usa el
-  servicio de D7.
+- **Una sola pantalla** (`GET …/caracterizacion`): el controlador autoriza
+  `verCaracterizacion`, registra `UsuarioHcConsultado` una vez por apertura y muestra
+  `App\Livewire\UsuariosHc\Caracterizacion` (con `$fichaId`, D3), un formulario de Filament
+  dentro del layout de Documenta. Si el usuario no puede `update`, el formulario va
+  **deshabilitado** (`->disabled()`) y sin botón de guardar. Con DOC-26 sola, quien ve la
+  caracterización también la edita; la pantalla deshabilitada sirve desde DOC-27 (quien conoce a
+  la persona por una estadía egresada). La acción de guardar lleva su `->authorize('update', …)`
+  (fuera de un panel, cada acción necesita la suya).
+- **Campos:** `Select` con `placeholder` (se limpia), `CheckboxList` para las de varias,
+  `Select::searchable()` con `getSearchResultsUsing` para países y CIE-10 (busca en el servidor
+  por `nombre_busqueda` y por `codigo` con `normalizarCodigo`; solo `habilitado`), medicina
+  general con `Select::multiple()` más un `Radio` de «principal». Los closures reciben `$state`,
+  `$get`, `$search` por nombre (lección de Filament).
+- **Texto guardado en los selectores (CA-33):** para los códigos que la ficha ya tiene, la
+  etiqueta sale de `usuario_hc_respuestas.texto`, no del catálogo: `getOptionLabelUsing` en los
+  de una opción y **`getOptionLabelsUsing`** en los `Select::multiple()` (sin él, un código que
+  ya no está habilitado sale como el código pelado o vacío). La validación acepta un código
+  habilitado o uno que la ficha ya tiene. Guardar sin tocar el campo lo conserva.
+- **Reglas:** todo opcional; fecha de nacimiento no futura (el día en `America/Bogota`,
+  `repositorio.horario.zona`); fecha de ingreso al sistema sin regla (PA-24); tiempos enteros
+  desde 0, sin convertir ni rellenar; medicina general con diagnósticos exige un principal;
+  «Otros diagnósticos de psiquiatría» sin principal **[PA-08]**; los diagnósticos no se validan
+  por edad ni sexo (PA-25). La **edad** es un accessor (años cumplidos, o «Sin información»).
+- **Sin catálogo cargado,** los tres campos de diagnóstico y la nacionalidad no se muestran
+  (`Cie10::query()->exists()`, `Pais::query()->exists()`): DOC-26 puede salir sin ellos (PA-06).
 
-### D9. Catálogos CIE-10 y países: recargables, no «una sola vez» [PA-13, PA-06]
+### D9. Catálogos CIE-10 y países: un comando, una sola vez, archivo fuera del repositorio [PA-06, PA-13, PA-27] (CA-36)
 
 Base: [investigacion-cie10-y-paises.md](investigacion-cie10-y-paises.md) (2026-11-24).
 
 - **Fuentes:** tablas de referencia **«CIE10»** (12.634 códigos, 22-oct-2026) y **«Pais»** (249
-  países, 3-oct-2018) de SISPRO, las mismas del RIPS. Se registran en `documentacion/fuentes/`
-  con su fecha.
-- **Por qué recargable:** la CIE-11 reemplaza a la CIE-10 hacia el **14-ago-2027** (Res. 1442 de
-  2024 y 1657 de 2025) y SISPRO no publica cada cuánto actualiza la tabla. Recargar no rompe nada
-  porque cada respuesta guarda su `fuente`, su código y el texto con que se registró (§7, D1).
-- **Cómo se carga:** una clase `App\Support\CatalogosHc` y un comando
-  `php artisan catalogos-hc:cargar {cie10|paises} {archivo}`. Lee el Excel exportado de SISPRO
-  con **OpenSpout** (ya se usa en las cargas masivas; también lee CSV si el Excel llega en otro
-  formato y hay que convertirlo).
-  - **Columnas por su contenido, no por el encabezado:** los `Extra_…` de SISPRO no traen lo que
-    dice su etiqueta. El mapa vive en la clase (CIE-10: `Codigo`, `Nombre`, `Descripcion` =
-    nombre de la categoría, `Habilitado`, `Extra_I` = sexo 1/2/3, `Extra_II`/`Extra_III` = edad
-    mínima y máxima, `Extra_V` = capítulo, `Extra_VI` = categoría; países: `Codigo` = ISO
-    numérico, `Extra_II` = alfa-2, `Extra_III` = alfa-3, `Nombre`).
-  - **Se comprueba antes de escribir:** si `F200` no es «ESQUIZOFRENIA PARANOIDE», `F524` no es
-    solo para hombres, `F900` no va de 1 a 17 años o `170` no es Colombia/`CO`/`COL`, la carga se
-    detiene sin tocar nada y dice qué columna no cuadra. Así un cambio de formato de SISPRO no
-    llena el catálogo de basura.
-  - **Texto oficial tal cual:** con sus mayúsculas, sin tildes y con sus errores
-    («DEPENDENDENCIA», el carácter dañado de `U85X`). No se corrige el CIE-10. Solo se agrega
-    `nombre_busqueda` normalizado. Los códigos se guardan como SISPRO (4 caracteres, sin punto,
-    con X); la búsqueda acepta también «F20.0», «f20» o parte del nombre.
-  - **`upsert` por código** en tandas de 200 filas (SQLite no acepta más de 999 variables por
-    sentencia), en una transacción. Un código que estaba y ya no viene en el archivo queda
-    `habilitado = false`: deja de ofrecerse, pero las fichas que lo tienen lo siguen mostrando con
-    su texto (como una opción retirada, §7). **Nunca se borra una fila.**
-  - Cada carga deja auditoría (`CatalogoHcCargado`, con fuente, fecha de la tabla y cuántos
-    códigos nuevos, cambiados y deshabilitados) y su línea en la consola.
-- **Dónde vive el archivo:** **en el repositorio**, en `database/data/catalogos/`, con la fecha
-  en el nombre (`sispro-cie10-2026-10-22.xlsx`, `sispro-pais-2018-10-03.xlsx`). No trae datos
-  personales; así el despliegue, el servidor de pruebas y cada equipo local cargan lo mismo, y
-  cada recarga se revisa en un PR. **En producción no se hace nada a mano:** una migración de
-  datos llama al cargador (el despliegue solo corre `migrate`). Cada recarga futura es un archivo
-  nuevo más una migración nueva de una línea (nunca se edita una migración desplegada,
-  constitución VIII). Ver **P-14** (licencia).
-- **El Excel llega por correo** (SISPRO lo envía al exportar): bajarlo con un correo
-  institucional es un paso de una persona, no de código. Mientras no esté, la migración no hace
-  nada y el formulario **esconde los campos de ese catálogo** (`Cie10::habilitados()->exists()`):
-  DOC-26 puede salir sin diagnósticos, como prevé PA-06.
-- **Países: nombres con errores** (BRAZIL, GUADALUOE, SUAZILANDIA, MACEDONIA…). El código es lo
-  que vale y se carga tal cual. **Propuesta:** se guarda `nombre_oficial` como viene y se muestra
-  `nombre`, que es el oficial salvo una lista corta de correcciones en `CatalogosHc`
-  (código ⇒ nombre, con la razón al lado: `076` ⇒ «BRASIL», `312` ⇒ «GUADALUPE», `748` ⇒
-  «ESUATINI»…). La lista se vuelve a aplicar en cada recarga y queda en el PR. Ver **P-15**.
-  Ni «apátrida» ni «desconocido» se inventan como país: vacío es «no informado» (§3).
-- **Edad y sexo por código** (por ejemplo, F900 de 1 a 17 años; 885 códigos para un solo sexo):
-  se **guardan** en el catálogo, pero **DOC-26 no valida ni avisa con ellos**, porque la spec no
-  lo pide. Ver **P-13**: es Edwar quien decide si bloquean, avisan o nada.
-- **En las pruebas la migración no carga el archivo completo** (`app()->runningUnitTests()`): la
-  suite corre en SQLite en memoria y no debe insertar 12.634 filas en cada corrida. Cada prueba
-  crea los códigos que necesita; `CatalogosHcTest` carga un archivo de ejemplo pequeño
-  (`tests/Fixtures/`) con F200, F524, F900, F03X, U85X y 170, y prueba la comprobación, la
-  recarga (cambia un nombre, deshabilita un código ausente, no borra) y que una respuesta ya
-  guardada conserva su texto.
-- **CIE-11:** no se construye. Lo que este diseño deja listo: la `fuente` en cada respuesta, la
-  carga genérica por fuente, y un catálogo por clasificación (una tabla `catalogo_cie11` futura no
-  toca la del CIE-10). Lo que **no** resuelve: la spec dice «Catálogo CIE-10» en tres campos;
-  registrar en CIE-11 o con doble codificación será un cambio de spec (P-16).
-- [PA-13] Si Edwar los quiere en la configuración: los países caben (249); el CIE-10 no (12.634
-  códigos): habría que limitarlo a una lista corta, lo que cambia la spec.
+  países, 3-oct-2018) de SISPRO, las del RIPS. **El archivo no entra al repositorio [PA-27]**: en
+  `documentacion/fuentes/` se anota solo la referencia (nombre, fecha de SISPRO, de dónde se bajó
+  y cómo se convirtió). No hay `database/data/catalogos/` ni migración que cargue datos.
+- **Una sola vez, sin recarga:** no hay `upsert`, ni desactivación de códigos ausentes, ni
+  auditoría `CatalogoHcCargado`. El comando **se niega si la tabla ya tiene filas** («El
+  catálogo ya está cargado; recargarlo es una spec aparte, PA-26»). La recarga es candidata; si
+  un día se aprueba, lleva un tope (ver «Candidatos»).
+- **Nadie ha visto el archivo todavía; sigue pendiente su formato real.** SISPRO lo manda por
+  correo al exportar; puede llegar como `.xls` antiguo o como HTML con extensión de Excel, y
+  **OpenSpout (que ya está, vía Filament) no lee `.xls`**. Por eso **no se escribe la carga hasta
+  tener el archivo en la mano**. Si llega en `.xls` o HTML, se abre en Excel o LibreOffice y se
+  guarda como `.xlsx` o CSV UTF-8 (un paso de una persona, anotado en `fuentes/`). El esquema de
+  las tablas ya está en UHC-02.
+- **El comando** `php artisan catalogos-hc:cargar {cie10|paises} {archivo}`
+  (`App\Console\Commands\CargarCatalogoHc`, en UHC-15), que Edwar corre a mano una vez en cada
+  servidor con la ruta del archivo, como enciende el módulo. Toda la lógica vive en el comando;
+  no hay clase aparte:
+  - se niega si la tabla ya tiene filas (arriba);
+  - lee `.xlsx` o CSV con OpenSpout;
+  - **columnas por su contenido, no por el encabezado** (los `Extra_…` de SISPRO no traen lo que
+    dice su etiqueta): CIE-10 `Codigo`, `Nombre`, `Habilitado`; países `Codigo` (ISO numérico,
+    texto de 3), `Nombre`;
+  - **comprueba antes de escribir:** `F200` es «ESQUIZOFRENIA PARANOIDE», `170` es Colombia, y el
+    archivo trae al menos 12.000 códigos (CIE-10) o 240 países. Si algo no cuadra, se detiene sin
+    tocar nada y dice qué;
+  - texto oficial tal cual (mayúsculas, sin tildes, con sus errores); solo agrega
+    `nombre_busqueda`. Códigos como SISPRO (4 caracteres, sin punto, con X);
+  - inserta por tandas de 500 filas (`chunk`) en una transacción, para no armar una sentencia
+    gigante;
+  - al terminar, `Log::info('Catálogo cargado', ['catalogo' => …, 'archivo' => …, 'codigos' =>
+    …])` (el log trae la fecha) y la misma línea en la consola. Ese es el rastro, junto con la
+    nota en `CHANGELOG.md` de la versión (D4).
+- **Países: nombres con errores** (P-15): las correcciones son una constante del comando.
+- **Pruebas:** la suite no carga el archivo de SISPRO (no está en el repositorio, y serían 12.634
+  filas en cada corrida). Cada prueba de la caracterización crea los códigos que necesita.
+  `CatalogosHcTest` llama al comando con `$this->artisan(...)` sobre CSV que la prueba escribe en
+  un directorio temporal: uno válido (sintético, con F200, F03X, U85X y 170, y relleno hasta la
+  cantidad mínima), uno sin F200, uno corto. Prueba la comprobación (no escribe nada si falla), que
+  no carga dos veces, la línea del log (`Log::spy()`) y que una respuesta guardada conserva su
+  texto. Sin opción oculta para bajar el mínimo.
 
-### D10. Fotos [PA-15, PA-10 resuelta]
+### D10. Fotos [PA-15, PA-17, PA-10 resuelta] (CA-17, CA-22, CA-32)
 
-- **Guardar:** el servicio `FichasUsuariosHc::cambiarFoto` guarda en
-  `Storage::disk(config('repositorio.disco'))`, en `usuarios-hc/{dependencia}/{ficha}/{uuid}.{ext}`,
-  fuera de la web. Nada en `documentos` ni en carpetas: no aparece en Documentos (RN-51).
-  Fila nueva en `usuario_hc_fotos`, `foto_id` nuevo, historial «Foto: cambió» con motivo, revisión.
-- **Validar:** `mimetypes` y extensiones de `repositorio.formatos.imagenes` (JPG, JPEG, JFIF,
-  PNG, WEBP), `max:repositorio.tamano_maximo_kb`, y lado máximo
+- **Validar:** `mimetypes` y extensiones de `repositorio.formatos.imagenes` (JPG, JPEG, JFIF, PNG,
+  WEBP), `max:repositorio.tamano_maximo_kb` y lado máximo
   `repositorio.imagen.lado_maximo_servidor`. La regla del lado hoy es un closure protegido de
-  `EnvioPublicoController`; se saca a `App\Rules\LadoMaximoImagen` y ese controlador la usa (mismo
-  mensaje, sus pruebas lo cubren). Así no hay dos copias.
-- **Servir:** `UsuarioHcFotoController@ver` responde el archivo con `Content-Type` del mime
-  guardado, `X-Content-Type-Options: nosniff` y `Cache-Control: private`, como
-  `DescargaController::previsualizar`. Audita (D4). La miniatura es el mismo archivo por la ruta
-  firmada (no hay GD en el entorno de pruebas para generar miniaturas; candidato).
-- **Sin sello [PA-15]:** `x-campo-archivo` recibe una propiedad `sello` que hoy siempre tiene
-  valor. Con `:sello="null"`: la foto de cámara **no** se estampa ni pide ubicación; solo se
-  reduce a 2560 px. Además, para esta foto el navegador **siempre** vuelve a codificar la imagen,
-  aunque ya sea pequeña: así se le quitan los metadatos EXIF (que pueden traer coordenadas del
-  GPS). Ver **P-06**.
-  - Si Edwar dice que la foto lleve sello: `sello="Usuario HC"` y no hay cambio en el componente.
+  `EnvioPublicoController::ladoMaximoDeImagen()`; se saca a `App\Rules\LadoMaximoImagen` y ese
+  controlador la usa (mismo mensaje; sus pruebas lo cubren).
+- **Quitar los metadatos en el servidor (CA-32):** antes de guardar, la imagen se vuelve a
+  codificar con GD (`imagecreatefromstring` → `imagejpeg($imagen, null, 85)`), bajo
+  `function_exists('imagecreatefromstring')` como en `app/Support/Xlsx.php:220`. Volver a
+  codificar descarta el EXIF (coordenadas incluidas). Siempre se guarda JPEG, también si llegó
+  PNG o WEBP. GD está en local y en producción (checklist de CLAUDE.md). **Sin GD, la foto se
+  rechaza** («El servidor no puede procesar fotos en este momento; avisa a soporte») en vez de
+  guardarla con su ubicación (P-18).
+- **Guardar:** `FichasUsuariosHc::cambiarFoto` en `Storage::disk(config('repositorio.disco'))`,
+  ruta `usuarios-hc/{dependencia}/{ficha}/{uuid}.jpg`, fuera de la web. Nada en `documentos` ni en
+  carpetas: no aparece en Documentos (RN-51). Fila nueva en `usuario_hc_fotos`, `foto_id` nuevo,
+  historial «Foto: cambió» con motivo, revisión. Quitar: `foto_id` a nulo, con motivo e historial.
+- **Servir:** `UsuarioHcFotoController@ver` responde el archivo con `Content-Type: image/jpeg`,
+  `Content-Disposition: inline`, `X-Content-Type-Options: nosniff`, la CSP de
+  `DescargaController::previsualizar` (`default-src 'none'; object-src 'self'; img-src 'self'`)
+  y **`Cache-Control: no-store`** (el plan anterior decía `private`, que sí deja guardarla).
+  Audita `UsuarioHcFotoVista` cada vez (D4). La ficha la muestra con un `<img>` a esta ruta: cada
+  apertura de la ficha con foto deja un registro.
+- **Sin sello [PA-15], UHC-10:** `x-campo-archivo` **sella aunque se le pase `:sello="null"`**:
+  la vista escribe `data-sello=""` y `resources/js/campo-archivo.js:381` hace
+  `campo.dataset.sello || 'Evidencia'`. Hay que cambiar la vista y el JS:
+  - la vista no escribe `data-sello` cuando `$sello` es `null`;
+  - sin `data-sello`, la foto de cámara no se estampa y el botón de cámara no pide ubicación
+    (hoy la pide al entrar y al tocar, líneas 314 a 355);
+  - sin `data-sello`, `reducirImagen` vuelve a codificar **siempre**, aunque la foto ya sea
+    pequeña (hoy devuelve el archivo original si no hay que reducir, y con él su EXIF);
+  - las fotos de turnos, derivaciones y supervisión siguen igual.
+  - **La prueba automática solo puede revisar el HTML** (que no lleva `data-sello`); el
+    comportamiento del JS se comprueba a mano en el navegador (UHC-17). Lo que sí se prueba en el
+    servidor es CA-32: la foto se guarda sin EXIF aunque no pase por el navegador.
+- Si Edwar dice que la foto lleve sello: `sello="Usuario HC"`, y UHC-10 se reduce a la recodificación.
 
 ### D11. Pantallas
 
 | Pantalla | Cómo | Quién la ve |
 |---|---|---|
-| Lista | `App\Livewire\UsuariosHc\Listado` (tabla Filament, copia de `PuntosCriticos`) en `usuarios-hc/index.blade.php` | Todos los roles del componente con el módulo |
-| Crear, corregir identificación | Blade + `UsuarioHcController`, con un parcial de formulario común | Edición en adelante |
-| Ficha | Blade: identificación con foto y estado vital; botones a caracterización e historial solo si `@can('verCaracterizacion')` | Todos |
-| Caracterización e historial | Blade, rutas propias auditadas | D3 |
-| Editar caracterización | Livewire + formulario Filament (D8) | D3 |
+| Lista | `App\Livewire\UsuariosHc\Listado` (tabla Filament, como `PuntosCriticos`) en `usuarios-hc/index.blade.php` | Todos los roles del componente con el módulo |
+| Crear, corregir identificación | Blade + `UsuarioHcController`, un parcial de formulario común | Edición en adelante |
+| Ficha | Blade: identificación con la foto y el estado vital; botones a caracterización e historial solo con `@can('verCaracterizacion')` | Todos |
+| Caracterización | Una sola pantalla Livewire + Filament, deshabilitada si no puede editar (D8) | D3 |
+| Historial | Blade, auditada; horas con `->fechaHora()` | D3 |
 
-- **Lista:** columnas foto (miniatura), nombre completo, tipo y número de documento, ficha,
-  componente de registro, estado vital. Búsqueda con
-  `->searchable(query: fn (Builder $query, string $search) => $query->buscar($search))`
-  (parámetros por nombre). Filtro «Componente» con los componentes del módulo (salto de scope a
-  propósito, D1). Paginación de 25. `persistSearchInSession()`, `persistFiltersInSession()` y la
-  página en la dirección, para volver como se dejó (§1). Acciones «Ver» y «Editar» como enlaces,
-  cada una con `->authorize()`. La consulta de la tabla es `UsuarioHc::query()` con
-  `componenteRegistro` cargado; **nunca** carga relaciones sensibles (CA-21).
-- **Con DOC-26 sola** la columna dice el componente de registro y no hay filtro de estado
-  (UHC-20 lo cambia).
+- **Lista:** nombre completo, tipo y número de documento, ficha, componente de registro, estado
+  vital. **Sin fotos** (PA-17). Búsqueda con
+  `->searchable(query: fn (Builder $query, string $search) => $query->buscar($search))`. Filtro
+  «Componente» con los componentes de la dependencia que tienen el módulo (salto de scope a
+  propósito, D1). Páginas de 25. `persistSearchInSession()`, `persistFiltersInSession()` y la
+  página en la dirección (§1). Acciones «Ver» y «Editar» como enlaces, cada una con su
+  `->authorize()`. La consulta es `UsuarioHc::query()` con `componenteRegistro`; **nunca** carga
+  relaciones sensibles (CA-21).
+- Con DOC-26 sola, la columna dice el componente de registro y no hay filtro de estado (UHC-20 lo
+  cambia).
 
 ### D12. Lo que espera a DOC-27 (y no se construye ahora)
 
@@ -464,141 +547,141 @@ Base: [investigacion-cie10-y-paises.md](investigacion-cie10-y-paises.md) (2026-1
 | Ver caracterización e historial por estadía válida (CA-25) | `UsuarioHc::conocidaPor()` | UHC-19 |
 | Editar según la estadía activa (CA-24) | `UsuarioHc::editablePor()` | UHC-19 |
 | Columna «componente o estado», filtro de estado (CA-23) | `Listado` | UHC-20 |
-| Aviso al marcar «Fallecida» con estadía activa (CA-26) | `FichasUsuariosHc`, con `Dependencia::usuariosDelComponente()` de ACC-10 y un tipo nuevo en la campana (RN-38) **[PA-16]** | UHC-21 |
-| «Registrar ingreso» en la lista (CA-27) | `Listado`, acción que abre la pantalla de DOC-27 | UHC-22 |
+| Aviso al marcar «Fallecida» con estadía activa (CA-26) | `FichasUsuariosHc`, con `Dependencia::usuariosDelComponente()` (ACC-10, hecha) y un tipo nuevo en la campana (RN-38) **[PA-16]** | UHC-21 |
+| «Registrar ingreso» en la lista (CA-27) | `Listado` | UHC-22 |
 | «Unificar» (DOC-31) | `Listado` | Spec DOC-31 |
 
 Nada de DOC-26 asume cómo se llamará la tabla de estadías: solo esos dos métodos y esas dos
-acciones cambian.
+acciones cambian. Las migraciones de DOC-27 van fechadas después de `2026_11_25_000001` (D1).
 
 ## Qué cambia en la configuración y en `Componente`
 
-- `Componente::MODULOS`: `usuarios_hc` al final. Nueva `Componente::MODULOS_DESDE_LECTURA`.
+- `Componente::MODULOS`: `usuarios_hc` al final. Sin migración ni seeder de encendido (PA-29).
 - `Componente::REGLAS`: **nada** (nada de esto cambia entre Básica y Estabilización).
-- `config/repositorio.php`: bloque `usuarios_hc` con las listas cortas (D8). Nada más cambia: se
-  reutilizan `disco`, `formatos.imagenes`, `tamano_maximo_kb`, `imagen.*`, `comunas`, `por_pagina`.
+- `config/repositorio.php`: bloque `usuarios_hc` con las listas cortas (D8). Se reutilizan
+  `disco`, `formatos.imagenes`, `tamano_maximo_kb`, `imagen.*`, `comunas`, `horario.zona`.
 
 ## Pruebas
 
-- Archivos nuevos: `tests/Feature/UsuariosHc/` con `UsuariosHcModuloTest`, `UsuariosHcAccesoTest`,
-  `UsuariosHcBusquedaTest`, `UsuariosHcCrearTest`, `UsuariosHcEdicionTest`,
+- Archivos nuevos en `tests/Feature/UsuariosHc/`: `UsuariosHcModuloTest`, `UsuariosHcAccesoTest`
+  (Policy, CA-16, CA-31), `UsuariosHcBusquedaTest`, `UsuariosHcCrearTest`, `UsuariosHcEdicionTest`,
   `UsuariosHcCaracterizacionTest`, `UsuariosHcFotosTest`, `CatalogosHcTest`. Nombres
-  `test_doc26_caNN_…`, como `test_doc25_…`.
-- Modelo: `AislamientoPorComponenteTest` (componentes con todos los módulos, datos sembrados en
-  dos) y `ModulosPorComponenteTest` (recorre las rutas de cada grupo).
+  `test_doc26_caNN_…`; la tabla «Criterios y pruebas» de tasks.md dice cuál va dónde.
 - Básica y Estabilización con `Componente::factory()->create(['modulos' => ['usuarios_hc']])`;
-  Calle sin él (`['documentos', …]`). Ojo: `darRol` crea «Calle» con **todos** los módulos de la
-  fábrica, que ahora incluyen `usuarios_hc`; las pruebas de rechazo de Calle fijan sus módulos.
+  Calle con `AccesoPorComponenteSeeder::MODULOS_CALLE`. Ojo: `darRol` crea «Calle» con **todos**
+  los módulos de la fábrica, que ahora incluyen `usuarios_hc`; las pruebas de rechazo de Calle
+  fijan sus módulos.
+- **CA-31** crece con cada tarea: cada ruta nueva agrega su caso «ficha de otra dependencia → 404,
+  también para el coordinador líder». UHC-04 deja la prueba de la Policy (todos los métodos).
 - Livewire (lista y caracterización): `Livewire::test` no pasa por middlewares; se fijan
   dependencia y componente a mano (`docs/FILAMENT.md`).
-- **Pruebas de DOC-25 que hay que tocar** (de Edwar):
-  - `AccesoPorComponenteTest::test_doc25_ca01_…`, línea con
-    `assertSame(array_keys(Componente::MODULOS), $componentes['calle']->modulos)`: deja de ser
-    cierto porque Calle no tiene Usuarios HC. Pasa a comparar con
-    `AccesoPorComponenteSeeder::MODULOS_CALLE`. **Cambia lo que verifica** (ver P-01).
-  - `ModulosPorComponenteTest::parametrosEn()`: agregar `usuarioHc` (una ficha en Básica). Con
-    eso, la prueba que recorre «cada ruta de cada módulo» cubre sola todas las rutas de Usuarios HC
-    (403 para un componente sin el módulo) y exige que exista el grupo.
-- Fotos: `TestCase::archivoJpg()` sirve para lo válido; para «más de 4096 px» basta una cabecera
-  PNG armada a mano con esas medidas (`getimagesize` solo lee la cabecera; no hay GD).
+- Fotos: `TestCase::archivoJpg()` para lo válido; «más de 4096 px» con una cabecera PNG armada a
+  mano (`getimagesize` solo lee la cabecera). **CA-32:** un JPEG de GD con un segmento APP1
+  `Exif` (con GPS) insertado a mano después de `FFD8`; se sube sin pasar por el navegador y se
+  comprueba que el archivo guardado ya no contiene `Exif`, y que la respuesta trae
+  `Cache-Control: no-store`.
 - CA-19: `Notification::fake()` y `assertNothingSent()`.
+- **CA-29 (PA-20, spec v1.1):** `test_doc26_ca29_ficha_igual_sin_mayusculas_espacios_ni_guion`:
+  «a12» = « A12 »; «f-120», «F-120» y «F120» chocan entre sí; buscar «F120» encuentra la ficha
+  «F-120»; la ficha se muestra «F-120»; «---», «F.120», «F 120» y tildes se rechazan. La misma
+  prueba corre contra MySQL en UHC-17.
+- **MySQL** (constitución VII): búsqueda en UHC-05 (antes del 30/11); crear e índices únicos
+  (CA-28, CA-29), lista y respuestas en UHC-17.
 - `ConsultasEficientesTest`: el menú suma un `Gate::allows` sin consulta; no debería moverse.
 
 ## Riesgos
 
 | Riesgo | Qué pasa | Cómo se baja |
 |---|---|---|
-| Relación a `Componente` con su `ComponenteScope('id')` | La columna y el filtro de componente salen vacíos para fichas de otro componente | `withoutGlobalScope(ComponenteScope::class)` en la relación y las opciones (D1); prueba CA-02 desde Básica con una ficha de Estabilización |
-| Consultas que SQLite deja pasar y MySQL no | Falla en el servidor | Sin JSON consultado, sin `GROUP BY`; una subconsulta `whereIn` y columnas calificadas. Aun así UHC-17 corre las pruebas de búsqueda, crear (índices únicos) y lista contra MySQL/MariaDB |
-| Índice único con `utf8mb4_unicode_ci` | MySQL podría tratar como iguales valores que SQLite ve distintos | Las columnas únicas ya van normalizadas (mayúsculas, sin espacios en los extremos): los dos motores comparan lo mismo |
-| Una persona con datos de salud vista desde otro componente | Fuga sin vuelta atrás | La caracterización está en otras tablas que la lista no toca; Policy en ruta, controlador y Livewire; pruebas de rechazo por dirección directa (CA-16), en la lista y en los mensajes (CA-21) |
-| Tamaño del CIE-10 | Despliegue lento; pruebas lentas | 12.634 filas, nombres de hasta 241 caracteres: inserción en tandas, solo en el despliegue; las pruebas no lo cargan (D9). Unos segundos |
-| SISPRO cambia el formato o el encabezado de su Excel | Catálogo con columnas cruzadas | Columnas por contenido y comprobación con códigos conocidos antes de escribir (D9) |
-| La CIE-11 reemplaza a la CIE-10 (≈ 14-ago-2027) | Los diagnósticos quedan en una clasificación derogada | `fuente` en cada respuesta y catálogo recargable (D1, D9); el cambio de los campos es una spec nueva (P-16) |
-| Uso del texto de la CIE-10 sin licencia escrita | Reclamo de la OMS o del Ministerio | Uso interno, sin venta, citando «Tabla de referencia CIE10, SISPRO, MinSalud, fecha» (P-14) |
-| Búsqueda con `LIKE '%…%'` | Lenta con muchas fichas | Miles de filas: aceptable. Candidato si crece |
-| Fotos de galería con coordenadas en el EXIF | Dato personal que la spec no quiere guardar (PA-15) | El navegador vuelve a codificar siempre (D10); P-06 |
-| Livewire o Filament con muchos campos | Formulario lento en el celular | Secciones plegables; búsqueda de catálogos en el servidor, no listas de miles en el HTML |
-| Archivos compartidos con Edwar | Conflictos en git | Rutas en archivo propio; las tareas que tocan `Componente`, `InicioController`, `sidebar`, `config/repositorio.php`, `bootstrap/app.php`, `DatabaseSeeder`, `AccionAuditoria`, `x-campo-archivo` y las pruebas de DOC-25 están marcadas; entregas pequeñas a `develop` |
-| DOC-26 en producción sin DOC-27 | Un componente no completa a una persona que creó el otro | PA-14: salen juntas; DOC-26 sola solo en el servidor de pruebas |
+| Relación a `Componente` con su `ComponenteScope('id')` | Columna y filtro de componente vacíos para fichas de otro componente | `withoutGlobalScope(ComponenteScope::class)` en la relación y las opciones (D1); prueba CA-02 desde Básica con una ficha de Estabilización |
+| Consultas que SQLite deja pasar y MySQL no | Falla en el servidor | Sin JSON consultado, sin `GROUP BY`, una subconsulta `whereIn`, columnas calificadas. UHC-05 y UHC-17 corren contra MySQL |
+| Comparación de texto distinta en los dos motores (`utf8mb4_unicode_ci` iguala «Ñ» y «N», tildes, espacios finales) | Un documento repetido en un motor y no en el otro | Columnas únicas y de búsqueda solo en ASCII `[0-9A-Z]` y `[a-z0-9 ]` (D5, D6); CA-28 y CA-29 en MySQL |
+| `alpha_num` o `LIKE` con `%`/`_` | Acepta Unicode / escape distinto por motor | Regex ASCII sin `u`; términos normalizados sin nada que escapar (D5) |
+| Datos de salud vistos desde otro componente | Fuga sin vuelta atrás | Caracterización en otras tablas que la lista no toca; Policy en ruta, controlador y cada acción; pruebas por dirección directa (CA-16, CA-21) |
+| Valores de salud en la auditoría general | Los lee quien no puede ver la caracterización; además, error 500 en la pantalla | Solo nombres de campo y motivo (D4, CA-30) |
+| Livewire restaura la ficha sin scopes | Una ficha de otra dependencia se cargaría al guardar | `$fichaId` y `findOrFail` con scope en cada petición; `before` de la Policy (D3) |
+| El archivo de SISPRO llega en `.xls` o HTML | OpenSpout no lo lee | Convertirlo a `.xlsx`/CSV a mano; la carga se escribe con el archivo en la mano (D9) |
+| SISPRO cambia el formato | Catálogo con columnas cruzadas | Columnas por contenido, comprobación con códigos conocidos y cantidad mínima (D9) |
+| El comando no se corre en un servidor | Diagnósticos y nacionalidad no aparecen allí | Los campos se ocultan sin catálogo (D8), así que nada se rompe; el paso va en la lista de despliegue de Edwar y en `CHANGELOG.md` |
+| Un lugar compara la ficha con guion (contra `numero_ficha` o con el término sin normalizar) | «F120» no encuentra «F-120», o las dos se guardan como fichas distintas | Todo compara contra `ficha_normalizada` con el mismo `normalizarCodigo` del documento: columna, identidades, búsqueda, coincidencias y unicidad (D5); `numero_ficha` solo se muestra; CA-29 en SQLite y MySQL |
+| La CIE-11 reemplaza a la CIE-10 (≈ 14-ago-2027) | Diagnósticos en una clasificación derogada | `fuente` en cada respuesta; la recarga y la CIE-11 son una spec aparte (PA-26) |
+| GD con fotos grandes | Memoria: una foto de 4096 px son ~64 MB al decodificarla | Tope de 4096 px en la validación; `memory_limit` local 512 MB; revisar el de producción en UHC-17 |
+| Recodificar en el servidor pierde la orientación EXIF | Una foto que no pasó por el navegador puede quedar girada | El navegador ya la endereza al dibujarla; la que llega sin navegador es un caso raro. Si molesta, girar con `exif_read_data` antes (candidato) |
+| Archivos compartidos con Edwar | Conflictos en git | Rutas en archivo propio; los archivos de DOC-25 (`Componente`, `InicioController`, `bootstrap/app.php`, sus pruebas) los toca Edwar en UHC-01 |
+| Calendario apretado (José: 10,75 días de trabajo en 10,5 disponibles, tras los recortes) | DOC-26 cierra el 15/12 o la mañana del 16/12, sin holgura | Recortes y reparto de tasks.md («Calendario»); producción va con DOC-27 y espera PA-09/PA-18 |
+| DOC-26 en producción sin DOC-27 | Un componente no completa a una persona que creó el otro | PA-14: salen juntas |
 
-## Documentación (al cerrar)
+## Documentación (al cerrar, UHC-18)
 
-`documentacion/docs/context/domain.md`: RN-52 a RN-56 (el número lo fija quien actualice),
-RN-49 (módulo nuevo, encendido en Básica y Estabilización), RN-04 y RN-06 (lecturas), RN-13
-(excepción, si PA-15 queda en «sí»), «Parámetros del negocio» (dos filas). `glossary.md`.
-`docs/FILAMENT.md`: regla 2 (los saltos de `ComponenteScope` de D1) y la tabla de pantallas.
-Manual de usuario (sección Usuarios HC). `CHANGELOG.md`. Estado de la spec y
-`documentacion/README.md`. `documentacion/fuentes/`: las dos tablas de SISPRO con su fecha (la
-propone quien registre la fuente; las fuentes no se modifican después).
+- **`documentacion/docs/context/domain.md`:**
+  - **RN-52 a RN-56** (el número lo fija quien actualice).
+  - **«Nada se borra»** (P-17, resuelta): escribir que en Usuarios HC **el historial
+    (`usuario_hc_cambios`) es el registro de verdad**. Al cambiar o quitar una respuesta, la fila
+    vigente se reemplaza y la anterior queda completa en el historial, con su código antes y
+    después y su texto; así se cumple «nada se borra» y no es una excepción. La ficha, sus
+    identidades, sus fotos y su historial no se borran nunca.
+  - **RN-49:** módulo Usuarios HC, encendido en Básica y Estabilización por el superadministrador
+    desde «Componentes y nodos»; se abre desde Lectura. Cambia «Básica y Estabilización, ninguno
+    por ahora».
+  - **RN-04:** las lecturas de Usuarios HC (caracterización, historial, foto) se auditan; la
+    corrección lleva solo campos y motivo, los valores están en el historial de la ficha.
+  - **RN-06:** se extiende a las fotos de Usuarios HC, que además no se guardan en la caché.
+  - **RN-13:** excepción, la foto de la persona va sin sello ni coordenadas (PA-15).
+  - **RN-38:** tipo nuevo en la campana para Usuarios HC (con DOC-27, UHC-21, PA-16).
+  - **«Parámetros del negocio»:** dos filas (listas de Usuarios HC en la configuración; catálogos
+    CIE-10 y países, solo lectura, cargados una vez) y Usuarios HC en «Módulos del componente».
+- **`glossary.md`:** Usuario HC (sin «por construir»), Ficha, Caracterización, Estado vital,
+  Componente de registro, Identidad anterior; Usuarios HC en **Módulo**.
+- **Constitución V**, solo si las respuestas lo piden: PA-07 (la EPS del Usuario HC queda
+  aprobada), PA-09 (retención) y PA-18 (autorización de tratamiento). La fila «Parámetros» del
+  stack, aclaración opcional (PA-13). La constitución la cambia Edwar; aquí se propone el texto.
+- `docs/FILAMENT.md`: regla 2 (los saltos de `ComponenteScope` de D1) y la tabla de pantallas.
+- Manual de usuario (sección Usuarios HC), **después del 15/12** (recorte aceptado por Edwar).
+  `CHANGELOG.md`, con una línea por catálogo cuando se cargue (archivo de SISPRO, su fecha y la
+  cantidad de códigos; D4, D9). Estado de la spec y `documentacion/README.md`.
+  `documentacion/fuentes/`: la **referencia** de las dos tablas de SISPRO (nombre, fecha, de dónde
+  y cómo se convirtieron; el archivo no se versiona, PA-27) y el documento v1.6 como F-12.
 
-## Preguntas para Edwar
+## Preguntas técnicas para Edwar
 
-Del plan, no de la spec. Ninguna bloquea el arranque; cada una tiene su respuesta por defecto.
+Las preguntas de comportamiento del plan anterior pasaron a la spec v0.3: P-02 → PA-19, P-03 →
+PA-20, P-05 → PA-28, P-08 → PA-21, P-09 → PA-22, P-10 → PA-23, P-11 → PA-24, P-13 → PA-25, P-14
+→ PA-27, P-16 → PA-26. La spec v0.3 resolvió además P-04 (PA-04: todo dato de identificación
+pide motivo), P-06 (§6.3: también en el servidor), P-12 (la foto es identificación) y P-07 (§3:
+el catálogo completo). P-01 ya no es pregunta: es el ajuste de D2, que hace Edwar en UHC-01.
 
-- **P-01. Pruebas de DOC-25.** Agregar un módulo que Calle no tiene rompe una aserción de
-  `AccesoPorComponenteTest` («Calle tiene **todos** los módulos que existen»). DOC-25 dice que si
-  una prueba cambia lo que verifica, se reporta. **Por defecto:** pasa a verificar «Calle tiene
-  sus cuatro» (`MODULOS_CALLE`), que es lo que dice RN-49. UHC-01 la cambia, junto con
-  `ModulosPorComponenteTest::parametrosEn()`.
-- **P-02. Número de documento.** La spec dice «letras y números». **Por defecto:** solo letras y
-  números, sin espacios, puntos ni guiones, hasta 20 caracteres. ¿Algún documento (pasaporte, PPT)
-  trae guion?
-- **P-03. Número de ficha.** ¿«a12» y «A12» son el mismo número? **Por defecto:** sí, como el
-  documento (se ignoran mayúsculas y espacios de los extremos). Así el índice único se comporta
-  igual en SQLite y en MySQL.
-- **P-04. Motivo en la identificación (PA-04 al pie de la letra).** Agregar foto o alias a una
-  ficha que no los tenía, ¿pide motivo? **Por defecto:** sí, todo cambio de identificación lo pide.
-- **P-05. Constitución IV en las respuestas.** Cambiar una respuesta de la caracterización
-  reemplaza su fila y el valor anterior queda en el historial (igual que cambiar una columna).
-  **Por defecto:** así. La otra forma (marcar la fila como reemplazada) suma estado y consultas
-  sin ganar nada que el historial no tenga.
-- **P-06. Metadatos de la foto.** Las fotos de galería pueden traer coordenadas en el EXIF.
-  **Por defecto:** el navegador vuelve a codificar siempre esta foto y eso las quita. Si el
-  navegador no corre el script, la foto entra con sus metadatos; quitarlos en el servidor exige GD
-  (está en producción, no en las pruebas). ¿Basta con el navegador?
-- **P-07. CIE-10 en psiquiatría.** ¿Los dos campos de psiquiatría ofrecen todo el catálogo o
-  solo el capítulo F (trastornos mentales)? **Por defecto:** todo, como dice la spec.
-- **P-08. «Nombre parecido».** **Por defecto:** el mismo primer nombre y primer apellido (sin
-  tildes ni mayúsculas), o el mismo alias, o el mismo número de documento con otro tipo. Sin
-  comparación fonética (no hay una que funcione igual en todos los motores; candidato).
-- **P-09. Búsqueda con varias palabras.** **Por defecto:** cada palabra tiene que estar en el
-  nombre o el alias, en cualquier orden.
-- **P-10. La «ñ».** **Por defecto:** se busca como «n» («Pena» encuentra a «Peña»), como hoy en
-  MySQL. La spec pide decidirlo.
-- **P-11. Fecha de ingreso al Sistema HC.** La spec no dice si puede ser futura. **Por defecto:**
-  sin regla (la spec manda); si debe ser no futura, es una línea.
-- **P-12. Las fotos en la spec.** §6 pone la foto de la persona en la **identificación** (la ve
-  cualquier rol de un componente con el módulo), pero «Notas para el arquitecto» dice que «la
-  caracterización, el historial **y las fotos**» se protegen con el componente de registro. El
-  plan sigue §6 (el comportamiento manda sobre las notas): **la foto de la persona la ve todo
-  componente con el módulo**; lo restringido son las fotos de estadías, que son de DOC-27. Si
-  Edwar quiere lo de las notas, cambian `verFoto`, la lista (sin foto para quien no conoce a la
-  persona) y CA-01.
+Quedan estas; P-17 ya está resuelta y las demás tienen respuesta por defecto y no bloquean:
 
-De la investigación del CIE-10 y los países (2026-11-24):
+- **P-15. Nombres de países con errores en SISPRO** (enlazada a **PA-13**). La tabla trae
+  BRAZIL, GUADALUOE, SUAZILANDIA, MACEDONIA, MYANMAR (FORMER BURMA), ISLAS SOLOMON, HAITI.
+  **Por defecto:** se guardan el código y el nombre oficial como vienen (`nombre_oficial`) y se
+  muestra `nombre`, igual al oficial salvo una lista corta de correcciones en el comando de carga
+  (código ⇒ nombre, con la razón al lado: `076` ⇒ «BRASIL», `312` ⇒ «GUADALUPE», `748` ⇒
+  «ESUATINI»…). La otra opción es mostrarlos tal cual. Ni «apátrida» ni «desconocido» se
+  inventan como país: vacío es «no informado».
+- ~~**P-17. La respuesta anterior de una lista**~~ **Resuelta (Edwar, 2026-11-24):** al cambiar
+  una respuesta, la fila vigente se reemplaza y la anterior queda completa en `usuario_hc_cambios`,
+  con `codigo_antes`/`codigo_despues`, el texto, quién, cuándo y por qué. No se marca la fila como
+  reemplazada. El historial es el registro de verdad (D1, D7; `domain.md` en «Documentación»).
+- **P-18. Servidor sin GD.** **Por defecto:** la foto se rechaza con un mensaje, en vez de
+  guardarla con sus metadatos. GD está en local y en producción; esto solo protege de un servidor
+  mal configurado.
+- **P-19. Días de Edwar antes del 1/12.** El calendario cuenta con **dos días de Edwar** entre
+  el 25 y el 30/11 (UHC-01, UHC-04 y fusionar a `develop`). Si son menos, UHC-04 pasa a José y lo
+  del 30/11 se aprieta (tasks.md, «Calendario»).
 
-- **P-13. Edad y sexo de cada código CIE-10.** SISPRO trae para cada código el sexo y el rango de
-  edad en que vale (F900, TDAH, de 1 a 17 años; F840, autismo, de 1 a 9; 885 códigos para un solo
-  sexo). Si se **bloquea** como el RIPS, a un adulto no se le podría registrar un TDAH, y no hay
-  cómo cruzar el sexo con «No binario» o «Transgénero» ni la edad sin fecha de nacimiento. **Por
-  defecto (lo que dice la spec):** los límites se guardan en el catálogo, pero no se valida ni se
-  avisa. **Recomendación:** a lo sumo **avisar** («Este código suele usarse de 1 a 17 años»), sin
-  bloquear. Avisar o bloquear es un cambio de la spec (un CA nuevo).
-- **P-14. El Excel de SISPRO en el repositorio.** Se propone versionarlo en
-  `database/data/catalogos/` (sin datos personales; así todos los ambientes cargan lo mismo y cada
-  recarga se revisa). Ni SISPRO ni la OMS publican una licencia escrita para la CIE-10. **Por
-  defecto:** se versiona, con la cita «Tabla de referencia CIE10, SISPRO, MinSalud, fecha», para
-  uso interno. La otra opción es dejarlo en el servidor y cargarlo con el comando a mano, lo que
-  rompe «el despliegue solo corre `migrate`».
-- **P-15. Nombres de países con errores.** **Por defecto:** el código y el nombre oficial se
-  guardan como vienen; se muestra un nombre corregido solo en los errores evidentes (BRAZIL,
-  GUADALUOE, SUAZILANDIA, MACEDONIA, MYANMAR (FORMER BURMA), ISLAS SOLOMON, HAITI), con una lista
-  corta y su razón en el código, que se reaplica en cada recarga. La otra opción es mostrarlos
-  tal cual.
-- **P-16. La spec y la CIE-11 (cambia la spec).** PA-06 y PA-13 dicen «cargada una vez»; con la
-  transición a la CIE-11 (≈ 14-ago-2027) el plan los hace **recargables**. Se pide ajustar ese
-  texto al aprobar. Además, los tres campos de diagnóstico dicen «Catálogo CIE-10»: antes de
-  agosto de 2027 hará falta una spec que diga si se registra en CIE-11, en las dos (doble
-  codificación, como el RIPS desde junio de 2026) o se convierten. Va a «Candidatos»; el plan no
-  la construye, solo no la impide.
+## Candidatos
+
+- Recargar el CIE-10 y los países (PA-26). **Si se aprueba, con un tope:** la recarga se detiene
+  sin tocar nada si el archivo nuevo trae menos del ~95 % de los códigos habilitados que hay
+  cargados (un archivo cortado no puede deshabilitar media tabla). Además, `upsert` por código,
+  los ausentes deshabilitados y nunca borrados, y auditoría de cada recarga.
+- CIE-11 o doble codificación antes del 14-ago-2027 (PA-26).
+- Aviso, sin bloquear, por la edad o el sexo del código CIE-10 (PA-25): exige cargar esas
+  columnas con la recarga.
+- Ofrecer en los campos de psiquiatría solo el capítulo F, si Edwar lo pide (hoy, todo el
+  catálogo, como dice la spec).
+- Fotos en la lista con un registro de auditoría por página (alternativa de PA-17).
+- Ver las fotos anteriores (ya se guardan).
+- Enderezar en el servidor las fotos que llegan sin pasar por el navegador (orientación EXIF).
+- Búsqueda fonética o de texto completo si la lista crece (PA-21).
