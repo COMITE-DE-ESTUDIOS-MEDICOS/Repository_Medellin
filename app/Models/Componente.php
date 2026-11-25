@@ -85,6 +85,7 @@ class Componente extends Model
         'turnos' => ['Turnos', 'admin.turnos.enlaces.index'],
         'derivaciones' => ['Derivaciones', 'admin.turnos.derivaciones.index'],
         'supervisiones' => ['Supervisión', 'admin.turnos.supervisiones.index'],
+        'usuarios_hc' => ['Usuarios HC', 'usuarios-hc.index'], // DOC-26 (plan D2)
     ];
 
     // 'modulos' no va aquí a propósito: solo lo cambia el superadministrador (DOC-25, D9).

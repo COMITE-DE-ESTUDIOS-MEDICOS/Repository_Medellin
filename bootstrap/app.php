@@ -20,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(base_path('routes/turnos-admin.php'));
 
             Route::middleware('web')->group(base_path('routes/turnos-publico.php'));
+
+            // DOC-26 (plan D2): Usuarios HC. La clave del módulo entre comillas.
+            Route::middleware(['web', 'auth', 'usuario.activo', 'dependencia', "can:modulo,'usuarios_hc'"])
+                ->prefix('usuarios-hc')
+                ->name('usuarios-hc.')
+                ->group(base_path('routes/usuarios-hc.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

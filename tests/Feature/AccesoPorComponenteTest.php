@@ -42,7 +42,6 @@ class AccesoPorComponenteTest extends TestCase
 
         $this->assertSame(['calle', 'basica', 'estabilizacion'], $componentes->keys()->all());
         $this->assertSame(['documentos', 'turnos', 'derivaciones', 'supervisiones'], $componentes['calle']->modulos);
-        $this->assertSame(array_keys(Componente::MODULOS), $componentes['calle']->modulos);
 
         foreach (['basica' => 'Básica', 'estabilizacion' => 'Estabilización'] as $slug => $nombre) {
             $this->assertSame($nombre, $componentes[$slug]->nombre);

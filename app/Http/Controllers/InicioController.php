@@ -11,7 +11,7 @@ use Illuminate\View\View;
 
 /**
  * DOC-25 (plan D7): la llegada. Lleva al primer módulo del componente que el
- * usuario puede abrir (Documentos para todos; los demás desde Edición, como el
+ * usuario puede abrir (Documentos y Usuarios HC para todos, DOC-26 D2; los demás desde Edición, como el
  * menú); si no hay ninguno, la bienvenida. El selector de componente de
  * Administración y el superadministrador vive aquí también (PA-05).
  */
@@ -22,7 +22,7 @@ class InicioController extends Controller
         $componente = $contexto->componente();
 
         foreach (Componente::MODULOS as $modulo => [, $ruta]) {
-            if ($componente?->tieneModulo($modulo) && ($modulo === 'documentos' || $contexto->rol()?->puedeEditar())) {
+            if ($componente?->tieneModulo($modulo) && (in_array($modulo, ['documentos', 'usuarios_hc'], true) || $contexto->rol()?->puedeEditar())) {
                 return redirect()->route($ruta);
             }
         }
