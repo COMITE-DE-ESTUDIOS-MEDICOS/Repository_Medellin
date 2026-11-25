@@ -379,6 +379,21 @@ controlador (identificación y foto) y el componente Livewire (caracterización)
 - **Componente de registro:** no se toca (CA-20).
 - **Estado vital, con DOC-26 sola:** «Fallecida» con motivo e historial, sin avisos (CA-19). El
   aviso llega con UHC-21.
+- **Firma que usa DOC-27 (escrita el 25/11, revisión de QA de DOC-27; UHC-12):**
+
+  ```php
+  public function cambiarEstadoVital(UsuarioHc $ficha, string $estado, ?CarbonInterface $fecha, string $motivo): void
+  ```
+
+  Para quien **ya autorizó** y ya bloqueó la ficha (DOC-27 lo hace al registrar, corregir, reabrir
+  o anular una estadía). **No autoriza adentro ni compara la revisión del formulario**; corre en
+  la transacción de quien llama. Si `estado_vital` y `fecha_fallecimiento` ya son esos, no escribe
+  nada. Si cambian: una fila de `usuario_hc_cambios` por campo (sección `identificacion`, el
+  `$motivo` recibido, componente del contexto), `revision` +1 (los formularios de la ficha
+  abiertos quedan viejos, CA-15) y `UsuarioHcActualizado` con los campos y el motivo, sin valores
+  (D4). `viva` deja `fecha_fallecimiento` en nulo. Comparte con el guardado normal la escritura del
+  historial; el guardado normal sigue autorizando y comparando la revisión antes. Prueba en
+  UHC-12: `test_doc26_ca19_cambiar_estado_vital_escribe_historial_revision_y_auditoria_sin_autorizar_adentro`.
 
 ### D8. Caracterización: listas en la configuración y una sola pantalla (CA-09 a CA-12, CA-18, CA-33, CA-34)
 
@@ -407,6 +422,22 @@ controlador (identificación y foto) y el componente Livewire (caracterización)
   - Opciones que se ofrecen = `opciones` − `retiradas` + las que **esta ficha ya tiene** (con su
     texto guardado y «(retirada)»). La validación acepta un código vigente o uno que la ficha ya
     tenía (CA-18).
+  - **Firma genérica, que usa también DOC-27 (escrita el 25/11, revisión de QA de DOC-27; UHC-03):**
+
+    ```php
+    public static function opciones(array $lista, array $yaTiene = []): array          // [código => texto]
+    public static function chocanExcluyentes(array $lista, array $codigos): bool
+    ```
+
+    `$lista` es un bloque de la configuración (`['opciones' => …, 'retiradas' => …, 'excluyentes' => …]`)
+    y `$yaTiene`, los códigos que el registro ya tiene con su texto guardado (`[código => texto]`).
+    `opciones` devuelve las vigentes más las de `$yaTiene` que ya no lo están, con su texto y
+    «(retirada)». `chocanExcluyentes` es `true` si entre `$codigos` hay una excluyente junto con
+    cualquier otra. **Ninguna conoce `UsuarioHc::CAMPOS` ni la ficha:** lo de la ficha (qué bloque
+    toca a cada campo, qué respuestas tiene) lo arma quien llama. DOC-27 las llama con su bloque
+    `ingresos_egresos` y las respuestas de la estadía. Prueba en UHC-03:
+    `test_doc26_ca18_opciones_y_excluyentes_funcionan_con_cualquier_lista` (una lista armada en la
+    prueba, sin `CAMPOS`).
   - Comuna: `repositorio.comunas`, la que ya usan los casos (DOC-23), sin copiarla.
   - EPS **[PA-07]**: si Edwar no autoriza la EPS, se quitan la lista y el campo.
 - **Una sola pantalla** (`GET …/caracterizacion`): el controlador autoriza
