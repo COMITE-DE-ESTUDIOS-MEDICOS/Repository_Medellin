@@ -255,6 +255,71 @@
     }
 
     /*
+     * Botones animados, en un solo sitio (estilo que pidió Edwar, 2026-11-26).
+     * Hoy no hay una clase común de botón, así que se engancha a
+     * .liquid-button-primary, a los .fi-btn de Filament y a los botones o
+     * enlaces-botón hechos con clases sueltas (rounded + px-). Cuando exista una
+     * clase común, basta con cambiar esta lista. Fuera: el menú lateral, lo que
+     * está dentro de una tabla (ahí el salto estorba) y los deshabilitados.
+     * La sombra va con !important porque Tailwind y Filament ponen el anillo en
+     * box-shadow; el anillo se conserva y se tiñe del primario.
+     */
+    :is(
+        .liquid-button-primary,
+        .fi-btn,
+        button[class*='rounded'][class*='px-'],
+        a[class*='rounded'][class*='px-'][class*='font-']
+    ):not(:disabled, [aria-disabled='true'], #menu-lateral *, td *, .fi-ta-record *) {
+        transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, border-color 0.2s ease-out,
+            background-color 0.2s ease-out;
+
+        &:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+            --tw-ring-color: var(--primary);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+                0 6px 12px -2px color-mix(in srgb, var(--primary) 20%, transparent) !important;
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
+                0 1px 3px 0 color-mix(in srgb, var(--primary) 20%, transparent) !important;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Flecha: data-flecha="abajo" (descargar) o "arriba" (cargar) mueve el ícono 2 px. */
+        &[data-flecha] > :is(svg, .fi-btn-icon) {
+            transition: translate 0.2s ease-out;
+        }
+
+        @media (hover: hover) {
+            &[data-flecha='abajo']:hover > :is(svg, .fi-btn-icon) {
+                translate: 0 2px;
+            }
+
+            &[data-flecha='arriba']:hover > :is(svg, .fi-btn-icon) {
+                translate: 0 -2px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
+
+            &:hover,
+            &:active,
+            &[data-flecha]:hover > :is(svg, .fi-btn-icon) {
+                transform: none;
+                translate: none;
+            }
+        }
+    }
+
+    /*
      * Fondos de tinte suave para resaltar una fila u otro elemento sin
      * necesitar una clase clara y otra oscura por separado (bg-rose-50 +
      * dark:bg-rose-950, etc.): el valor ya viene calculado para los dos temas.
