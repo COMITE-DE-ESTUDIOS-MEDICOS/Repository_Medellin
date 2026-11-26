@@ -86,6 +86,7 @@ class Componente extends Model
         'derivaciones' => ['Derivaciones', 'admin.turnos.derivaciones.index'],
         'supervisiones' => ['Supervisión', 'admin.turnos.supervisiones.index'],
         'usuarios_hc' => ['Usuarios HC', 'usuarios-hc.index'], // DOC-26 (plan D2)
+        'ingresos_egresos' => ['Ingresos y egresos', 'ingresos-egresos.index'], // DOC-27 (plan D2)
     ];
 
     // 'modulos' no va aquí a propósito: solo lo cambia el superadministrador (DOC-25, D9).
