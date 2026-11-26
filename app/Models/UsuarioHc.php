@@ -28,6 +28,52 @@ class UsuarioHc extends Model
 
     public const FALLECIDA = 'fallecida';
 
+    /** Marca de una opción que el registro tiene y ya no se ofrece (CA-18). Solo para mostrar. */
+    public const RETIRADA = ' (retirada)';
+
+    /**
+     * «Sin documento» en tipos_documento: con él el número no se pide (UHC-07).
+     * Cambia el comportamiento, así que no se retira ni se le cambia el código.
+     */
+    public const SIN_DOCUMENTO = 'SD';
+
+    /**
+     * Los campos de la caracterización que son listas (spec §3, plan D8). Un
+     * campo nuevo es un cambio de la spec. Las fechas y el tiempo en calle son
+     * columnas de usuario_hc_caracterizaciones y no van aquí.
+     *
+     * 'tipo': una, varias o varias_con_principal (solo medicina general; en
+     * «otros de psiquiatría» no se marca principal, PA-08).
+     * 'fuente': config:<lista> (repositorio.usuarios_hc.<lista>), comunas
+     * (repositorio.comunas) o catalogo:paises / catalogo:cie10 (tablas).
+     * 'busqueda': la spec dice «con búsqueda».
+     */
+    public const CAMPOS = [
+        'escolaridad' => ['etiqueta' => 'Escolaridad', 'tipo' => 'una', 'fuente' => 'config:escolaridad'],
+        'sustancias' => ['etiqueta' => 'Sustancias de impacto', 'tipo' => 'varias', 'fuente' => 'config:sustancias'],
+        'red_apoyo' => ['etiqueta' => 'Red de apoyo', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'nivel_apoyo' => ['etiqueta' => 'Nivel de apoyo de la red', 'tipo' => 'una', 'fuente' => 'config:nivel_apoyo'],
+        'clasificacion' => ['etiqueta' => 'Clasificación', 'tipo' => 'una', 'fuente' => 'config:clasificacion'],
+        'sexo' => ['etiqueta' => 'Sexo según documento de identidad', 'tipo' => 'una', 'fuente' => 'config:sexo'],
+        'orientacion_sexual' => ['etiqueta' => 'Orientación sexual', 'tipo' => 'una', 'fuente' => 'config:orientacion'],
+        'nacionalidad' => ['etiqueta' => 'Nacionalidad', 'tipo' => 'una', 'fuente' => 'catalogo:paises', 'busqueda' => true],
+        'comuna' => ['etiqueta' => 'Comuna o corregimiento donde permanece o vive', 'tipo' => 'una', 'fuente' => 'comunas'],
+        // Autorizada al aprobar la spec, solo para el Usuario HC (PA-07).
+        'eps' => ['etiqueta' => 'EPS', 'tipo' => 'una', 'fuente' => 'config:eps', 'busqueda' => true],
+        'listado_censal' => ['etiqueta' => 'Listado censal', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'diagnostico_psiquiatria' => ['etiqueta' => 'Diagnóstico principal de psiquiatría', 'tipo' => 'una', 'fuente' => 'catalogo:cie10', 'busqueda' => true],
+        'otros_diagnosticos_psiquiatria' => ['etiqueta' => 'Otros diagnósticos de psiquiatría', 'tipo' => 'varias', 'fuente' => 'catalogo:cie10', 'busqueda' => true],
+        'diagnosticos_medicina_general' => ['etiqueta' => 'Diagnósticos de medicina general', 'tipo' => 'varias_con_principal', 'fuente' => 'catalogo:cie10', 'busqueda' => true],
+        'proteccion_infancia' => ['etiqueta' => 'Antecedentes de protección institucional en la infancia', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'discapacidad' => ['etiqueta' => 'Tipo de discapacidad', 'tipo' => 'varias', 'fuente' => 'config:discapacidad'],
+        'cedula_fisica' => ['etiqueta' => 'Cédula física', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'portabilidad' => ['etiqueta' => 'Portabilidad', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'codigo_900' => ['etiqueta' => 'Código 900', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'oxigeno_dependiente' => ['etiqueta' => 'Oxígeno dependiente', 'tipo' => 'una', 'fuente' => 'config:si_no'],
+        'autonomia' => ['etiqueta' => 'Clasificación de autonomía', 'tipo' => 'una', 'fuente' => 'config:autonomia'],
+        'independencia' => ['etiqueta' => 'Nivel de independencia funcional', 'tipo' => 'una', 'fuente' => 'config:independencia'],
+    ];
+
     protected $table = 'usuarios_hc';
 
     // componente_registro_id no va aquí a propósito: lo pone el servidor al crear y no cambia (CA-20).
@@ -99,6 +145,61 @@ class UsuarioHc extends Model
     public static function normalizarCodigo(?string $t): string
     {
         return preg_replace('/[^A-Z0-9]/', '', strtoupper(Str::ascii((string) $t)));
+    }
+
+    /**
+     * Lo que se ofrece en una lista, para cualquier registro (plan D8; DOC-27
+     * la llama con su bloque 'ingresos_egresos'). No conoce CAMPOS ni la ficha.
+     *
+     * $lista: un bloque de la configuración (opciones, retiradas, excluyentes).
+     * $yaTiene: lo que el registro ya tiene, [código => texto guardado].
+     * Devuelve [código => texto], en el orden de 'opciones':
+     * - las vigentes (opciones − retiradas) con el texto de la configuración;
+     * - las que el registro ya tiene, con SU texto guardado aunque sigan
+     *   vigentes y se hayan renombrado (CA-18: conserva el texto original);
+     * - si además ya no están vigentes, con « (retirada)»;
+     * - al final, las del registro que ya ni están en 'opciones', igual.
+     *
+     * El texto devuelto es para MOSTRAR. Para guardar se usa el texto guardado
+     * ($yaTiene) o el de la configuración, nunca este: llevaría « (retirada)».
+     * Si de todos modos llega con la marca, no se repite.
+     *
+     * La comuna es una lista plana: se pasa como ['opciones' => config('repositorio.comunas')].
+     */
+    public static function opciones(array $lista, array $yaTiene = []): array
+    {
+        $retiradas = array_map('strval', $lista['retiradas'] ?? []);
+        $marcar = fn (string $texto) => str_ends_with($texto, self::RETIRADA) ? $texto : $texto.self::RETIRADA;
+        $resultado = [];
+
+        foreach ($lista['opciones'] ?? [] as $codigo => $texto) {
+            $vigente = ! in_array((string) $codigo, $retiradas, true);
+            if (array_key_exists($codigo, $yaTiene)) {
+                $guardado = (string) $yaTiene[$codigo] !== '' ? (string) $yaTiene[$codigo] : (string) $texto;
+                $resultado[$codigo] = $vigente ? $guardado : $marcar($guardado);
+            } elseif ($vigente) {
+                $resultado[$codigo] = $texto;
+            }
+        }
+
+        foreach ($yaTiene as $codigo => $texto) {
+            $resultado[$codigo] ??= $marcar((string) $texto !== '' ? (string) $texto : (string) $codigo);
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * true si entre $codigos hay una opción excluyente junto con cualquier otra
+     * (CA-10). Los vacíos no cuentan: un formulario manda '' o null cuando la
+     * lista se deja sin marcar.
+     */
+    public static function chocanExcluyentes(array $lista, array $codigos): bool
+    {
+        $codigos = array_unique(array_filter(array_map('strval', $codigos), fn (string $c) => $c !== ''));
+
+        return count($codigos) > 1
+            && array_intersect($codigos, array_map('strval', $lista['excluyentes'] ?? [])) !== [];
     }
 
     /**

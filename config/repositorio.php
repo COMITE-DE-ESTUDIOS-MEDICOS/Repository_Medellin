@@ -214,6 +214,182 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Listas de Usuarios HC (DOC-26, spec §2, §3 y §7)
+    |--------------------------------------------------------------------------
+    | Código => texto. El código se guarda con cada respuesta y no cambia
+    | nunca: con él se cuenta. El texto sí se puede cambiar, y cada ficha
+    | conserva el que vio quien la registró.
+    |
+    | - Renombrar: cambiar el texto.
+    | - Retirar: poner el código en 'retiradas'. No se quita de 'opciones': deja
+    |   de ofrecerse, pero las fichas que la tienen la siguen mostrando.
+    | - 'excluyentes': una opción así no se guarda junto con ninguna otra.
+    |
+    | La comuna usa 'comunas', la de arriba. Qué campo usa qué lista está en
+    | App\Models\UsuarioHc::CAMPOS.
+    */
+
+    'usuarios_hc' => [
+
+        'tipos_documento' => [
+            'opciones' => [
+                'CC' => 'Cédula de ciudadanía',
+                'TI' => 'Tarjeta de identidad',
+                'CE' => 'Cédula de extranjería',
+                'PPT' => 'Permiso por Protección Temporal',
+                'PEP' => 'Permiso Especial de Permanencia',
+                'PAS' => 'Pasaporte',
+                'RC' => 'Registro civil',
+                // UsuarioHc::SIN_DOCUMENTO: con él no se pide el número. No se retira ni cambia de código.
+                'SD' => 'Sin documento',
+                'OTRO' => 'Otro',
+            ],
+            'retiradas' => [],
+        ],
+
+        'si_no' => [
+            'opciones' => ['si' => 'Sí', 'no' => 'No'],
+            'retiradas' => [],
+        ],
+
+        'escolaridad' => [
+            'opciones' => [
+                'primaria' => 'Primaria',
+                'secundaria' => 'Secundaria',
+                'bachiller' => 'Bachiller',
+                'tecnico' => 'Técnico',
+                'tecnologo' => 'Tecnólogo',
+                'profesional' => 'Profesional',
+                'ninguno' => 'Ninguno',
+            ],
+            'retiradas' => [],
+        ],
+
+        'sustancias' => [
+            'opciones' => [
+                'alcohol' => 'Alcohol',
+                'basuco' => 'Basuco',
+                'cocaina' => 'Cocaína',
+                'heroina' => 'Heroína',
+                'marihuana' => 'Marihuana',
+                'sacol' => 'Sacol',
+                'tabaco' => 'Tabaco',
+                'tusi' => 'Tusi',
+                'perico' => 'Perico',
+                'no_consume' => 'No consume',
+            ],
+            'retiradas' => [],
+            'excluyentes' => ['no_consume'],
+        ],
+
+        'nivel_apoyo' => [
+            'opciones' => [
+                'sin_red' => 'Sin red identificada',
+                'red_sin_apoyo' => 'Red identificada, sin apoyo disponible',
+                'apoyo_emocional' => 'Contacto y apoyo emocional',
+                'apoyo_practico_limitado' => 'Apoyo práctico limitado',
+                'apoyo_practico_sostenido' => 'Apoyo práctico sostenido',
+                'vinculacion_no_recomendable' => 'Vinculación no recomendable actualmente',
+                'pendiente_valoracion' => 'Pendiente de valoración',
+            ],
+            'retiradas' => [],
+        ],
+
+        'clasificacion' => [
+            'opciones' => [
+                'habitante_en_calle' => 'Habitante en calle',
+                'habitante_de_calle' => 'Habitante de calle',
+                'riesgo_calle' => 'Persona en riesgo de calle',
+                'sin_clasificacion' => 'Sin clasificación',
+                'matricula_resocializacion' => 'Matrícula en resocialización',
+                'pendiente_valoracion' => 'Pendiente de valoración',
+            ],
+            'retiradas' => [],
+        ],
+
+        // La spec escribe «Femenino (F)…»: la letra es el código, no parte del texto.
+        'sexo' => [
+            'opciones' => [
+                'F' => 'Femenino',
+                'M' => 'Masculino',
+                'NB' => 'No binario',
+                'T' => 'Transgénero',
+            ],
+            'retiradas' => [],
+        ],
+
+        'orientacion' => [
+            'opciones' => [
+                'heterosexual' => 'Heterosexual',
+                'homosexual' => 'Homosexual',
+                'bisexual' => 'Bisexual',
+                'pansexual' => 'Pansexual',
+                'asexual' => 'Asexual',
+                'otra' => 'Otra',
+                'no_responde' => 'Prefiere no responder',
+            ],
+            'retiradas' => [],
+        ],
+
+        // Autorizada solo para el Usuario HC al aprobar la spec (PA-07). La EPS
+        // de cada persona vive en la base de datos, no aquí.
+        'eps' => [
+            'opciones' => [
+                'asmet' => 'Asmet',
+                'aic' => 'Asociación Indígena del Cauca',
+                'emsanar' => 'Emsanar',
+                'capital_salud' => 'Capital Salud',
+                'coosalud' => 'Coosalud',
+                'nueva_eps' => 'Nueva EPS',
+                'sanitas' => 'Sanitas',
+                'salud_total' => 'Salud Total',
+                'savia_salud' => 'Savia Salud',
+                'sura' => 'Sura',
+                'sin_afiliacion' => 'Sin afiliación',
+            ],
+            'retiradas' => [],
+        ],
+
+        // No hay «Múltiple»: se marcan varias. «Ninguna» y «Sin información»
+        // no van con otras ni entre sí (CA-10).
+        'discapacidad' => [
+            'opciones' => [
+                'fisica' => 'Física',
+                'auditiva' => 'Auditiva',
+                'visual' => 'Visual',
+                'sordoceguera' => 'Sordoceguera',
+                'intelectual' => 'Intelectual / cognitiva',
+                'psicosocial' => 'Psicosocial (mental)',
+                'ninguna' => 'Ninguna',
+                'sin_informacion' => 'Sin información',
+            ],
+            'retiradas' => [],
+            'excluyentes' => ['ninguna', 'sin_informacion'],
+        ],
+
+        'autonomia' => [
+            'opciones' => [
+                'autonomo' => 'Autónomo',
+                'heteronomo' => 'Heterónomo',
+            ],
+            'retiradas' => [],
+        ],
+
+        'independencia' => [
+            'opciones' => [
+                'independiente' => 'Independiente',
+                'supervision' => 'Requiere supervisión',
+                'ayuda_parcial' => 'Requiere ayuda parcial',
+                'ayuda_total' => 'Requiere ayuda total',
+                'pendiente_valoracion' => 'Pendiente de valoración',
+            ],
+            'retiradas' => [],
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Carga única de casos ya atendidos (DOC-24)
     |--------------------------------------------------------------------------
     | Los casos represados de noviembre de 2026 entran por un Excel, con sus
