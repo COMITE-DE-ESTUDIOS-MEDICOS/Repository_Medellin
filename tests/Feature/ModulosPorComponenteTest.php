@@ -18,6 +18,7 @@ use App\Models\PuntoCritico;
 use App\Models\Supervision;
 use App\Models\TipoTurno;
 use App\Models\User;
+use App\Models\UsuarioHc;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route as Ruta;
 use Illuminate\Support\Facades\Gate;
@@ -94,6 +95,7 @@ class ModulosPorComponenteTest extends TestCase
                 'descripcion_punto' => 'Visita', ...array_fill_keys(array_keys(Supervision::CRITERIOS), 4),
                 'calificacion_global' => 4, 'incidencia' => 'leve', 'casos_escalados' => false, 'recomendaciones' => 'Ninguna',
             ])->id,
+            'usuarioHc' => UsuarioHc::factory()->en($c)->create()->id,
         ];
     }
 
@@ -136,7 +138,7 @@ class ModulosPorComponenteTest extends TestCase
 
         // Las Policies también (acciones de Filament y el menú), aunque el rol alcance.
         foreach ([Documento::class, Carpeta::class, EnlaceCarga::class, Colaborador::class, EnlaceTurno::class,
-            Marcacion::class, TipoTurno::class, PuntoCritico::class, Derivacion::class, Supervision::class] as $modelo) {
+            Marcacion::class, TipoTurno::class, PuntoCritico::class, Derivacion::class, Supervision::class, UsuarioHc::class] as $modelo) {
             $this->assertFalse(Gate::forUser($super)->allows('viewAny', $modelo), $modelo);
         }
 
