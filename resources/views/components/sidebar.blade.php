@@ -29,6 +29,7 @@ $conDocumentos = \Illuminate\Support\Facades\Gate::allows('modulo', 'documentos'
 $conTurnos = \Illuminate\Support\Facades\Gate::allows('modulo', 'turnos');
 $conDerivaciones = \Illuminate\Support\Facades\Gate::allows('modulo', 'derivaciones');
 $conSupervisiones = \Illuminate\Support\Facades\Gate::allows('modulo', 'supervisiones');
+$conUsuariosHc = \Illuminate\Support\Facades\Gate::allows('modulo', 'usuarios_hc');
 
 // Las variables del componente las comparte EstablecerDependencia; el ?? cubre
 // una vista que se pinte sin pasar por él.
@@ -69,6 +70,17 @@ $grupos = [
         'enlaces' => array_filter([
             'admin.turnos.derivaciones.index' => $conDerivaciones && $puedeEditar ? ['texto' => 'Derivaciones', 'icono' => 'M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5'] : null,
             'admin.turnos.supervisiones.index' => $conSupervisiones && $puedeEditar ? ['texto' => 'Supervisión', 'icono' => 'M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z'] : null,
+        ]),
+    ],
+    [
+        // DOC-26: las personas que atienden Básica y Estabilización. Aquí va
+        // también Ingresos y egresos cuando llegue DOC-27 (IYE-01), debajo de
+        // Usuarios HC. Grupo propio, no el principal (José, 2026-11-26).
+        'clave' => 'personas',
+        'titulo' => 'Personas atendidas',
+        'enlaces' => array_filter([
+            // Todos los roles, también Lectura (UsuarioHcPolicy::viewAny).
+            'usuarios-hc.index' => $conUsuariosHc ? ['texto' => 'Usuarios HC', 'icono' => 'M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z'] : null,
         ]),
     ],
     [

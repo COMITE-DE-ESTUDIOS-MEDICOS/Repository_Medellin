@@ -1,16 +1,25 @@
-{{-- DOC-26 (UHC-01): la lista de Usuarios HC, todavía vacía. La tabla llega con UHC-06. --}}
+{{-- DOC-26 (UHC-06): la lista de Usuarios HC, tabla de Filament dentro de Documenta. --}}
 @extends('layouts.app')
 @section('titulo', 'Usuarios HC')
+
+{{-- Solo en esta página: los estilos y scripts de las piezas de Filament. --}}
+@push('estilos')
+    @filamentStyles
+    @vite('resources/css/filament.css')
+@endpush
+
+@push('scripts')
+    @filamentScripts
+    @livewire('notifications')
+@endpush
 
 @section('contenido')
 
 <div class="mb-4">
     <h1 class="text-lg font-semibold text-[var(--text)]">Usuarios HC</h1>
-    <p class="text-sm text-[var(--muted)]">Las personas que atiende el componente.</p>
+    <p class="text-sm text-[var(--muted)]">Las personas atendidas en la dependencia, de todos los componentes. Búscala por nombre, alias, documento o número de ficha antes de registrarla, para no repetir su ficha.</p>
 </div>
 
-<div class="rounded-lg bg-[var(--card)] p-6 text-center text-sm text-[var(--muted)] ring-1 ring-[var(--border)]">
-    Todavía no hay personas registradas.
-</div>
+@livewire(\App\Livewire\UsuariosHc\Listado::class)
 
 @endsection
