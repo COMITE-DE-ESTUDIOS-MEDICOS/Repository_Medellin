@@ -26,6 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('usuarios-hc')
                 ->name('usuarios-hc.')
                 ->group(base_path('routes/usuarios-hc.php'));
+
+            // DOC-27 (plan D2): Ingresos y egresos de Usuarios HC.
+            Route::middleware(['web', 'auth', 'usuario.activo', 'dependencia', "can:modulo,'ingresos_egresos'"])
+                ->prefix('ingresos-egresos')
+                ->name('ingresos-egresos.')
+                ->group(base_path('routes/ingresos-egresos.php'));
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {

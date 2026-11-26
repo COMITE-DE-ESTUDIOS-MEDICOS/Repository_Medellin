@@ -392,6 +392,16 @@ class UsuarioHc extends Model
         return $this->hasMany(CambioUsuarioHc::class);
     }
 
+    /**
+     * DOC-27 (plan D1): su estadía activa, en cualquier componente (por eso pasa por
+     * entreComponentes()). Quien la carga limita las columnas: de otro componente
+     * solo debe salir su nombre.
+     */
+    public function estadiaActiva(): HasOne
+    {
+        return $this->hasOne(Estadia::class)->entreComponentes()->where('estado', Estadia::ACTIVA);
+    }
+
     /** Todas las fotos que tuvo; ninguna se borra (CA-22). */
     public function fotos(): HasMany
     {

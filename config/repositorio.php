@@ -390,6 +390,78 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Listas de Ingresos y egresos (DOC-27, spec §3 y §6, plan D9)
+    |--------------------------------------------------------------------------
+    | Mismo formato que 'usuarios_hc' (código => texto, 'retiradas',
+    | 'excluyentes'). Tres códigos tienen efecto y no se retiran ni se cambian
+    | (el texto sí): 'intervencion_calle' (pide la comuna), 'derivacion' (pide
+    | el destino) y 'fallecimiento' (deja Fallecida a la persona). Están como
+    | constantes en App\Models\Estadia. La comuna usa 'comunas', la de arriba.
+    */
+
+    'ingresos_egresos' => [
+
+        // Procedencia, destino y proyección de egreso usan esta misma lista (PA-05).
+        'componentes_hc' => [
+            'opciones' => [
+                'estabilizacion' => 'Estabilización',
+                'intervencion_calle' => 'Intervención calle',
+                'atencion_basica' => 'Atención básica',
+                'resignificacion' => 'Resignificación',
+                'atencion_cuidado' => 'Atención y cuidado',
+                'altas_necesidades_apoyo' => 'Altas necesidades de apoyo',
+                'albergue' => 'Albergue',
+                'resocializacion' => 'Resocialización',
+            ],
+            'retiradas' => [],
+        ],
+
+        'condiciones' => [
+            'opciones' => [
+                'consumo_activo' => 'Consumo activo de sustancias',
+                'apoyo_autocuidado' => 'Necesidad de apoyo en autocuidado',
+                'dificultad_convivencia' => 'Dificultades de comportamiento o convivencia',
+                'vulnerabilidad_sociofamiliar' => 'Vulnerabilidad sociofamiliar',
+                'malestar_emocional' => 'Malestar emocional',
+                'agitacion' => 'Agitación o inquietud marcada',
+                'conducta_desorganizada' => 'Conducta desorganizada',
+                'dificultad_atencion_memoria' => 'Dificultades aparentes de atención o memoria',
+                'sin_manifestaciones' => 'Sin manifestaciones relevantes observadas',
+                'no_valoradas' => 'No valoradas',
+            ],
+            'retiradas' => [],
+            'excluyentes' => ['sin_manifestaciones', 'no_valoradas'],
+        ],
+
+        'orientacion' => [
+            'opciones' => [
+                'orientada' => 'Orientada',
+                'desorientada' => 'Desorientada',
+                'no_valorada' => 'No valorada',
+            ],
+            'retiradas' => [],
+        ],
+
+        'motivos_egreso' => [
+            'opciones' => [
+                'evasion' => 'Evasión',
+                'reintegro_familiar' => 'Reintegro familiar',
+                'derivacion' => 'Derivación a otro componente',
+                'traslado_sede' => 'Traslado a otra sede del componente',
+                'expulsion' => 'Expulsión',
+                'cumplimiento_tiempo' => 'Cumplimiento de tiempo',
+                'fallecimiento' => 'Fallecimiento',
+                'traslado_hospitalario' => 'Traslado a unidad hospitalaria',
+                'egreso_voluntario' => 'Egreso voluntario',
+                'vinculacion_laboral' => 'Vinculación laboral',
+            ],
+            'retiradas' => [],
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Carga única de casos ya atendidos (DOC-24)
     |--------------------------------------------------------------------------
     | Los casos represados de noviembre de 2026 entran por un Excel, con sus
