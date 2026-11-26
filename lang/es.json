@@ -4,5 +4,7 @@
     "of": "de",
     "results": "resultados",
     "Pagination Navigation": "Navegación de páginas",
-    "Go to page :page": "Ir a la página :page"
+    "Go to page :page": "Ir a la página :page",
+    "Forbidden": "Sin permiso",
+    "This action is unauthorized.": "No tienes permiso para ver esto."
 }
