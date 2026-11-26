@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Scopes\ComponenteScope;
 use App\Models\Scopes\DependenciaScope;
 use Illuminate\Database\Eloquent\Attributes\ScopedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,11 @@ class UsuarioHc extends Model
      * Cambia el comportamiento, así que no se retira ni se le cambia el código.
      */
     public const SIN_DOCUMENTO = 'SD';
+
+    /** Topes de defensa de buscar(): más que esto se recorta (QA UHC-05). */
+    public const BUSQUEDA_MAX_CARACTERES = 100;
+
+    public const BUSQUEDA_MAX_PALABRAS = 10;
 
     /**
      * Los campos de la caracterización que son listas (spec §3, plan D8). Un
@@ -145,6 +151,135 @@ class UsuarioHc extends Model
     public static function normalizarCodigo(?string $t): string
     {
         return preg_replace('/[^A-Z0-9]/', '', strtoupper(Str::ascii((string) $t)));
+    }
+
+    /**
+     * Del texto escrito salen dos términos (plan D5): las palabras para nombre
+     * y alias, y el código sin signos para documento y ficha. Los dos solo
+     * traen [a-z0-9] o [A-Z0-9]: nunca un % ni un _ que escapar en LIKE.
+     *
+     * @return array{0: list<string>, 1: string}
+     */
+    private static function terminos(?string $texto): array
+    {
+        // Topes de defensa (QA UHC-05): un texto de cientos de palabras armaba
+        // cientos de LIKE y la consulta caía. Se recorta después de normalizar,
+        // para que los signos o espacios del comienzo no se coman el tope; el
+        // primer corte solo evita normalizar un texto enorme.
+        $texto = mb_substr((string) $texto, 0, self::BUSQUEDA_MAX_CARACTERES * 10);
+        $palabras = array_slice(array_values(array_unique(array_filter(
+            explode(' ', self::normalizarTexto($texto)),
+            fn (string $p) => $p !== '',
+        ))), 0, self::BUSQUEDA_MAX_PALABRAS);
+
+        return [$palabras, substr(self::normalizarCodigo($texto), 0, self::BUSQUEDA_MAX_CARACTERES)];
+    }
+
+    /**
+     * La búsqueda de la lista (CA-03, CA-04, PA-22), que también usa DOC-27.
+     * Cada palabra en el nombre o el alias; parte del documento; la ficha
+     * exacta sin guiones; y los datos anteriores con la misma regla, por una
+     * subconsulta whereIn (sin juntas, sin GROUP BY, sin JSON). El filtro de
+     * dependencia sigue en la consulta de afuera: una identidad anterior solo
+     * trae fichas que la consulta ya podía ver. Si el texto queda vacío al
+     * normalizar («...», «%»), no filtra.
+     *
+     * Ficha reasignada (spec §1): si alguien tiene ese número vigente, solo
+     * sale esa persona; las fichas anteriores con el número entran solo si
+     * nadie lo tiene en la dependencia de esa fila (la ficha es única por
+     * dependencia, spec §2). Se mira en la misma consulta, con un NOT EXISTS
+     * atado a la fila: no depende del contexto, así que vale igual en consola.
+     *
+     * Solo para leer: la subconsulta lee la misma tabla, y MySQL rechaza un
+     * update() o delete() sobre buscar() (error 1093; SQLite lo deja pasar).
+     * Las columnas van con «usuarios_hc.» escrito: no sirve sobre la tabla con
+     * otro nombre (un whereHas de UsuarioHc sobre sí mismo, p. ej. en DOC-31).
+     */
+    public function scopeBuscar(Builder $query, ?string $texto): Builder
+    {
+        [$palabras, $codigo] = self::terminos($texto);
+
+        if ($palabras === [] && $codigo === '') {
+            return $query;
+        }
+
+        $cadaPalabra = function ($q, array $columnas) use ($palabras) {
+            foreach ($palabras as $palabra) {
+                $q->where(function ($q) use ($columnas, $palabra) {
+                    foreach ($columnas as $columna) {
+                        $q->orWhere($columna, 'like', "%{$palabra}%");
+                    }
+                });
+            }
+        };
+
+        return $query->where(function ($q) use ($cadaPalabra, $codigo) {
+            $q->where(fn ($q) => $cadaPalabra($q, ['usuarios_hc.nombre_busqueda', 'usuarios_hc.alias_busqueda']))
+                ->orWhere('usuarios_hc.documento_normalizado', 'like', "%{$codigo}%")
+                ->orWhere('usuarios_hc.ficha_normalizada', $codigo)
+                ->orWhereIn('usuarios_hc.id', fn ($sub) => $sub->select('usuario_hc_identidades.usuario_hc_id')
+                    ->from('usuario_hc_identidades')
+                    ->where(function ($s) use ($cadaPalabra, $codigo) {
+                        $s->where(function ($s) use ($cadaPalabra) {
+                            $s->where('usuario_hc_identidades.campo', IdentidadUsuarioHc::NOMBRE);
+                            $cadaPalabra($s, ['usuario_hc_identidades.valor_busqueda']);
+                        })->orWhere(fn ($s) => $s->where('usuario_hc_identidades.campo', IdentidadUsuarioHc::DOCUMENTO)
+                            ->where('usuario_hc_identidades.valor_busqueda', 'like', "%{$codigo}%"));
+                    }))
+                ->orWhere(fn ($q) => $q
+                    ->whereIn('usuarios_hc.id', fn ($sub) => $sub->select('usuario_hc_identidades.usuario_hc_id')
+                        ->from('usuario_hc_identidades')
+                        ->where('usuario_hc_identidades.campo', IdentidadUsuarioHc::FICHA)
+                        ->where('usuario_hc_identidades.valor_busqueda', $codigo))
+                    ->whereNotExists(fn ($sub) => $sub->selectRaw('1')
+                        ->from('usuarios_hc as ficha_vigente')
+                        ->where('ficha_vigente.ficha_normalizada', $codigo)
+                        ->whereColumn('ficha_vigente.dependencia_id', 'usuarios_hc.dependencia_id')));
+        });
+    }
+
+    /**
+     * La marca «Coincide con un dato anterior» de una fila que trajo
+     * buscar() (CA-04, plan D5): null si el texto casa con los datos
+     * vigentes; si no, el campo del dato anterior con que casa
+     * (IdentidadUsuarioHc::NOMBRE, DOCUMENTO o FICHA), para que la lista diga
+     * «Coincide con un nombre anterior» sin mostrar el valor viejo. Lee
+     * $this->identidades: la lista las carga con with() para no consultar
+     * por fila.
+     */
+    public function coincidenciaAnterior(?string $texto): ?string
+    {
+        [$palabras, $codigo] = self::terminos($texto);
+
+        if ($palabras === [] && $codigo === '') {
+            return null;
+        }
+
+        $tienePalabras = fn (string ...$valores) => collect($palabras)
+            ->every(fn (string $p) => collect($valores)->contains(fn (string $v) => str_contains($v, $p)));
+
+        $vigente = $tienePalabras((string) $this->nombre_busqueda, (string) $this->alias_busqueda)
+            || ($this->documento_normalizado !== null && str_contains($this->documento_normalizado, $codigo))
+            || $this->ficha_normalizada === $codigo;
+
+        if ($vigente) {
+            return null;
+        }
+
+        // En este orden: una ficha anterior reasignada no entra en buscar(),
+        // así que si casa otro dato anterior, es ese el que trajo la fila.
+        $anteriores = $this->identidades->whereNotNull('valor_busqueda');
+        foreach ([
+            IdentidadUsuarioHc::NOMBRE => fn (string $v) => $tienePalabras($v),
+            IdentidadUsuarioHc::DOCUMENTO => fn (string $v) => str_contains($v, $codigo),
+            IdentidadUsuarioHc::FICHA => fn (string $v) => $v === $codigo,
+        ] as $campo => $casa) {
+            if ($anteriores->where('campo', $campo)->contains(fn ($i) => $casa($i->valor_busqueda))) {
+                return $campo;
+            }
+        }
+
+        return null;
     }
 
     /**
