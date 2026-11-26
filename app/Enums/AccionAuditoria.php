@@ -61,6 +61,10 @@ enum AccionAuditoria: string
     case CarpetaCustodia = 'carpeta.custodia';
     case GrupoCustodiaGuardado = 'grupo_custodia.guardado';
     case AvisoEnviado = 'aviso.enviado';
+    case UsuarioHcCreado = 'usuario_hc.creado';
+    case UsuarioHcActualizado = 'usuario_hc.actualizado';
+    case UsuarioHcConsultado = 'usuario_hc.consultado';
+    case UsuarioHcFotoVista = 'usuario_hc.foto_vista';
 
     public function etiqueta(): string
     {
@@ -120,6 +124,10 @@ enum AccionAuditoria: string
             self::CarpetaCustodia => 'Cambió la custodia de una carpeta',
             self::GrupoCustodiaGuardado => 'Creó o cambió un grupo de custodia',
             self::AvisoEnviado => 'Envió un aviso por la campana',
+            self::UsuarioHcCreado => 'Creó un Usuario HC',
+            self::UsuarioHcActualizado => 'Corrigió un Usuario HC',
+            self::UsuarioHcConsultado => 'Abrió la caracterización de un Usuario HC',
+            self::UsuarioHcFotoVista => 'Vio la foto de un Usuario HC',
         };
     }
 }

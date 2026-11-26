@@ -411,6 +411,22 @@ class UsuarioHc extends Model
             ->whereColumn('usuarios_hc.foto_id', 'usuario_hc_fotos.id'));
     }
 
+    /**
+     * ¿El componente conoce esta ficha (caracterización e historial)? Con DOC-26
+     * sola, el de registro (PA-03). DOC-27 (UHC-19) suma las estadías válidas.
+     */
+    public function conocidaPor(Componente|int|null $componente): bool
+    {
+        return $componente !== null
+            && (int) $this->componente_registro_id === ($componente instanceof Componente ? $componente->id : $componente);
+    }
+
+    /** ¿El componente puede editarla? Igual que conocidaPor hasta UHC-19 (estadía activa). */
+    public function editablePor(Componente|int|null $componente): bool
+    {
+        return $this->conocidaPor($componente);
+    }
+
     public function estaFallecida(): bool
     {
         return $this->estado_vital === self::FALLECIDA;

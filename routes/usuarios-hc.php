@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\UsuarioHc;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -8,4 +9,4 @@ use Illuminate\Support\Facades\Route;
 | UHC-01: solo la lista, vacía. La tabla y su Policy llegan con UHC-04 y UHC-06.
 */
 
-Route::view('/', 'usuarios-hc.index')->name('index');
+Route::view('/', 'usuarios-hc.index')->middleware('can:viewAny,'.UsuarioHc::class)->name('index');
