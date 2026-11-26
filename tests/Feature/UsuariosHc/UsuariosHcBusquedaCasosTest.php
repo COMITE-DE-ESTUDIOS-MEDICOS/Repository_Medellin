@@ -70,7 +70,8 @@ class UsuariosHcBusquedaCasosTest extends TestCase
     {
         $this->enA();
 
-        $sql = UsuarioHc::query()->buscar('F-7')->toSql();
+        // MySQL cita con ` y SQLite con ": se compara con un solo estilo.
+        $sql = str_replace('`', '"', UsuarioHc::query()->buscar('F-7')->toSql());
 
         // El scope global va al final, con AND, fuera del grupo de buscar().
         $this->assertStringStartsWith('select * from "usuarios_hc" where (', $sql);
