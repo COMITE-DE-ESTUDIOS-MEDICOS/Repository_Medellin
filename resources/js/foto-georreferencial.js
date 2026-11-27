@@ -273,16 +273,26 @@ async function aArchivo(lienzo, original, lastModified = original.lastModified) 
  * Reduce una imagen de galería al tope de resolución. Lo que ya cabe se
  * devuelve intacto: recomprimir un JPEG que no hace falta tocar solo lo
  * degrada.
+ *
+ * Con { siempre: true } se vuelve a codificar aunque ya quepa: pasar por el
+ * lienzo deja la imagen sin EXIF, y con él sin las coordenadas que guardan
+ * muchos teléfonos (la foto de la persona en Usuarios HC, PA-15). Si no se
+ * puede leer, sale tal cual; el servidor también le quita los metadatos.
  */
-export async function reducirImagen(archivo, ladoMaximo) {
-    if (!ladoMaximo || !archivo.type.startsWith('image/')) {
+export async function reducirImagen(archivo, ladoMaximo, { siempre = false } = {}) {
+    if ((!ladoMaximo && !siempre) || !archivo.type.startsWith('image/')) {
         return archivo;
     }
 
     const imagen = await cargarImagen(URL.createObjectURL(archivo));
-    const escala = imagen ? escalaPara(imagen.width, imagen.height, ladoMaximo) : 1;
 
-    return escala === 1 ? archivo : aArchivo(aLienzo(imagen, escala), archivo);
+    if (!imagen) {
+        return archivo;
+    }
+
+    const escala = escalaPara(imagen.width, imagen.height, ladoMaximo);
+
+    return escala === 1 && !siempre ? archivo : aArchivo(aLienzo(imagen, escala), archivo);
 }
 
 /** Corta un texto en líneas que quepan en el ancho, como mucho 'maximo' líneas. */

@@ -71,6 +71,8 @@ class Listado extends Component implements HasActions, HasSchemas, HasTable
             // Las identidades anteriores solo hacen falta para la marca, y solo con búsqueda.
             ->modifyQueryUsing(fn (Builder $query) => $query->when($this->hasTableSearch(), fn (Builder $q) => $q->with('identidades')))
             ->searchable()
+            // Busca cuando la persona deja de escribir un segundo, no con cada letra.
+            ->searchDebounce('1s')
             ->searchUsing(fn (Builder $query, string $search) => $query->buscar($search))
             ->searchPlaceholder('Buscar persona') // El campo es angosto: qué se busca lo dice la descripción de la página.
             ->persistSearchInSession()
