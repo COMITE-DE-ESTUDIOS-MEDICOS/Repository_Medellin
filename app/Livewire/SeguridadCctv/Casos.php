@@ -74,8 +74,8 @@ class Casos extends Component implements HasActions, HasSchemas, HasTable
                     ->label('Comuna')
                     ->state(fn (CasoCctv $record): string => $record->nombreComuna())
                     ->sortable(),
-                TextColumn::make('nodo.nombre')->label('Nodo')->placeholder('—'),
-                TextColumn::make('asignado.nombre')->label('Se le pasó a')->placeholder('—'),
+                TextColumn::make('nodo.nombre')->label('Nodo')->placeholder('Sin nodo'),
+                TextColumn::make('asignado.nombre')->label('Se le pasó a')->placeholder('Sin asignar'),
                 TextColumn::make('tiempo_respuesta_min')
                     ->label('Tiempo de respuesta')
                     ->placeholder('—')

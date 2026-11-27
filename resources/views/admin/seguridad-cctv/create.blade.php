@@ -22,10 +22,6 @@
                class="rounded-md px-4 py-3 text-sm font-medium text-[var(--text)] ring-1 ring-[var(--border)] hover:bg-[var(--card-soft)]">Ver la lista</a>
         </div>
     </div>
-@elseif($personas->isEmpty() || $nodos->isEmpty())
-    <div class="liquid-alert liquid-alert-warning text-sm">
-        Para registrar casos, este componente necesita al menos una persona de campo activa y un nodo activo.
-    </div>
 @else
     <h1 class="mb-1 text-lg font-semibold text-[var(--text)]">Nuevo caso de Seguridad CCTV</h1>
     <p class="mb-5 text-sm text-[var(--muted)]">Al guardar, el caso recibe su número (CCTV-001, CCTV-002…).</p>

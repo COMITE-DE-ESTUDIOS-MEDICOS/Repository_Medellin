@@ -61,7 +61,7 @@ class RegistrarTest extends TestCase
             'clave_formulario' => (string) Str::uuid(),
             'entidad' => 'policia',
             'requerido_at' => now()->subHour()->format('Y-m-d\TH:i'),
-            'colaborador_asignado_id' => $this->persona->id,
+            'cedula_asignado' => $this->persona->documento,
             'nodo_id' => $this->nodo->id,
             'descripcion' => 'Persona sospechosa frente al CAI.',
             'ubicacion' => 'Cra. 65 #97-121',
@@ -112,8 +112,8 @@ class RegistrarTest extends TestCase
         $this->registrar(['soporte' => $this->archivoPdf()])->assertSessionHasErrors('soporte');
 
         // Persona y nodo: inactivos o de otro componente no valen.
-        $this->registrar(['colaborador_asignado_id' => $ajena->id])->assertSessionHasErrors('colaborador_asignado_id');
-        $this->registrar(['colaborador_asignado_id' => $inactiva->id])->assertSessionHasErrors('colaborador_asignado_id');
+        $this->registrar(['cedula_asignado' => $ajena->documento])->assertSessionHasErrors('cedula_asignado');
+        $this->registrar(['cedula_asignado' => $inactiva->documento])->assertSessionHasErrors('cedula_asignado');
         $this->registrar(['nodo_id' => $nodoAjeno->id])->assertSessionHasErrors('nodo_id');
         $this->registrar(['nodo_id' => $nodoInactivo->id])->assertSessionHasErrors('nodo_id');
         $this->assertSame(0, CasoCctv::count());
@@ -168,7 +168,7 @@ class RegistrarTest extends TestCase
 
         $base = fn (array $d = []) => $d + [
             'entidad' => 'camaras', 'requerido_at' => $caso->requerido_at->format('Y-m-d\TH:i'),
-            'colaborador_asignado_id' => $this->persona->id, 'nodo_id' => $this->nodo->id,
+            'cedula_asignado' => $this->persona->documento, 'nodo_id' => $this->nodo->id,
             'descripcion' => $caso->descripcion, 'ubicacion' => 'Parque Berrío', 'comuna' => 5,
         ];
         $enviar = fn (array $d) => $this->actingAs($this->responsable)->put(route('admin.turnos.cctv.update', $caso), $base($d));
@@ -199,7 +199,7 @@ class RegistrarTest extends TestCase
 
     public function test_doc33_ca13_un_caso_cerrado_o_anulado_no_se_corrige_ni_sin_casilla(): void
     {
-        $datos = ['entidad' => 'camaras', 'requerido_at' => now()->subHours(2)->format('Y-m-d\TH:i'), 'colaborador_asignado_id' => $this->persona->id,
+        $datos = ['entidad' => 'camaras', 'requerido_at' => now()->subHours(2)->format('Y-m-d\TH:i'), 'cedula_asignado' => $this->persona->documento,
             'nodo_id' => $this->nodo->id, 'descripcion' => 'd', 'ubicacion' => 'u', 'comuna' => 5];
 
         foreach ([CasoCctv::CERRADO, CasoCctv::ANULADO] as $estado) {

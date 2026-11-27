@@ -25,7 +25,6 @@ class CasoCctvFactory extends Factory
             'estado' => CasoCctv::ABIERTO,
             'entidad' => 'camaras',
             'requerido_at' => now()->subHour(),
-            'colaborador_asignado_id' => fn (array $a): int => Colaborador::factory()->create(['dependencia_id' => $a['dependencia_id'], 'componente_id' => $a['componente_id']])->id,
             'descripcion' => fake()->sentence(),
             'ubicacion' => fake()->streetAddress(),
             'comuna' => 10,
@@ -35,6 +34,11 @@ class CasoCctvFactory extends Factory
     public function de(Componente $componente): static
     {
         return $this->state(fn (): array => ['componente_id' => $componente->id, 'dependencia_id' => $componente->dependencia_id]);
+    }
+
+    public function asignadoA(Colaborador $persona): static
+    {
+        return $this->state(fn (): array => ['colaborador_asignado_id' => $persona->id]);
     }
 
     public function atendido(int $minutos = 85): static

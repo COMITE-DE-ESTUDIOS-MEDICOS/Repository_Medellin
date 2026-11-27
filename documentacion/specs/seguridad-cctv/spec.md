@@ -3,13 +3,13 @@
 | | |
 |---|---|
 | Historia | DOC-33 |
-| Tipo | Historia de usuario · módulo nuevo · cambia RN-01, RN-43, RN-48 y RN-49 · propone RN-67 y RN-68 |
+| Tipo | Historia de usuario · módulo nuevo · cambia RN-01, RN-43, RN-48 y RN-49 · propone RN-67 y RN-68 · v1.1 cambia RN-67 |
 | Estado | **Aprobada** |
-| Versión | 1.0 |
-| Fuentes | Pedido de Edwar, 2026-11-27, y sus decisiones del mismo día (quién cierra, quién registra, tiempos, evidencias) |
+| Versión | 1.1 |
+| Fuentes | Pedido de Edwar, 2026-11-27, y sus decisiones del mismo día (quién cierra, quién registra, tiempos, evidencias; v1.1: asignación opcional por cédula y nodo del que atiende) |
 | Base | DOC-20 (casos de derivación), DOC-23 (comuna), DOC-24 (soporte opcional), DOC-25 (módulos por componente) |
 | Redactó | Claude |
-| Aprobó (Dueño de Producto) | Edwar, 2026-11-27 |
+| Aprobó (Dueño de Producto) | Edwar, 2026-11-27 (v1.0 y v1.1) |
 
 ## Problema
 
@@ -45,7 +45,7 @@ con un responsable que cierra los casos.
 |---|---|
 | Ver la lista, la ficha y el reporte | Edición, Coordinación y Administración del componente |
 | Registrar un caso, corregir sus datos, compartir el enlace | Responsable de Seguridad CCTV, Coordinación y Administración |
-| Atender el caso | La persona de campo, por el enlace (punto 5) |
+| Atender el caso | Por el enlace (punto 5): la persona asignada; si no hay asignada, cualquier persona de campo del componente en turno |
 | Cerrar el caso | Responsable de Seguridad CCTV, Coordinación y Administración |
 | Anular el caso (con motivo) | Coordinación y Administración |
 
@@ -60,8 +60,8 @@ Lectura no entra al módulo. Edición sin la casilla solo consulta.
 | Número de caso | — | Lo pone el sistema: **CCTV-001**, CCTV-002… Consecutivo por dependencia, nunca se repite ni se reinicia; aparte del DC de derivaciones |
 | Entidad que solicita | Sí | Cámaras · 123 Telegram · Policía · Espacio público · Otras (con «Otras», se escribe cuál) |
 | Fecha y hora del requerimiento | Sí | Un solo campo con fecha y hora. La escribe quien registra (cuándo llegó el requerimiento). No puede ser futura |
-| A quién se le pasa la novedad | Sí | Persona de campo activa del componente, de la lista |
-| Nodo que atiende el requerimiento | Sí | Nodo activo del componente |
+| A quién se le pasa la novedad | No | Se busca **por cédula** (no hay lista desplegable: son cerca de 430 personas). Se escribe la cédula, la pantalla muestra el nombre de la persona de campo **activa del componente** y se asigna. Una cédula que no existe, inactiva o de otro componente no se asigna y lo dice. Se puede dejar vacío |
+| Nodo que atiende el requerimiento | No | Nodo activo del componente. Si se deja vacío, el caso toma el nodo de quien lo atiende (punto 5) |
 | Descripción del caso | Sí | Texto, hasta 5000 caracteres |
 | Ubicación del requerimiento | Sí | Texto, hasta 500 caracteres |
 | Comuna | Sí | La lista de comunas y corregimientos que ya usan los casos (DOC-23) |
@@ -98,8 +98,18 @@ La persona de campo abre el enlace en el celular y:
 - Un número que no existe, de otro componente, ya atendido, cerrado o anulado recibe **el mismo
   mensaje**: «No hay un caso abierto con ese número», y no muestra nada. Hay límite de intentos
   y cada consulta y cada envío quedan en la auditoría (cédula, número, IP).
-- Puede atenderlo cualquier persona de campo del componente en turno, no solo a quien se le
-  pasó la novedad. La ficha muestra las dos: a quién se le pasó y quién lo atendió.
+- **Quién puede atenderlo (v1.1):**
+  - **Con persona asignada,** solo esa persona. Con otra cédula (válida y en turno) y el número
+    de ese caso, el enlace responde «**Este caso está asignado a otra persona**», no muestra nada
+    del caso y no dice a quién está asignado. Queda en la auditoría como las demás consultas.
+  - **Sin persona asignada,** cualquier persona de campo del componente en turno (como en v1.0).
+  - Si la asignada no puede atenderlo (no está en turno, se desactivó, no llegó), la oficina la
+    quita o la cambia con «Corregir» (punto 7).
+  - La ficha muestra las dos: a quién se le pasó («Sin asignar» si no hubo) y quién lo atendió.
+- **Nodo (v1.1):** si el caso se registró **sin nodo**, al atenderlo toma **el nodo de la
+  persona que lo atiende** (el de su registro de persona de campo). Si se registró **con
+  nodo**, se respeta aunque quien atienda sea de otro. Si quien atiende no tiene nodo, el caso
+  queda «Sin nodo» (ver PA-12).
 - Un caso **se atiende una sola vez**. Si dos envíos llegan juntos, el segundo recibe «Este
   caso ya fue atendido» y sus fotos no quedan guardadas.
 
@@ -118,7 +128,9 @@ La persona de campo abre el enlace en el celular y:
 - **Corregir:** mientras el caso no esté cerrado ni anulado, quienes registran corrigen los
   datos del registro y la justificación. Cambiar la fecha y hora del requerimiento exige
   **motivo**, no puede quedar futura ni después de la hora de respuesta, y recalcula el tiempo.
-  La hora de respuesta y las evidencias no se cambian. Cada corrección queda en la auditoría con
+  La hora de respuesta y las evidencias no se cambian. **La persona asignada se puede quitar
+  (dejar vacía) o cambiar por otra cédula**, con la misma búsqueda del registro; el nodo
+  también se puede quitar o cambiar. Cada corrección queda en la auditoría con
   el valor anterior y el nuevo.
 - **Anular:** Coordinación o Administración, con **motivo obligatorio**, en cualquier estado
   menos anulado. El caso no se borra: queda «Anulado», con quién, cuándo y por qué, y sale de
@@ -137,7 +149,9 @@ La persona de campo abre el enlace en el celular y:
 
 - **Lista:** número, estado, entidad, fecha del requerimiento, comuna, nodo, a quién se le
   pasó, tiempo de respuesta. Filtros: estado, entidad, comuna, nodo y rango de fechas del
-  requerimiento. Paginada como la de casos (25, 50, 100).
+  requerimiento. Paginada como la de casos (25, 50, 100). Sin persona asignada se lee «Sin
+  asignar»; sin nodo, «Sin nodo». Un caso sin nodo no sale al filtrar por un nodo hasta que
+  se atiende y toma el de quien lo atendió.
 - **Ficha:** todos los campos; quién lo registró y cuándo; quién lo atendió (cédula, nombre,
   cargo) y cuándo; quién lo cerró o anuló y cuándo; el soporte y las evidencias, que se abren
   por un control con permiso y auditoría (RN-06).
@@ -162,23 +176,29 @@ el mes en curso). Los anulados no cuentan.
 «Casos» con una fila por caso del rango y todas las columnas de la ficha, y una hoja «Resumen»
 con las cifras de la pantalla.
 
+**Nodo en el reporte (v1.1):** el reporte no agrupa por nodo (cuenta por estado, entidad y
+comuna), así que la asignación opcional no cambia sus cifras. En la hoja «Casos» del Excel,
+la columna de nodo dice «Sin nodo» y la de persona asignada «Sin asignar» cuando están
+vacías; un caso registrado sin nodo muestra el de quien lo atendió una vez atendido.
+
 ## Preguntas abiertas
 
-Todas resueltas por Edwar al aprobar (2026-11-27).
+Todas resueltas por Edwar al aprobar (2026-11-27). PA-02, PA-03 y PA-05 cambian en v1.1.
 
 | PA | Pregunta | Respuesta | Bloquea |
 |---|---|---|---|
 | PA-01 | ¿Cómo se ve el número de caso? | Confirmada: **CCTV-001**, consecutivo por dependencia, aparte de DC | No |
-| PA-02 | ¿«A quién se le pasa la novedad» es una persona de campo de la lista o texto libre? | Persona de campo activa del componente, de la lista | No |
-| PA-03 | ¿Solo puede atender la persona a quien se le pasó la novedad? | Confirmada: cualquier persona de campo del componente en turno; la ficha muestra las dos | No |
+| PA-02 | ¿«A quién se le pasa la novedad» es una persona de campo de la lista o texto libre? | **Cambia (v1.1):** opcional. Persona de campo activa del componente, buscada **por cédula** (no lista: ~430 personas); se puede dejar vacía | No |
+| PA-03 | ¿Solo puede atender la persona a quien se le pasó la novedad? | **Cambia (v1.1):** con persona asignada, solo ella; con otra cédula, «Este caso está asignado a otra persona», sin decir a quién. Sin asignada, cualquier persona de campo del componente en turno. La oficina quita o cambia la asignación con «Corregir» | No |
 | PA-04 | ¿El enlace debe mostrar la descripción y el soporte del caso, como en derivaciones? | **Cambia: sí.** Después de cédula en turno y número de caso, muestra la descripción, la ubicación, la comuna y el soporte (si hay). Nunca datos personales. Entra en la misma excepción de derivaciones (RN-48) | No |
-| PA-05 | ¿El nodo lo elige quien registra o la persona de campo al atender? | Quien registra, obligatorio | No |
+| PA-05 | ¿El nodo lo elige quien registra o la persona de campo al atender? | **Cambia (v1.1):** quien registra, opcional. Si se deja vacío, al atender el caso toma el nodo de la persona que lo atiende; si se registró con nodo, se respeta | No |
 | PA-06 | ¿Quién atiende debe estar en turno? | Sí, como en derivaciones (RN-43) | No |
 | PA-07 | ¿Edición sin la casilla ve el módulo? ¿Y Lectura? | Edición consulta (lista, ficha, reporte); Lectura no entra | No |
 | PA-08 | ¿Las fotos pueden venir de la galería o solo de la cámara? | Las dos, como en derivaciones | No |
 | PA-09 | ¿Dónde quedan los archivos y quién ve las imágenes? | Confirmada: carpeta «Seguridad CCTV · Calle» con custodia del grupo de responsables. Las ven solo los responsables, Coordinación y Administración del componente; en el enlace, quien atiende ve solo el soporte de su caso | No |
 | PA-10 | ¿Cuánto tiempo se guardan las imágenes de cámaras? (constitución V, Ley 1581) | El mismo plazo que se defina para las fotos de turnos (PA-10 del dominio) | No |
 | PA-11 | ¿Se avisa por la campana al atender un caso? | No en esta versión; la lista filtra «Atendido» (ver C-01) | No |
+| PA-12 | (v1.1) Si el caso no tiene nodo y quien lo atiende tampoco tiene nodo en su registro, ¿qué pasa? | **Propuesta:** se atiende igual y el caso queda «Sin nodo»; la oficina puede ponerlo con «Corregir» mientras no esté cerrado. Pendiente de confirmar por Edwar | No |
 
 ## Criterios de aceptación
 
@@ -188,7 +208,7 @@ Todas resueltas por Edwar al aprobar (2026-11-27).
 | CA-02 | Un caso de otro componente no sale en la lista, el reporte ni el Excel, y su ficha da «No encontrado» o «No tienes permiso» | Por construir |
 | CA-03 | Coordinación y Administración marcan la casilla «Responsable de Seguridad CCTV»; Edición no puede marcarla; el cambio queda auditado | Por construir |
 | CA-04 | Edición con la casilla registra, comparte el enlace y cierra; Edición sin la casilla solo consulta; Lectura no entra; la casilla no da ningún permiso fuera del módulo | Por construir |
-| CA-05 | Registrar exige entidad (y el texto con «Otras»), fecha y hora no futura, persona de campo y nodo activos del componente, descripción, ubicación y comuna de la lista; el soporte es opcional y solo imagen | Por construir |
+| CA-05 | Registrar exige entidad (y el texto con «Otras»), fecha y hora no futura, descripción, ubicación y comuna de la lista; el soporte es opcional y solo imagen. (v1.1: la persona de campo y el nodo pasan a opcionales, ver CA-20) | Por construir (ajuste en CCTV-13) |
 | CA-06 | Cada caso recibe CCTV-NNN consecutivo y sin repetir, independiente de DC; el doble envío del formulario devuelve el mismo caso | Por construir |
 | CA-07 | En el enlace, una cédula no registrada, inactiva o fuera de turno no atiende ni ve ningún caso; con una válida solo se ve el saludo recortado. Con cédula válida y el número de un caso Abierto del componente se ven la descripción, la ubicación, la comuna y el soporte (si hay), y nada más: ni la entidad, ni quién registró, ni a quién se le pasó, ni datos personales | Por construir |
 | CA-08 | Un número inexistente, de otro componente, atendido, cerrado o anulado recibe el mismo mensaje y no muestra nada del caso; la consulta va por POST con límite de 10 cada 10 min por IP y por cédula; cada consulta y cada envío quedan auditados | Por construir |
@@ -203,6 +223,12 @@ Todas resueltas por Edwar al aprobar (2026-11-27).
 | CA-15 | Registrar, corregir, cerrar, anular, atender y abrir un archivo dejan auditoría | Por construir |
 | CA-16 | El reporte, en el rango de fechas, da abiertos, atendidos, cerrados, la cantidad por entidad y por comuna, y el promedio, la mediana, el mínimo y el máximo del tiempo (con un caso de prueba de tiempos conocidos) | Por construir; verificar la consulta también contra MySQL |
 | CA-17 | El Excel trae la hoja «Casos» con una fila por caso del rango (sin anulados) y la hoja «Resumen» con las mismas cifras de la pantalla | Por construir |
+| CA-20 | (v1.1) Se registra un caso sin persona asignada y sin nodo; si se dan, la persona tiene que ser de campo, activa y del componente, y el nodo activo del componente; la lista, la ficha y el Excel muestran «Sin asignar» y «Sin nodo» | Por construir (CCTV-13) |
+| CA-21 | (v1.1) La persona se asigna escribiendo su cédula: con una cédula de una persona de campo activa del componente se muestra su nombre y se asigna; con una inexistente, inactiva o de otro componente no se asigna y se dice por qué, sin mostrar nombres de otro componente. No hay lista desplegable de personas | Por construir (CCTV-13) |
+| CA-22 | (v1.1) Con persona asignada, solo ella atiende por el enlace. Otra cédula válida y en turno, con el número de ese caso Abierto, recibe «Este caso está asignado a otra persona», no ve nada del caso (ni el nombre ni la cédula de la asignada) y no puede enviar la atención, tampoco con un POST directo; la consulta queda auditada | Por construir (CCTV-13) |
+| CA-23 | (v1.1) Sin persona asignada, cualquier persona de campo del componente en turno ve el caso y lo atiende (lo de CA-07 a CA-09 sigue igual) | Por construir (CCTV-13) |
+| CA-24 | (v1.1) Un caso registrado sin nodo, al atenderse, queda con el nodo de la persona que lo atendió; uno registrado con nodo conserva el suyo aunque lo atienda alguien de otro nodo | Por construir (CCTV-13) |
+| CA-25 | (v1.1) «Corregir», mientras el caso no esté cerrado ni anulado, quita la persona asignada (después la atiende cualquiera en turno) o la cambia por otra cédula (después solo la nueva atiende); también quita o cambia el nodo. Cada cambio queda auditado con el antes y el después | Por construir (CCTV-13) |
 
 ## Reglas que cambian
 
@@ -222,6 +248,10 @@ Todas resueltas por Edwar al aprobar (2026-11-27).
   Administración. La casilla la marcan Coordinación o Administración y no da poder fuera del
   módulo. Atiende cualquier persona de campo del componente en turno, por el enlace. Las
   imágenes del caso las ven solo los responsables, Coordinación y Administración.
+  **v1.1 cambia RN-67:** «Atiende, por el enlace y en turno, la persona de campo asignada al
+  caso; si no hay asignada, cualquier persona de campo del componente. La asignación es
+  opcional, se hace por cédula y la oficina la quita o la cambia con "Corregir". Un caso sin
+  nodo toma, al atenderse, el nodo de quien lo atiende».
 - **RN-68 (nueva). Seguridad CCTV: tiempo sin meta.** La fecha y hora del requerimiento la
   escribe quien registra (no futura); la hora de respuesta es la del servidor al enviar la
   atención. El tiempo de respuesta es solo trazabilidad: no hay meta, vencimiento ni avisos.
@@ -247,6 +277,12 @@ CCTV; para derivaciones nada cambia).
   imágenes en la aplicación, solo responsables, Coordinación y Administración (PA-09).
   CCTV-001 por dependencia (PA-01). Atiende cualquier persona de campo del componente en
   turno (PA-03). Las demás PA, con su respuesta por defecto.
+- **v1.1:** persona a quien se le pasa y nodo son opcionales al registrar. La persona se asigna
+  buscando por cédula (no lista: ~430 personas de campo en producción). Con persona asignada,
+  solo ella atiende; con otra cédula, «Este caso está asignado a otra persona», sin revelar a
+  quién. Sin asignada, atiende cualquiera del componente en turno. Si la asignada no puede, la
+  oficina la quita o la cambia con «Corregir». Sin nodo, el caso toma el nodo de quien lo
+  atiende; con nodo, se respeta (PA-02, PA-03 y PA-05 cambian).
 
 ## Candidatos para la siguiente versión
 
@@ -265,3 +301,4 @@ CCTV; para derivaciones nada cambia).
 |---|---|---|
 | 0.1 | 2026-11-27 | Borrador con el pedido y las decisiones de Edwar |
 | 1.0 | 2026-11-27 | Aprobada por Edwar. PA-04 cambia: el enlace muestra el caso (excepción RN-48, se agregan CA-18 y la propuesta de cambio a RN-48; se retira C-03). PA-09: imágenes solo para responsables, Coordinación y Administración (CA-19). PA-01 y PA-03 confirmadas; las demás PA con su respuesta por defecto |
+| 1.1 | 2026-11-27 | Aprobada por Edwar. Persona asignada y nodo opcionales; asignación por cédula; con asignada solo ella atiende («Este caso está asignado a otra persona»); sin asignada, cualquiera en turno; sin nodo toma el de quien atiende; «Corregir» quita o cambia la asignación. Cambian PA-02, PA-03, PA-05, CA-05 y RN-67; nuevas PA-12 (propuesta, no bloquea) y CA-20 a CA-25. Se construye en CCTV-13 (incluye el manual) |

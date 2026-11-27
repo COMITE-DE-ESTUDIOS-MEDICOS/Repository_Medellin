@@ -43,6 +43,9 @@ class SeguridadCctvController extends Controller
 
     public const YA_ATENDIDO = 'Este caso ya fue atendido.';
 
+    /** Solo se dice a quien ya es una persona en turno del componente y consultó un caso abierto. */
+    public const ASIGNADO_A_OTRA = 'Este caso está asignado a otra persona.';
+
     /** Minutos que vale la URL firmada del soporte. */
     public const SOPORTE_MINUTOS = 10;
 
@@ -105,6 +108,7 @@ class SeguridadCctvController extends Controller
         $colaborador = $this->colaboradorEnTurno($enlace, $cedula);
         $caso = $this->casoAbierto($enlace, $numero);
         $encontrado = $colaborador !== null && $caso !== null;
+        $ajeno = $encontrado && $this->esDeOtra($caso, $colaborador);
 
         $this->auditor->registrar(
             AccionAuditoria::CasoCctvConsultado,
@@ -115,6 +119,7 @@ class SeguridadCctvController extends Controller
                 'cedula' => mb_substr($cedula, 0, 20),
                 'numero' => mb_substr($numero, 0, 20),
                 'encontrado' => $encontrado,
+                'asignado_a_otra' => $ajeno,
                 'enlace' => $enlace->id,
                 'ip' => $peticion->ip(),
             ],
@@ -122,6 +127,10 @@ class SeguridadCctvController extends Controller
 
         if (! $encontrado) {
             return response()->json(['message' => self::SIN_CASO], 422);
+        }
+
+        if ($ajeno) {
+            return response()->json(['message' => self::ASIGNADO_A_OTRA], 422);
         }
 
         $soporte = $caso->soporte()->withoutGlobalScopes()->with('versionActual')->first()?->versionActual;
@@ -197,6 +206,10 @@ class SeguridadCctvController extends Controller
             ]);
         }
 
+        if ($this->esDeOtra($caso, $colaborador)) {
+            throw ValidationException::withMessages(['numero' => self::ASIGNADO_A_OTRA]);
+        }
+
         $datos = $peticion->validated();
         $rutas = [];
 
@@ -206,6 +219,10 @@ class SeguridadCctvController extends Controller
                 $caso = $this->delEnlace($enlace, bloquear: true)->whereKey($caso->id)->first()
                     ?? throw ValidationException::withMessages(['numero' => self::YA_ATENDIDO]);
 
+                if ($this->esDeOtra($caso, $colaborador)) {
+                    throw ValidationException::withMessages(['numero' => self::ASIGNADO_A_OTRA]);
+                }
+
                 $ahora = now();
 
                 $caso->fill([
@@ -213,6 +230,7 @@ class SeguridadCctvController extends Controller
                     'cedula' => $colaborador->documento,
                     'nombre' => $colaborador->nombre,
                     'cargo' => $colaborador->cargo,
+                    'nodo_id' => $caso->nodo_id ?? $colaborador->nodo_id,
                     'enlace_turno_id' => $enlace->id,
                     'justificacion' => $datos['justificacion'] ?? null,
                     'atendido_at' => $ahora,
@@ -279,6 +297,12 @@ class SeguridadCctvController extends Controller
         $numero = preg_match('/^\d{1,9}$/', $numero) === 1 ? (int) $numero : 0;
 
         return $this->delEnlace($enlace)->where('numero', $numero)->first();
+    }
+
+    /** Con persona asignada, solo ella lo atiende; sin ella, cualquiera del componente en turno. */
+    protected function esDeOtra(CasoCctv $caso, Colaborador $colaborador): bool
+    {
+        return $caso->colaborador_asignado_id !== null && (int) $caso->colaborador_asignado_id !== (int) $colaborador->id;
     }
 
     protected function loAtendioEl(EnlaceTurno $enlace, Colaborador $colaborador, string $numero): bool

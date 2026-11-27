@@ -6,6 +6,7 @@ use App\Enums\AccionAuditoria;
 use App\Enums\RolDependencia;
 use App\Models\Auditoria;
 use App\Models\CasoCctv;
+use App\Models\Colaborador;
 use App\Models\Componente;
 use App\Models\Dependencia;
 use App\Models\Documento;
@@ -75,7 +76,8 @@ class FichaTest extends TestCase
 
     public function test_doc33_ca10_la_ficha_muestra_el_tiempo_sin_vencido(): void
     {
-        $caso = CasoCctv::factory()->de($this->calle)->atendido(85)->create(['nombre' => 'Ana Campo', 'cedula' => '123']);
+        $asignada = Colaborador::factory()->en($this->calle)->create();
+        $caso = CasoCctv::factory()->de($this->calle)->asignadoA($asignada)->atendido(85)->create(['nombre' => 'Ana Campo', 'cedula' => '123']);
 
         $this->actingAs($this->usuario(RolDependencia::Edicion))
             ->get(route('admin.turnos.cctv.show', $caso))

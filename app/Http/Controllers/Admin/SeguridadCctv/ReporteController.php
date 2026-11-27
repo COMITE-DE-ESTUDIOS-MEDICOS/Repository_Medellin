@@ -89,7 +89,7 @@ class ReporteController
 
         return [
             $c->codigo(), ucfirst($c->estado), $c->entidadLegible(), $c->requerido_at->format('d/m/Y H:i'), $c->nombreComuna(),
-            $c->nodo?->nombre, $c->asignado?->nombre, $c->descripcion, $c->ubicacion, $c->cedula, $c->nombre, $c->cargo,
+            $c->nodo?->nombre ?? 'Sin nodo', $c->asignado?->nombre ?? 'Sin asignar', $c->descripcion, $c->ubicacion, $c->cedula, $c->nombre, $c->cargo,
             $c->atendido_at?->format('d/m/Y H:i'), $c->tiempoLegible(), $c->justificacion, $c->cerrado_at?->format('d/m/Y H:i'),
             $foto($c->soporte), $foto($c->evidencia1), $foto($c->evidencia2), $foto($c->evidencia3),
         ];

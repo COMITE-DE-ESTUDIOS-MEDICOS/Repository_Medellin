@@ -31,20 +31,18 @@
     <p class="{{ $ayuda }}">Cuándo llegó el requerimiento. No puede ser una fecha futura.</p>
 </div>
 
-<div>
-    <label for="colaborador_asignado_id" class="{{ $etiqueta }}">A quién se le pasa la novedad *</label>
-    <select id="colaborador_asignado_id" name="colaborador_asignado_id" required class="{{ $campo }}">
-        <option value="">Elige la persona de campo</option>
-        @foreach($personas as $persona)
-            <option value="{{ $persona->id }}" @selected((string) old('colaborador_asignado_id', $caso?->colaborador_asignado_id) === (string) $persona->id)>{{ $persona->nombre }}</option>
-        @endforeach
-    </select>
+<div data-asignado data-consulta="{{ route('admin.turnos.cctv.persona') }}" data-csrf="{{ csrf_token() }}">
+    <label for="cedula_asignado" class="{{ $etiqueta }}">Cédula de la persona a quien se le pasa la novedad (opcional)</label>
+    <input id="cedula_asignado" name="cedula_asignado" type="text" inputmode="numeric" maxlength="20" autocomplete="off"
+           value="{{ old('cedula_asignado', $caso?->asignado?->documento) }}" class="{{ $campo }}">
+    <p data-asignado-nombre aria-live="polite" class="mt-1 text-sm font-medium text-[var(--text)]">{{ $caso?->asignado?->nombre }}</p>
+    <p class="{{ $ayuda }}">Persona de campo activa de este componente. Si la dejas vacía, lo atiende cualquiera que esté en turno; si la escribes, solo ella.</p>
 </div>
 
 <div>
-    <label for="nodo_id" class="{{ $etiqueta }}">Nodo que atiende el requerimiento *</label>
-    <select id="nodo_id" name="nodo_id" required class="{{ $campo }}">
-        <option value="">Elige el nodo</option>
+    <label for="nodo_id" class="{{ $etiqueta }}">Nodo que atiende el requerimiento (opcional)</label>
+    <select id="nodo_id" name="nodo_id" class="{{ $campo }}">
+        <option value="">Sin nodo: queda el de quien atienda</option>
         @foreach($nodos as $nodo)
             <option value="{{ $nodo->id }}" @selected((string) old('nodo_id', $caso?->nodo_id) === (string) $nodo->id)>{{ $nodo->nombre }}</option>
         @endforeach
@@ -71,3 +69,34 @@
         @endforeach
     </select>
 </div>
+
+{{-- Al escribir la cédula (o salir del campo) se muestra el nombre; el servidor revalida al guardar. --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const bloque = document.querySelector('[data-asignado]');
+        const entrada = bloque.querySelector('input');
+        const texto = bloque.querySelector('[data-asignado-nombre]');
+
+        const buscar = async () => {
+            const cedula = entrada.value.replace(/[^0-9A-Za-z]/g, '');
+            texto.textContent = cedula === '' ? '' : 'Buscando…';
+            if (cedula === '') { return; }
+
+            try {
+                const respuesta = await fetch(bloque.dataset.consulta, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': bloque.dataset.csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ cedula }),
+                });
+                const datos = respuesta.ok ? await respuesta.json() : null;
+                texto.textContent = datos === null ? 'No pudimos buscarla. Vuelve a intentarlo.'
+                    : (datos.nombre ?? 'No hay una persona de campo activa de este componente con esa cédula.');
+            } catch {
+                texto.textContent = 'No pudimos buscarla. Revisa la conexión.';
+            }
+        };
+
+        entrada.addEventListener('change', buscar);
+        if (entrada.value !== '' && texto.textContent.trim() === '') { buscar(); }
+    });
+</script>

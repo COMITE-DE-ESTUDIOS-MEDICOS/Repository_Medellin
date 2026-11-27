@@ -125,6 +125,7 @@ Route::middleware("can:modulo,'seguridad_cctv'")->prefix('cctv')->name('cctv.')-
     Route::view('/', 'admin.seguridad-cctv.index')->middleware('can:viewAny,App\Models\CasoCctv')->name('index');
     Route::get('nuevo', [CasoCctvController::class, 'create'])->name('create');
     Route::post('/', [CasoCctvController::class, 'store'])->name('store');
+    Route::post('persona', [CasoCctvController::class, 'persona'])->middleware('throttle:60,1')->name('persona');
     Route::get('reporte', [ReporteCctvController::class, 'index'])->name('reporte');
     Route::get('exportar', [ReporteCctvController::class, 'exportar'])->name('exportar');
     Route::get('{caso}', [FichaCctvController::class, 'show'])->name('show');

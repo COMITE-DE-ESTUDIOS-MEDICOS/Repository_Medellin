@@ -9,12 +9,15 @@ use App\Models\CasoCctv;
 use App\Models\Colaborador;
 use App\Models\Documento;
 use App\Models\Nodo;
+use App\Models\User;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
 use App\Services\ContextoDependencia;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -42,10 +45,23 @@ class CasoController extends Controller
         return view('admin.seguridad-cctv.create', ['clave' => (string) Str::uuid()] + $this->listas());
     }
 
+    /** El nombre de la persona de campo activa del componente con esa cédula; nada más. */
+    public function persona(Request $peticion): JsonResponse
+    {
+        $this->authorize('create', CasoCctv::class);
+
+        $nombre = Colaborador::query()
+            ->where('componente_id', $this->contexto->componenteId())
+            ->where('documento', User::normalizarDocumento((string) $peticion->input('cedula')))
+            ->where('activo', true)
+            ->value('nombre');
+
+        return response()->json(['nombre' => $nombre]);
+    }
+
     public function store(GuardarCasoCctvRequest $peticion): RedirectResponse
     {
-        $datos = $peticion->validated();
-        $datos['entidad_otra'] = $datos['entidad'] === 'otras' ? trim((string) $datos['entidad_otra']) : null;
+        $datos = $this->datos($peticion);
         $componente = $this->contexto->componente();
         abort_if($componente === null, 403, 'Elige un componente para registrar el caso.');
 
@@ -119,11 +135,9 @@ class CasoController extends Controller
 
     public function update(GuardarCasoCctvRequest $peticion, CasoCctv $caso): RedirectResponse
     {
-        $datos = $peticion->validated();
+        $datos = $this->datos($peticion);
         $motivo = trim((string) ($datos['motivo'] ?? ''));
         unset($datos['motivo']);
-
-        $datos['entidad_otra'] = $datos['entidad'] === 'otras' ? trim((string) $datos['entidad_otra']) : null;
 
         // Los segundos no cuentan: una hora igual hasta el minuto no es un cambio.
         $horaCambiada = ! Carbon::parse($datos['requerido_at'])->equalTo($caso->requerido_at->copy()->startOfMinute());
@@ -159,20 +173,35 @@ class CasoController extends Controller
     }
 
     /**
-     * Las listas del formulario, del componente donde está parado el usuario (los
-     * scopes lo aíslan). Al corregir se conserva la persona o el nodo ya elegido.
+     * Lo validado, con la cédula ya resuelta a la persona asignada y «Otras» limpio.
+     *
+     * @return array<string, mixed>
+     */
+    protected function datos(GuardarCasoCctvRequest $peticion): array
+    {
+        $datos = $peticion->validated();
+        unset($datos['cedula_asignado']);
+
+        $datos['colaborador_asignado_id'] = $peticion->colaboradorAsignadoId();
+        $datos['entidad_otra'] = $datos['entidad'] === 'otras' ? trim((string) $datos['entidad_otra']) : null;
+
+        return $datos;
+    }
+
+    /**
+     * Los nodos del formulario, del componente donde está parado el usuario (los
+     * scopes lo aíslan). Al corregir se conserva el nodo ya elegido.
      *
      * @return array<string, mixed>
      */
     protected function listas(?CasoCctv $caso = null): array
     {
-        $activosOActual = fn (Builder $q, ?int $id): Builder => $q->where(
-            fn (Builder $q) => $q->where('activo', true)->when($id, fn (Builder $q) => $q->orWhere('id', $id)),
-        );
+        $actual = $caso?->nodo_id;
 
         return [
-            'personas' => $activosOActual(Colaborador::query(), $caso?->colaborador_asignado_id)->orderBy('nombre')->get(['id', 'nombre']),
-            'nodos' => $activosOActual(Nodo::query(), $caso?->nodo_id)->orderBy('nombre')->get(['id', 'nombre']),
+            'nodos' => Nodo::query()
+                ->where(fn (Builder $q) => $q->where('activo', true)->when($actual, fn (Builder $q) => $q->orWhere('id', $actual)))
+                ->orderBy('nombre')->get(['id', 'nombre']),
         ];
     }
 
