@@ -29,6 +29,7 @@ $conDocumentos = \Illuminate\Support\Facades\Gate::allows('modulo', 'documentos'
 $conTurnos = \Illuminate\Support\Facades\Gate::allows('modulo', 'turnos');
 $conDerivaciones = \Illuminate\Support\Facades\Gate::allows('modulo', 'derivaciones');
 $conSupervisiones = \Illuminate\Support\Facades\Gate::allows('modulo', 'supervisiones');
+$conSeguridadCctv = \Illuminate\Support\Facades\Gate::allows('modulo', 'seguridad_cctv');
 
 // Las variables del componente las comparte EstablecerDependencia; el ?? cubre
 // una vista que se pinte sin pasar por él.
@@ -68,6 +69,7 @@ $grupos = [
         'titulo' => 'Atención territorial',
         'enlaces' => array_filter([
             'admin.turnos.derivaciones.index' => $conDerivaciones && $puedeEditar ? ['texto' => 'Derivaciones', 'icono' => 'M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5'] : null,
+            'admin.turnos.cctv.index' => $conSeguridadCctv && $puedeEditar ? ['texto' => 'Seguridad CCTV', 'icono' => 'M15.75 10.5l4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z'] : null,
             'admin.turnos.supervisiones.index' => $conSupervisiones && $puedeEditar ? ['texto' => 'Supervisión', 'icono' => 'M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z'] : null,
         ]),
     ],

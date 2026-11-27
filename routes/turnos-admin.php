@@ -11,11 +11,14 @@
 | Aquí solo van las rutas, sin repetir nada de eso.
 */
 
+use App\Http\Controllers\Admin\SeguridadCctv\CasoController as CasoCctvController;
+use App\Http\Controllers\Admin\SeguridadCctv\FichaController as FichaCctvController;
+use App\Http\Controllers\Admin\SeguridadCctv\ReporteController as ReporteCctvController;
 use App\Http\Controllers\Admin\Turnos\AusenciaController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaCasosController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaColaboradoresController;
-use App\Http\Controllers\Admin\Turnos\ColaboradorController;
 use App\Http\Controllers\Admin\Turnos\CasoDerivacionController;
+use App\Http\Controllers\Admin\Turnos\ColaboradorController;
 use App\Http\Controllers\Admin\Turnos\ComentarioDerivacionController;
 use App\Http\Controllers\Admin\Turnos\DerivacionController;
 use App\Http\Controllers\Admin\Turnos\EnlaceTurnoController;
@@ -99,7 +102,7 @@ Route::middleware("can:modulo,'derivaciones'")->group(function () {
     // DOC-24: carga única de casos ya atendidos (Coordinación). Temporal: se quita con su controlador.
     Route::get('derivaciones/carga-masiva/formato', [CargaMasivaCasosController::class, 'formato'])->name('derivaciones.carga.formato');
     Route::post('derivaciones/carga-masiva', [CargaMasivaCasosController::class, 'importar'])->name('derivaciones.carga.importar');
-    Route::get('derivaciones/exportar',[DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
+    Route::get('derivaciones/exportar', [DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
     // Plan de contingencia: el superadministrador cierra a mano un caso atendido que no se pudo enviar.
     Route::patch('derivaciones/{derivacion}/contingencia', [DerivacionController::class, 'contingencia'])->name('derivaciones.contingencia');
     // DOC-23: comentarios en la ficha del caso.
@@ -111,6 +114,21 @@ Route::middleware("can:modulo,'derivaciones'")->group(function () {
     Route::resource('derivaciones', DerivacionController::class)
         ->only(['index', 'show', 'edit', 'update', 'destroy'])
         ->parameters(['derivaciones' => 'derivacion']);
+});
+
+Route::middleware("can:modulo,'seguridad_cctv'")->prefix('cctv')->name('cctv.')->group(function () {
+    // Seguridad CCTV (DOC-33). La lista es el componente Livewire de CCTV-05; el permiso va en la Policy.
+    Route::view('/', 'admin.seguridad-cctv.index')->middleware('can:viewAny,App\Models\CasoCctv')->name('index');
+    Route::get('nuevo', [CasoCctvController::class, 'create'])->name('create');
+    Route::post('/', [CasoCctvController::class, 'store'])->name('store');
+    Route::get('reporte', [ReporteCctvController::class, 'index'])->name('reporte');
+    Route::get('exportar', [ReporteCctvController::class, 'exportar'])->name('exportar');
+    Route::get('{caso}', [FichaCctvController::class, 'show'])->name('show');
+    Route::get('{caso}/editar', [CasoCctvController::class, 'edit'])->name('edit');
+    Route::put('{caso}', [CasoCctvController::class, 'update'])->name('update');
+    Route::patch('{caso}/cerrar', [FichaCctvController::class, 'cerrar'])->name('cerrar');
+    Route::patch('{caso}/anular', [FichaCctvController::class, 'anular'])->name('anular');
+    Route::get('{caso}/archivo/{campo}', [FichaCctvController::class, 'archivo'])->name('archivo');
 });
 
 Route::middleware("can:modulo,'supervisiones'")->group(function () {

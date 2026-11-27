@@ -65,6 +65,13 @@ enum AccionAuditoria: string
     case UsuarioHcActualizado = 'usuario_hc.actualizado';
     case UsuarioHcConsultado = 'usuario_hc.consultado';
     case UsuarioHcFotoVista = 'usuario_hc.foto_vista';
+    case CasoCctvRegistrado = 'caso_cctv.registrado';
+    case CasoCctvCorregido = 'caso_cctv.corregido';
+    case CasoCctvConsultado = 'caso_cctv.consultado';
+    case CasoCctvAtendido = 'caso_cctv.atendido';
+    case CasoCctvCerrado = 'caso_cctv.cerrado';
+    case CasoCctvAnulado = 'caso_cctv.anulado';
+    case CasoCctvArchivoAbierto = 'caso_cctv.archivo_abierto';
 
     public function etiqueta(): string
     {
@@ -128,6 +135,13 @@ enum AccionAuditoria: string
             self::UsuarioHcActualizado => 'Corrigió un Usuario HC',
             self::UsuarioHcConsultado => 'Abrió la caracterización de un Usuario HC',
             self::UsuarioHcFotoVista => 'Vio la foto de un Usuario HC',
+            self::CasoCctvRegistrado => 'Registró un caso de Seguridad CCTV',
+            self::CasoCctvCorregido => 'Corrigió un caso de Seguridad CCTV',
+            self::CasoCctvConsultado => 'Consultó un caso de Seguridad CCTV desde el enlace',
+            self::CasoCctvAtendido => 'Atendió un caso de Seguridad CCTV',
+            self::CasoCctvCerrado => 'Cerró un caso de Seguridad CCTV',
+            self::CasoCctvAnulado => 'Anuló un caso de Seguridad CCTV',
+            self::CasoCctvArchivoAbierto => 'Abrió una imagen de un caso de Seguridad CCTV',
         };
     }
 }

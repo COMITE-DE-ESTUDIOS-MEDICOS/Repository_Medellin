@@ -24,6 +24,7 @@
             <legend class="{{ $etiqueta }}">Para qué es *</legend>
             <div class="mt-2 space-y-2">
                 @foreach(\App\Models\EnlaceTurno::TIPOS as $valor => $texto)
+                    @continue($valor === 'seguridad_cctv' && auth()->user()->cannot('compartirEnlace', \App\Models\CasoCctv::class))
                     <label class="flex items-center gap-2 text-sm text-[var(--text)]">
                         <input type="radio" name="tipo" value="{{ $valor }}" required
                                @checked(old('tipo', request('tipo', 'turno')) === $valor)>

@@ -21,6 +21,10 @@ Cada viñeta, corta y para quien no programa.
 
 ## Sin publicar
 
+- **Seguridad CCTV** (Atención territorial, solo en Calle): la oficina registra los requerimientos de seguridad que llegan de las cámaras, el 123 Telegram, la Policía o Espacio público, con su número (CCTV-001, CCTV-002…), entidad, fecha y hora, a quién se le pasa, nodo, descripción, ubicación, comuna y un soporte opcional.
+- La persona de campo **atiende el caso** desde un enlace de Seguridad CCTV: escribe su cédula (en turno) y el número del caso, ve la descripción, la ubicación, la comuna y el soporte, y sube hasta 3 evidencias (la primera obligatoria). No hay meta de tiempo: el tiempo de respuesta queda solo como registro.
+- Nueva casilla **Responsable de Seguridad CCTV** en la ficha del usuario (la marcan Coordinación o Administración): quien la tiene puede registrar, compartir el enlace y cerrar casos, solo en este módulo. Coordinación y Administración anulan casos con motivo.
+- **Reporte de Seguridad CCTV** con casos por estado, tiempos de respuesta, y cantidad por entidad y por comuna, y descarga en Excel.
 - Cada persona trabaja en su **componente** (Calle, Básica o Estabilización) y ve solo lo de ese componente: sus pantallas y sus datos. Quienes ya usan Documenta quedan en Calle y ven lo mismo que antes.
 - Se crearon los componentes **Básica** y **Estabilización**, todavía sin pantallas activas: quien entra en uno de ellos ve una bienvenida que lo explica.
 - El menú muestra arriba el **componente** en el que estás. Administración trabaja en todos: toca «Componente» y elige otro.

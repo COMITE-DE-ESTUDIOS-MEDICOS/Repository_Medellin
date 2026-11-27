@@ -12,11 +12,11 @@
 | Repositorio | Documentos, carpetas, versiones, custodia, comentarios | `carpetas`, `documentos`, `documento_versiones`, `tipos_documento`, `etiquetas`, `grupos_custodia`, `comentarios_documento` |
 | Recepción externa | Lo que llega de fuera por enlaces de carga | `enlaces_carga`, `recepciones` |
 | Turnos | Personas de campo, marcación, novedades, catálogo de la malla, ausencias | `componentes`, `nodos`, `colaboradores`, `enlaces_turno`, `marcaciones`, `novedades_turno`, `tipos_turno`, `puntos_criticos`, `ausencias` |
-| Atención territorial | Derivaciones y su respuesta; supervisión territorial | `derivaciones`, `supervisiones` |
+| Atención territorial | Derivaciones y su respuesta; supervisión territorial; Seguridad CCTV | `derivaciones`, `supervisiones`, `casos_cctv` |
 | Administración | Dependencias, usuarios (con su rol y su componente, DOC-25), auditoría, avisos | `dependencias`, `users`, `dependencia_usuario`, `auditorias`, `avisos`, `notifications` |
 
 `enlaces_turno` lo comparten Turnos y Atención territorial: el mismo enlace por cédula
-sirve para marcar o para reportar una derivación según su `tipo`.
+sirve para marcar, para reportar una derivación o para atender un caso de Seguridad CCTV según su `tipo`.
 
 ## Estados
 
@@ -73,6 +73,15 @@ amenaza detectada, no se pudo verificar.
 | Solucionada | Respondida: el tiempo quedó detenido | — | — |
 | Eliminada | Retirada del reporte (borrado lógico) | — | Coordinación en adelante |
 
+### Caso de Seguridad CCTV
+
+| Estado | Qué significa | Puede pasar a | Quién lo cambia |
+|---|---|---|---|
+| Abierto | Registrado, espera la atención | Atendido, Anulado | A Atendido: la persona de campo (por el enlace). A Anulado: Coordinación, Administración |
+| Atendido | Se envió la atención; el tiempo quedó fijo | Cerrado, Anulado | A Cerrado: Responsable de Seguridad CCTV, Coordinación, Administración. A Anulado: Coordinación, Administración |
+| Cerrado | Revisado y terminado | Anulado | Coordinación, Administración |
+| Anulado | Retirado con motivo; no cuenta en reportes | — | — |
+
 ## Reglas de negocio
 
 ### Generales
@@ -81,7 +90,8 @@ amenaza detectada, no se pudo verificar.
 usuario ve datos de una dependencia a la que no pertenece, ni por enlace directo. El filtro
 va en la consulta. Desde DOC-25, dentro de la dependencia cada usuario ve y trabaja **solo
 los datos de su componente**: personas de campo, ausencias, enlaces por cédula, marcaciones,
-novedades, tipos de turno, puntos críticos, nodos, derivaciones y supervisiones. Un dato de
+novedades, tipos de turno, puntos críticos, nodos, derivaciones, supervisiones y casos de
+Seguridad CCTV. Un dato de
 otro componente da «No encontrado» o «No tienes permiso», también por dirección directa, y no
 sale en listas, contadores ni reportes. Administración y el superadministrador ven el
 componente que eligen en el menú (RN-50). Quien no tiene componente no ve ningún dato. Los
@@ -125,8 +135,9 @@ exige motivo.
 
 **RN-49. Módulos por componente.** Cada componente tiene su lista de módulos; un usuario
 solo abre los módulos de su componente y, dentro de ellos, lo que su rol permite. La lista
-la cambia solo el superadministrador. Los módulos son Documentos, Turnos, Derivaciones y
-Supervisión; Calle tiene los cuatro y Básica y Estabilización, ninguno por ahora. El menú
+la cambia solo el superadministrador. Los módulos son Documentos, Turnos, Derivaciones,
+Supervisión y Seguridad CCTV (`seguridad_cctv`); Calle tiene los cinco y Básica y
+Estabilización, ninguno por ahora. El menú
 muestra solo los módulos del componente, y abrir por dirección directa una pantalla, una
 descarga o un reporte de un módulo que el componente no tiene da «No tienes permiso». Al
 entrar, cada quien llega al primer módulo que puede abrir; si no hay ninguno, a una pantalla
@@ -134,7 +145,7 @@ de bienvenida que dice que su componente todavía no tiene módulos activos (o, 
 que pida a su coordinación que se lo asignen). Perfil, campana, manual y tema siguen para
 todos. La pantalla para que el superadministrador cambie los módulos llega con ACC-09
 (pendiente); hasta entonces se cambian solo por migración.
-*Origen:* DOC-25 · *Código:* `Componente::MODULOS`, `componentes.modulos`, Gate `modulo`, rutas `can:modulo,'…'`, trait `ExigeModulo` en las Policies, `InicioController`, `inicio.blade.php`.
+*Origen:* DOC-25, DOC-33 · *Código:* `Componente::MODULOS`, `componentes.modulos`, Gate `modulo`, rutas `can:modulo,'…'`, trait `ExigeModulo` en las Policies, `InicioController`, `inicio.blade.php`.
 
 **RN-50. Coordinador líder.** Es el rol Administración: no pertenece a ningún componente,
 ve y trabaja todos los de la dependencia y da los permisos (crea usuarios y les asigna
@@ -150,6 +161,21 @@ mientras documentos y carpetas no tengan componente. Encender el módulo Documen
 segundo componente mostraría los documentos de Calle; impedirlo en la pantalla de módulos
 llega con ACC-09 (pendiente).
 *Origen:* DOC-25 (decisión de Edwar del 2026-11-20) · *Código:* rutas `can:modulo,'documentos'`, `DocumentoPolicy`, `CarpetaPolicy`, `EnlaceCargaPolicy` con `ExigeModulo`.
+
+### Seguridad CCTV
+
+**RN-67. Seguridad CCTV: quién registra y quién cierra.** Registran, corrigen y cierran
+quienes tienen «Responsable de Seguridad CCTV» (con rol Edición o mayor), Coordinación y
+Administración del componente; anulan, con motivo, Coordinación y Administración. La casilla
+la marcan Coordinación o Administración y no da poder fuera del módulo. Atiende cualquier
+persona de campo del componente en turno, por el enlace. Las imágenes del caso las ven solo
+los responsables, Coordinación y Administración.
+*Origen:* DOC-33 · *Código:* `CasoCctvPolicy`, `users.responsable_cctv`.
+
+**RN-68. Seguridad CCTV: tiempo sin meta.** La fecha y hora del requerimiento la escribe
+quien registra (no futura); la hora de respuesta es la del servidor al enviar la atención.
+El tiempo de respuesta es solo trazabilidad: no hay meta, vencimiento ni avisos.
+*Origen:* DOC-33 · *Código:* `CasoCctv`.
 
 ### Repositorio
 
@@ -375,8 +401,8 @@ elementos de protección personal. Un «No» crea la novedad «Sin EPP», pendie
 supervisión) la foto se toma en el momento; no se elige de la galería.
 *Origen:* DOC-12, DOC-11 · *Código:* `<x-campo-archivo :galeria="false">`.
 
-**RN-43. Registrar solo en turno.** Para registrar una supervisión, una derivación o un
-envío de evidencias por cédula, la persona tiene que estar en turno: su última marcación
+**RN-43. Registrar solo en turno.** Para registrar una supervisión, una derivación, atender un
+caso de Seguridad CCTV o enviar evidencias por cédula, la persona tiene que estar en turno: su última marcación
 vigente es una entrada. Una cédula nueva no está en turno (se registra marcando entrada).
 *Origen:* DOC-13 · *Código:* `Marcador::estaEnTurno`.
 
@@ -408,14 +434,16 @@ enviar. Una salida o entrada real antes de ese tiempo la agrega Coordinación.
 ### Comunicación
 
 **RN-48. Ver un caso desde la vía pública (excepción).** Es la única vez que la vía
-pública muestra contenido de un caso, y solo en el enlace de derivaciones. Primero va la
+pública muestra contenido de un caso, y solo en el enlace de derivaciones y en el de
+Seguridad CCTV. Primero va la
 cédula activa y en turno. Después, el código exacto de un caso abierto del mismo
 componente; cualquier otro resultado recibe el mismo mensaje. La consulta va por POST,
 con un límite de 10 cada 10 min por IP y por cédula, y cada consulta queda auditada. El
-soporte se abre por una URL firmada que vence a los 10 min, sin caché. Se muestra solo el
-mensaje, quién lo envía, la ubicación y el soporte. El servidor revalida todo al enviar y
+soporte se abre por una URL firmada que vence a los 10 min, sin caché. En derivaciones se
+muestra solo el mensaje, quién lo envía, la ubicación y el soporte; en Seguridad CCTV, solo la
+descripción, la ubicación, la comuna y el soporte. El servidor revalida todo al enviar y
 nada se guarda en el navegador.
-*Origen:* DOC-20 (P-2, autorizada por Edwar) · *Código:* `Publico\DerivacionController::caso`, `soporte`.
+*Origen:* DOC-20 (P-2, autorizada por Edwar), DOC-33 · *Código:* `Publico\DerivacionController::caso`, `soporte`, `Publico\SeguridadCctvController`.
 
 **RN-37. Avisos de versión.** Al desplegar, si `CHANGELOG.md` tiene la sección de esa
 versión, se anuncia una vez por la campana a todos los usuarios activos.
@@ -433,7 +461,7 @@ No hay tabla `parametros` (constitución, stack). Los valores viven en tres luga
 |---|---|---|
 | `config/repositorio.php` | Formatos y tamaño máximo (25 MB), cargas por tandas (300 / 50 / 150 MB), lado máximo de las fotos, horario hábil, festivos 2026–2027, elementos por página | Desarrollo (y variables del `.env`) |
 | Reglas del componente (`Componente::REGLAS`, pantalla «Componentes y nodos») | Jornada esperada, tolerancia, duración máxima, turnos por día, tramos de descanso, ventanas de reconocimiento (90/180 min), aviso «no registró entrada» (30 min), foto y ubicación obligatorias, autorregistro, cargos | Coordinación en adelante |
-| Módulos del componente (`componentes.modulos`, DOC-25) | Qué módulos abre cada componente: Documentos, Turnos, Derivaciones, Supervisión (RN-49) | Solo el superadministrador. Hoy por migración; la pantalla llega con ACC-09 |
+| Módulos del componente (`componentes.modulos`, DOC-25) | Qué módulos abre cada componente: Documentos, Turnos, Derivaciones, Supervisión, Seguridad CCTV (RN-49) | Solo el superadministrador. Hoy por migración; la pantalla llega con ACC-09 |
 | Catálogo de la malla («Tipos de turno», «Puntos críticos») | Códigos, horarios, días y horas de nómina; puntos con ubicación | Edición en adelante |
 | Constantes en código | Meta de derivaciones (180 min), recordatorio (30 min), 42 h semanales, 200 documentos por lote | Desarrollo. Candidatas a parámetro (C-02) |
 

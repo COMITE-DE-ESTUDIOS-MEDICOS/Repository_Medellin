@@ -84,6 +84,7 @@ class Componente extends Model
         'documentos' => ['Documentos', 'documentos.index'],
         'turnos' => ['Turnos', 'admin.turnos.enlaces.index'],
         'derivaciones' => ['Derivaciones', 'admin.turnos.derivaciones.index'],
+        'seguridad_cctv' => ['Seguridad CCTV', 'admin.turnos.cctv.index'], // DOC-33
         'supervisiones' => ['Supervisión', 'admin.turnos.supervisiones.index'],
         'usuarios_hc' => ['Usuarios HC', 'usuarios-hc.index'], // DOC-26 (plan D2)
         'ingresos_egresos' => ['Ingresos y egresos', 'ingresos-egresos.index'], // DOC-27 (plan D2)

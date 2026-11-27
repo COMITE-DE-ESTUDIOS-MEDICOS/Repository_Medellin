@@ -32,6 +32,7 @@ class EnlaceTurno extends Model
         'turno' => 'Turnos (entrada y salida)',
         'derivacion' => 'Derivaciones y respuesta territorial',
         'supervision' => 'Supervisión territorial',
+        'seguridad_cctv' => 'Seguridad CCTV',
     ];
 
     protected $fillable = [
@@ -70,6 +71,10 @@ class EnlaceTurno extends Model
             return route('derivacion.enlace', ['token' => $this->token()]);
         }
 
+        if ($this->esSeguridadCctv()) {
+            return route('cctv.enlace', ['token' => $this->token()]);
+        }
+
         if ($this->esSupervision()) {
             return route('supervision.enlace', ['token' => $this->token()]);
         }
@@ -87,6 +92,22 @@ class EnlaceTurno extends Model
     public function esSupervision(): bool
     {
         return $this->tipo === 'supervision';
+    }
+
+    public function esSeguridadCctv(): bool
+    {
+        return $this->tipo === 'seguridad_cctv';
+    }
+
+    /** Lo registrado con el enlace, según su tipo. Pide el withCount de esas relaciones. */
+    public function cantidadRegistros(): int
+    {
+        return (int) match ($this->tipo) {
+            'derivacion' => $this->derivaciones_count,
+            'supervision' => $this->supervisiones_count,
+            'seguridad_cctv' => $this->casos_cctv_count,
+            default => $this->marcaciones_count,
+        };
     }
 
     public function etiquetaTipo(): string
@@ -149,6 +170,11 @@ class EnlaceTurno extends Model
     public function derivaciones(): HasMany
     {
         return $this->hasMany(Derivacion::class);
+    }
+
+    public function casosCctv(): HasMany
+    {
+        return $this->hasMany(CasoCctv::class);
     }
 
     public function supervisiones(): HasMany

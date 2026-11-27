@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RolDependencia;
 use App\Models\Carpeta;
+use App\Models\CasoCctv;
 use App\Models\Colaborador;
 use App\Models\Componente;
 use App\Models\Dependencia;
@@ -88,6 +89,8 @@ class ModulosPorComponenteTest extends TestCase
                 'descripcion' => 'Requiere traslado.', 'ubicacion' => 'Parque', 'comuna' => 5,
                 'estado' => Derivacion::PENDIENTE, 'fecha_requerimiento' => today()->toDateString(), 'hora_requerimiento' => '10:00',
             ])->id,
+            'caso' => CasoCctv::factory()->de($c)->create()->id,
+            'campo' => 'soporte',
             'supervision' => Supervision::create([
                 'dependencia_id' => $this->dependencia->id, 'componente_id' => $c->id,
                 'supervisor_id' => $persona->id, 'supervisor_nombre' => 'Persona', 'supervisor_cedula' => $persona->documento,
