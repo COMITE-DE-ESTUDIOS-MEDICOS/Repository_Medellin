@@ -244,6 +244,17 @@ class UsuariosHcListadoTest extends TestCase
         $this->assertSame(UsuarioHc::BUSQUEDA_MAX_CARACTERES, mb_strlen($larga->get('tableSearch')));
     }
 
+    /** No consulta con cada letra: espera a que la persona deje de escribir un segundo. */
+    public function test_doc26_uhc06_la_busqueda_espera_un_segundo(): void
+    {
+        $this->parado($this->usuarioCon(RolDependencia::Lectura, $this->dependencia, $this->basica), $this->basica);
+
+        $lista = Livewire::test(Listado::class);
+
+        $this->assertSame('1s', $lista->instance()->getTable()->getSearchDebounce());
+        $lista->assertSeeHtml('wire:model.live.debounce.1s="tableSearch"');
+    }
+
     public function test_doc26_uhc06_paginas_de_25(): void
     {
         UsuarioHc::factory()->count(30)->en($this->basica)->create();

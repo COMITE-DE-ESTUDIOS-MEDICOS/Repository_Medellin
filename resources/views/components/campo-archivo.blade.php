@@ -12,7 +12,12 @@
     'maximo' => null,
 
     // Lo que dice el sello de la foto debajo de la hora: «Evidencia», «Turno».
-    'sello' => 'Evidencia',
+    // Sin pasarlo, «Evidencia» (abajo). Con :sello="null" la foto de cámara va
+    // sin sello y sin pedir ubicación, y toda imagen se vuelve a codificar
+    // para quitarle el EXIF (la foto de la persona en Usuarios HC, PA-15).
+    // Ojo: un :sello="$variable" que llegue en null también apaga el sello y
+    // la ubicación. En turnos, supervisión y derivaciones, pásalo escrito.
+    'sello',
 
     // De qué conjunto de config/repositorio.php salen los formatos: el de
     // dentro ('aplicacion', que incluye hojas de cálculo) o el de la puerta
@@ -22,6 +27,11 @@
 ])
 
 @php
+    // El «Evidencia» por defecto no va en @props: ahí se aplica con
+    // $sello ?? 'Evidencia', y un :sello="null" volvería a sellar. Aquí solo
+    // se aplica si no se pasó la prop.
+    $sello = array_key_exists('sello', get_defined_vars()) ? $sello : 'Evidencia';
+
     $extensiones = collect(config('repositorio.formatos.'.$formatos.'.extensiones'));
     $acepta = $extensiones->map(fn ($e) => '.'.$e)->join(',');
     $maximoMb = round(config('repositorio.tamano_maximo_kb') / 1024);
@@ -37,7 +47,8 @@
 <div data-campo-archivo class="min-w-0"
      @if($autocompletar) data-autocompletar="{{ $autocompletar }}" @endif
      @if($maximo) data-maximo="{{ $maximo }}" @endif
-     @if($camara) data-lado-maximo="{{ config('repositorio.imagen.lado_maximo') }}" data-sello="{{ $sello }}" @endif>
+     @if($camara) data-lado-maximo="{{ config('repositorio.imagen.lado_maximo') }}" @endif
+     @if($camara && ! is_null($sello)) data-sello="{{ $sello }}" @endif>
 
     {{--
         El campo nativo. Nunca se quita del HTML: si el script no corre, esto
