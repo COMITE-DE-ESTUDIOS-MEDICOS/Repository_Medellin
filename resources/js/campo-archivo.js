@@ -94,6 +94,14 @@ function iniciar(campo) {
     // recibe lo que sea que dispare el teléfono de quien envía.
     const ladoMaximo = parseInt(campo.dataset.ladoMaximo || '0', 10) || 0;
 
+    // Un campo con cámara sin data-sello (la vista lo omite con
+    // :sello="null"; la foto de la persona en Usuarios HC, PA-15): la foto de
+    // cámara no se estampa, no se pide la ubicación y toda imagen se vuelve a
+    // codificar, para que el navegador le quite el EXIF con sus coordenadas.
+    // Los campos sin cámara tampoco traen data-sello, y siguen como estaban.
+    const botonCamara = campo.querySelector('[data-camara]');
+    const sinSello = botonCamara !== null && !campo.hasAttribute('data-sello');
+
     // 'hidden' y 'flex' o 'grid' son la misma propiedad: se alternan a la
     // vez y a mano, en vez de confiar en cuál gana en la hoja de estilos.
     const alternar = (elemento, visible, display = 'flex') => {
@@ -323,11 +331,14 @@ function iniciar(campo) {
         entrada.click();
     };
 
-    const botonCamara = campo.querySelector('[data-camara]');
+    // Sin sello no hay nada que ubicar: el botón abre la cámara y ya.
+    if (sinSello) {
+        botonCamara.addEventListener('click', () => abrir(true));
+    }
 
-    // Donde se pueden tomar fotos, el permiso de ubicación se pide al entrar
-    // y se vuelve a pedir al tocar el botón.
-    if (botonCamara) {
+    // Donde se pueden tomar fotos con sello, el permiso de ubicación se pide
+    // al entrar y se vuelve a pedir al tocar el botón.
+    if (botonCamara && !sinSello) {
         const avisoUbicacion = campo.querySelector('[data-aviso-ubicacion]');
 
         const mostrarAviso = (texto, bien = false) => {
@@ -380,25 +391,29 @@ function iniciar(campo) {
         const deCamara = ultimaFueCamara;
         ultimaFueCamara = false;
 
-        if (!deCamara && !ladoMaximo) {
+        if (!deCamara && !ladoMaximo && !sinSello) {
             agregar(entrada.files);
             return;
         }
 
         // Cámara o galería, la imagen sale con el lado largo dentro del tope.
         // La de cámara además se estampa; la de galería no, que no es
-        // evidencia de dónde ni cuándo se tomó.
+        // evidencia de dónde ni cuándo se tomó. Sin sello, ninguna se estampa
+        // y todas se vuelven a codificar, aunque ya quepan.
         const procesadas = await Promise.all(
             Array.from(entrada.files).map((archivo) => {
                 if (!archivo.type.startsWith('image/')) {
                     return archivo;
                 }
 
-                return deCamara ? estamparFoto(archivo, ladoMaximo, campo.dataset.sello || 'Evidencia') : reducirImagen(archivo, ladoMaximo);
+                return deCamara && !sinSello
+                    ? estamparFoto(archivo, ladoMaximo, campo.dataset.sello || 'Evidencia')
+                    : reducirImagen(archivo, ladoMaximo, { siempre: sinSello });
             }),
         );
 
-        agregar(procesadas, deCamara);
+        // La hora de toma (tomadas[]) es la del sello: sin sello no se envía.
+        agregar(procesadas, deCamara && !sinSello);
     });
 
     if (zona) {

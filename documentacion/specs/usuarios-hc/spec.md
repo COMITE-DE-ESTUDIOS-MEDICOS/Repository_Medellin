@@ -4,8 +4,8 @@
 |---|---|
 | Historia | DOC-26 |
 | Tipo | Historia de usuario · módulo nuevo · propone RN-52 a RN-56 · abre una excepción a «cada componente ve solo lo suyo» (RN-01 tal como quedó con DOC-25) |
-| Estado | **Aprobada** |
-| Versión | 1.1 |
+| Estado | **Aprobada** (v1.1) · **v1.2 por aprobar**: mínimo de caracteres para buscar (PA-30, CA-38) |
+| Versión | 1.2 (propuesta) |
 | Fuentes | «Sistema_HC_Especificacion_v1_6» (11-11-2026, de otra persona del Comité; aún sin código de fuente, se propone F-12), secciones 3 a 3.4, 7.2 y 8. Decisiones de Edwar, 2026-11-20. Respuestas por defecto aceptadas por Edwar para avanzar, 2026-11-24. Decisiones de Edwar al aprobar, 2026-11-24. [Investigación del CIE-10 y los países](investigacion-cie10-y-paises.md), 2026-11-24. **Desde la 0.2 no se volvió a leer el documento v1.6 (no está disponible):** lo que aquí se cita de él viene de la 0.1 |
 | Depende de | **DOC-25** (acceso por componente), construida en todo lo que esta spec usa: módulos por componente y la pantalla «Componentes y nodos» donde el superadministrador los enciende (ACC-09), aislamiento por componente, coordinador líder, usuarios con componente (ACC-07 y ACC-08), avisos por componente (ACC-10) y auditoría por componente. **DOC-27** (estadías): lo marcado «con DOC-27» (ver §8) |
 | La necesita | **DOC-27**, que necesita en `develop` **el 30/11/2026** la tabla y el modelo de Usuarios HC, sus permisos y la búsqueda (§8) |
@@ -74,7 +74,13 @@ sus datos poco a poco, porque muchas veces no se conoce ni su nombre real.
   - el número de ficha se busca exacto, **sin tener en cuenta los guiones**: se ignoran las
     mayúsculas, los espacios de los extremos y los guiones («f-120», «F120» y «F--120» encuentran
     a «F-120», y «F-120» encuentra a una ficha guardada como «F120»), porque son la misma ficha
-    (PA-20).
+    (PA-20);
+  - **mínimo para buscar (v1.2, PA-30):** con menos de **3 letras o números** (contados después
+    de normalizar: «...a» cuenta 1) **solo se busca el número de ficha exacto**, también entre
+    las fichas anteriores, para no perder fichas cortas como «F7». Si no hay ficha con ese número,
+    la lista queda vacía y dice «Escribe al menos 3 letras o números para buscar por nombre,
+    alias o documento». Desde 3, todo como arriba. Sin texto, la lista no se filtra;
+  - la lista busca cuando la persona deja de escribir, no con cada letra.
 - Filtros: componente y, **con DOC-27**, estado (Todos, Activos, Inactivos). Con DOC-26 sola, el
   filtro de componente usa el componente de registro y no hay filtro de estado. Con paginación.
 - **Las identidades anteriores siguen sirviendo para buscar:** si a una persona se le corrigió
@@ -383,6 +389,7 @@ aceptadas por defecto para avanzar (PA-14, PA-17, PA-28 y PA-29), también. La c
 | PA-27 | **Nueva.** ¿Dónde queda el Excel del CIE-10 y de países que se carga? La investigación (§2.7) dice guardarlo **fuera del repositorio**; el plan (D9) lo pone **dentro**, para que el despliegue lo cargue solo. No trae datos personales; ni SISPRO ni la OMS publican una licencia escrita para la CIE-10 (investigación §2.1) | **Fuera del repositorio.** Edwar lo carga con un comando en cada servidor, como enciende el módulo (PA-29); el repositorio no guarda el archivo. El comando escribe en el registro del servidor qué archivo cargó, cuántos códigos y cuándo, y la carga se anota en el `CHANGELOG.md` (§7) | **Resuelta** (Edwar, 2026-11-24) |
 | PA-28 | **Nueva (del plan, P-05).** Cambiar o quitar una respuesta de la caracterización, ¿qué deja? | **La respuesta vigente se reemplaza y la anterior queda completa en el historial**, con su opción o código y su texto. El historial es el registro de verdad; así se cumple «nada se pierde» (constitución IV), y se escribe en `domain.md` como forma de cumplirla (§5; P-17 del plan) | **Resuelta** (Edwar, 2026-11-24) |
 | PA-29 | **Nueva.** ¿Cómo se enciende el módulo Usuarios HC en Básica y Estabilización? | **Lo enciende Edwar**, como superadministrador, desde la pantalla «Componentes y nodos» de cada servidor (construida con DOC-25, ACC-09), **sin migración ni carga de datos** | **Resuelta** (Edwar, 2026-11-24) |
+| PA-30 | **Nueva (v1.2, José, 2026-11-27).** Buscar con una o dos letras («a», «j») trae a casi toda la dependencia y hace consultas que no sirven. ¿Se pide un mínimo? | **Propuesta:** mínimo **3 letras o números**, contados después de normalizar. Con menos, **solo se busca el número de ficha exacto** (también entre las fichas anteriores), porque una ficha puede tener 1 o 2 caracteres («F7», PA-20) y es una búsqueda instantánea; si no hay, la lista lo dice. El mínimo es de la pantalla de Usuarios HC: `buscar()` no cambia, y DOC-27 decide el suyo. Además la lista espera a que la persona deje de escribir (1 segundo), lo que no cambia ninguna regla. Alternativas: mínimo 2; mínimo sin la excepción de la ficha (no se podría buscar «F7»); buscar solo al presionar Enter | **Por aprobar** (Edwar) |
 
 ## Criterios de aceptación
 
@@ -429,6 +436,7 @@ demás se prueban con DOC-26 sola.
 | CA-35 | **Nuevo.** Mientras el superadministrador no enciende Usuarios HC en un componente desde «Componentes y nodos», nadie de ese componente lo ve; al encenderlo, sí, sin otro paso | Por construir |
 | CA-36 | **Nuevo.** Cargar el CIE-10 o los países desde un archivo fuera del repositorio llena el catálogo una sola vez; el comando deja en el registro del servidor qué archivo cargó, cuántos códigos y cuándo; la carga no aparece en la pantalla de Auditoría; los selectores de diagnóstico y nacionalidad ofrecen los códigos cargados | Por construir (después del 15/12) |
 | CA-37 | **Nuevo.** Llenar por primera vez un campo vacío de la caracterización se guarda sin motivo y queda en el historial; cambiar o quitar un dato ya informado, o cualquier dato de la identificación, sin motivo no se guarda (PA-04) | Por construir |
+| CA-38 | **Nuevo (v1.2, por aprobar).** Con menos de 3 letras o números en la búsqueda (después de normalizar), la lista solo trae la ficha con ese número exacto (vigente, o anterior si nadie la tiene) y, si no hay, queda vacía con «Escribe al menos 3 letras o números para buscar por nombre, alias o documento»: «a» no trae a quien se llama «Ana», «F7» trae la ficha «F-7» y «12» no trae el documento 1234. Con 3 o más, la búsqueda es la de CA-03. Sin texto, la lista no se filtra | Por construir |
 
 ## Reglas que cambian
 
@@ -599,6 +607,7 @@ desde «Componentes y nodos» (PA-29). El Dueño de Producto es Edwar; José des
 
 | Versión | Fecha | Cambio |
 |---|---|---|
+| 1.2 | 2026-11-27 | **Propuesta, por aprobar.** Mínimo de 3 letras o números para buscar en la lista; con menos, solo el número de ficha exacto (PA-30, CA-38, §1). La lista busca cuando se deja de escribir. El resto sigue aprobado (v1.1) |
 | 1.1 | 2026-11-24 | Decisión de Edwar 2026-11-24: la ficha se compara sin guion. «F-120» = «F120» = «F--120» en la unicidad y en la búsqueda; se guarda y se muestra en mayúsculas con sus guiones; se exige al menos una letra o un número. Cambian §1, §2, PA-20, PA-22, CA-03, CA-29, RN-53 y la nota de búsqueda. Sigue aprobada |
 | 1.0 | 2026-11-24 | **Aprobada por Edwar.** Resueltas todas las PA salvo PA-09 y PA-18 (Ley 1581), que siguen abiertas y bloquean el paso a producción, no el desarrollo. Decisiones al aprobar: EPS solo del Usuario HC (Nómina sigue fuera); número de ficha con guion (`A–Z`, `0–9`, «-», 1 a 30) y búsqueda de ficha con su guion; Excel de los catálogos fuera del repositorio, cargado por Edwar con un comando; carga registrada en el registro del servidor y en el `CHANGELOG.md`, no en Auditoría (excepción nombrada a RN-04); diagnósticos y nacionalidad recortados del 15/12; al cambiar una respuesta, la vigente se reemplaza y la anterior queda completa en el historial (registro de verdad); sin carga inicial de fichas. CA-03, CA-29, CA-33 y CA-34 cambian; CA-36 (carga de catálogos) y CA-37 (motivo según PA-04) nuevos; criterios de catálogos marcados «después del 15/12». RN-53, RN-55, RN-04 y las filas de constitución ajustadas |
 | 0.3 | 2026-11-24 | Revisión con el plan y las tareas: pasan a la spec las preguntas de comportamiento del plan (PA-19 a PA-26: documento, ficha, nombre parecido, varias palabras, «ñ», fecha de ingreso, edad y sexo del CIE-10, CIE-11) y se agregan PA-27 (dónde va el Excel), PA-28 (respuesta anterior) y PA-29 (cómo se enciende el módulo). Respuestas por defecto aceptadas por Edwar para avanzar: catálogos una sola vez (PA-06, PA-13), fotos solo al abrir la ficha (PA-17), respuesta anterior en el historial (PA-28), módulo encendido desde «Componentes y nodos» (PA-29), calendario al 15/12 y producción con DOC-27 (PA-14); PA-09 y PA-18 bloquean producción, no el desarrollo. Reglas nuevas: documento en `[0-9A-Z]` de 1 a 20; búsqueda normalizada; auditoría sin valores; toda acción comprueba la dependencia; foto sin ubicación también en el servidor y sin caché; tipo de documento retirado aceptado al corregir; selectores con el texto guardado. CA-03, CA-07, CA-17, CA-18 y CA-26 cambian; CA-28 a CA-35 nuevos. DOC-25 al día (ACC-07 a ACC-10 construidas); dependencia de DOC-27 al 30/11; corregida la nota que restringía la foto de la persona |

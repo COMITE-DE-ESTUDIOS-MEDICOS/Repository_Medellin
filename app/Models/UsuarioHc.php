@@ -39,6 +39,11 @@ class UsuarioHc extends Model
     public const SIN_DOCUMENTO = 'SD';
 
     /** Topes de defensa de buscar(): más que esto se recorta (QA UHC-05). */
+    /** Tamaño de las columnas nombre_busqueda y alias_busqueda (migración de UHC-02). */
+    public const NOMBRE_BUSQUEDA_MAX = 500;
+
+    public const ALIAS_BUSQUEDA_MAX = 200;
+
     public const BUSQUEDA_MAX_CARACTERES = 100;
 
     public const BUSQUEDA_MAX_PALABRAS = 10;
@@ -134,11 +139,22 @@ class UsuarioHc extends Model
             $ficha->nombre_completo = preg_replace('/\s+/u', ' ', collect([$ficha->primer_nombre, $ficha->segundo_nombre, $ficha->primer_apellido, $ficha->segundo_apellido])
                 ->whereNotNull()->implode(' '));
 
-            $ficha->nombre_busqueda = $limpio(self::normalizarTexto($ficha->nombre_completo));
-            $ficha->alias_busqueda = $limpio(self::normalizarTexto($ficha->alias));
+            // Al tamaño de su columna: Str::ascii alarga algunas letras («ß» → «ss») y MySQL
+            // rechazaría el dato que no cabe. El formulario ya rechaza un nombre así
+            // (GuardarUsuarioHcRequest::after); esto es la red para lo que no pasa por él.
+            $ficha->nombre_busqueda = $limpio(rtrim(substr(self::normalizarTexto($ficha->nombre_completo), 0, self::NOMBRE_BUSQUEDA_MAX)));
+            $ficha->alias_busqueda = $limpio(rtrim(substr(self::normalizarTexto($ficha->alias), 0, self::ALIAS_BUSQUEDA_MAX)));
             $ficha->documento_normalizado = $limpio(self::normalizarCodigo($ficha->numero_documento));
             $ficha->ficha_normalizada = $limpio(self::normalizarCodigo($ficha->numero_ficha));
         });
+    }
+
+    /** «Cédula de ciudadanía 900» o «Sin documento»: el texto guardado del tipo, nunca el código. */
+    public function documentoLegible(): string
+    {
+        return $this->tipo_documento === self::SIN_DOCUMENTO || $this->numero_documento === null
+            ? (string) $this->tipo_documento_texto
+            : "{$this->tipo_documento_texto} {$this->numero_documento}";
     }
 
     /** Nombres, alias y nombres de catálogo: «Peña Álvarez, J.» → «pena alvarez j» (D5). */

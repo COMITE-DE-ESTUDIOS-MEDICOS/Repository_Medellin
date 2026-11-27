@@ -31,7 +31,10 @@ Documentación oficial: <https://filamentphp.com/docs> (secciones *Tables*, *For
    también el de dependencia. Hoy solo lo hacen el selector de componente
    (`EstablecerDependencia`, `InicioController`) y los componentes de «Enviar aviso»
    (`AvisoController`); con ACC-07 y ACC-09 se suman el campo «Componente» de Usuarios y
-   `Componentes::nombreUnico()` (plan D4).
+   `Componentes::nombreUnico()` (plan D4). DOC-26 (plan D1) suma la relación
+   `UsuarioHc::componenteRegistro()` y las opciones del filtro «Componente» de la lista de
+   Usuarios HC (`UsuariosHc\Listado::componentesConElModulo()`): la lista cruza componentes
+   dentro de la dependencia, nunca dependencias (spec DOC-26 §6.1).
 3. **No quitar los middlewares persistentes** de `AppServiceProvider`
    (`Livewire::addPersistentMiddleware`): cada clic de la tabla es una petición nueva y,
    sin `EstablecerDependencia`, `DependenciaScope` no filtra y se verían datos de todas
@@ -71,3 +74,4 @@ de PHP **intl**, **xmlreader** y **zip**.
 | Tipos de turno | Personas de campo → «Tipos de turno» | Edición en adelante |
 | Puntos críticos (con «Ver en el mapa») | En turno ahora → «Puntos críticos» | Edición en adelante |
 | En turno ahora (solo consulta: páginas, búsqueda y filtros) | Turnos → «En turno ahora» | Edición en adelante |
+| Usuarios HC (búsqueda con `UsuarioHc::buscar()`, búsqueda y filtros guardados en la sesión, página en la dirección) | «Usuarios HC», en el menú principal | Todos los roles de un componente con el módulo |

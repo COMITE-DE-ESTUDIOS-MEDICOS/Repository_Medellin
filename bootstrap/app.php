@@ -47,6 +47,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(SubstituteBindings::class, EstablecerDependencia::class);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
+
+        // Quien ya inició sesión y abre una página de invitado («/», «ingresar»)
+        // va a la llegada. Sin esto Laravel lo mandaba a «/», que es de
+        // invitado, y el navegador quedaba en un ciclo de redirecciones.
+        $middleware->redirectUsersTo(fn () => route('inicio'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

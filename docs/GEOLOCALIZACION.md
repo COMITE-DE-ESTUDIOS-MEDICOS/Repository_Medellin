@@ -41,6 +41,20 @@ o del explorador de archivos.
 Si la ubicación no llega, la foto se estampa igual con el texto «Ubicación no
 disponible». Nunca se bloquea el envío por no tener señal.
 
+### Cámara sin sello (`:sello="null"`)
+
+La foto de la persona en Usuarios HC (DOC-26, PA-15) es un retrato, no una evidencia:
+no lleva sello ni coordenadas. Con `<x-campo-archivo camara :sello="null" />` la vista no
+escribe `data-sello`, y el script:
+
+- no estampa la foto de cámara, y su hora en `tomadas[]` va vacía;
+- no pide la ubicación, ni al entrar ni al tocar «Tomar foto»;
+- vuelve a codificar **toda** imagen (`reducirImagen(…, { siempre: true })`), aunque ya
+  quepa en el tope: al pasar por el `<canvas>` sale sin EXIF, y con él sin el GPS que
+  guardan muchos teléfonos. El servidor también se lo quita (CA-32).
+
+Sin pasar `sello`, el campo sigue sellando con «Evidencia». Un `sello=""` también sella.
+
 ## El código
 
 | Archivo | Qué hace |
@@ -90,7 +104,7 @@ Cómo se comporta el navegador, comprobado con Chrome sobre el formulario real:
 |---|---|
 | Cámara, 6000 × 4000 (15.8 MB) | 2560 × 1707, se estampa |
 | Galería, 6000 × 4000 (15.8 MB) | 2560 × 1707, **sin** estampar |
-| Cualquiera, 1200 × 800 | Intacta: lo que ya cabe no se recomprime, que solo lo degradaría |
+| Cualquiera, 1200 × 800 | Intacta: lo que ya cabe no se recomprime, que solo lo degradaría (salvo en un campo sin sello, que siempre la recodifica para quitar el EXIF) |
 | Foto real 2992 × 4000 (2.1 MB) | 1915 × 2560, 0.90 MB |
 
 - Aplica **solo al formulario público** (el que tiene botón de cámara): lo trae el
