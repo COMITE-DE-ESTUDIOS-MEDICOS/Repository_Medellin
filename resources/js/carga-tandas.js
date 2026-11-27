@@ -130,6 +130,10 @@ function mensajeDe(respuesta) {
         429: 'Demasiados envíos seguidos. Espera un minuto y toca «Reintentar».',
         404: 'El enlace ya no está disponible.',
         403: 'No tienes permiso para cargar aquí.',
+        413: 'Esta tanda pesa más de lo que acepta el servidor. Carga menos archivos por vez o archivos más livianos.',
+        500: 'El servidor tuvo un error con esta tanda. Toca «Reintentar»; si se repite, avisa a soporte.',
+        502: 'El servidor no respondió a tiempo. Toca «Reintentar».',
+        504: 'El servidor no respondió a tiempo. Toca «Reintentar».',
     }[respuesta.estado] ?? 'Se perdió la conexión o el servidor no respondió.';
 }
 

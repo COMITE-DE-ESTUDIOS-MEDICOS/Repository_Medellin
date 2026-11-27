@@ -11,6 +11,7 @@
 | Aquí solo van las rutas, sin repetir nada de eso.
 */
 
+use App\Http\Controllers\Admin\EvidenciaFichaController;
 use App\Http\Controllers\Admin\Turnos\AusenciaController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaCasosController;
 use App\Http\Controllers\Admin\Turnos\CargaMasivaColaboradoresController;
@@ -79,6 +80,9 @@ Route::post('derivaciones/carga-masiva', [CargaMasivaCasosController::class, 'im
 Route::get('derivaciones/exportar',[DerivacionController::class, 'exportar'])->name('derivaciones.exportar');
 // Plan de contingencia: el superadministrador cierra a mano un caso atendido que no se pudo enviar.
 Route::patch('derivaciones/{derivacion}/contingencia', [DerivacionController::class, 'contingencia'])->name('derivaciones.contingencia');
+// DOC-34: completar una evidencia vacía desde la ficha.
+Route::post('derivaciones/{derivacion}/evidencias/{n}', [EvidenciaFichaController::class, 'derivacion'])
+    ->whereIn('n', ['1', '2', '3'])->middleware('throttle:30,1')->name('derivaciones.evidencia');
 // Supervisión territorial (DOC-11): consultar y descargar.
 Route::get('supervisiones', [SupervisionController::class, 'index'])->name('supervisiones.index');
 Route::get('supervisiones/exportar', [SupervisionController::class, 'exportar'])->name('supervisiones.exportar');

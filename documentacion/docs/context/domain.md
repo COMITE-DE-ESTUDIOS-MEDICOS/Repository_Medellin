@@ -276,7 +276,9 @@ Las horas, el «¿Se cumplió?» y el cierre a mano (plan de contingencia) son s
 superadministrador de la plataforma, con motivo y auditoría. Lo mismo vale para la hora
 de cierre de los registros anteriores. Los casos de la carga única (DOC-24, ver RN-30)
 nacen con las horas del archivo; corregirlas después sigue siendo del superadministrador.
-*Origen:* D-19, DOC-20, DOC-24 · *Código:* `DerivacionPolicy::corregirHoras`.
+Completar una evidencia vacía de un caso Solucionado desde la ficha **no es cerrar**: lo
+hace Edición en adelante, nunca reemplaza y no cambia estado, horas ni quién atendió (DOC-34).
+*Origen:* D-19, DOC-20, DOC-24, DOC-34 · *Código:* `DerivacionPolicy::corregirHoras`.
 
 **RN-33. Avisos de derivaciones.** Un solo aviso cuando el caso pasa 3 h sin atención,
 para Edición y Coordinación de la dependencia. Al atenderse, quien lo creó recibe el suyo
