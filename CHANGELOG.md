@@ -10,6 +10,11 @@ sola versión. La siguiente sección se abre después de esa fusión.
 
 Cada viñeta, corta y para quien no programa.
 
+## Sin publicar
+
+- En la ficha de un caso de derivación **Solucionado**, Edición, Coordinación y Administración pueden **cargar una evidencia que falta** (tarjetas «Sin archivo»): foto con la cámara o imagen del dispositivo. No cambia el caso, no reemplaza evidencias que ya existen y queda dicho quién la cargó y cuándo. El cierre a mano sigue siendo solo del superadministrador.
+- Al arrastrar una carpeta a la carga de documentos, ahora avisa que se elijan los archivos de adentro.
+
 ## v2.2
 
 - Derivaciones con código de caso: la oficina crea el caso (DC-001, DC-002…) desde el celular en Atención territorial → Derivaciones → **Nuevo caso**, con el mensaje, quién lo envía (Alcaldía, Autoridades locales del sector u Otra), la ubicación y el soporte. Desde ese momento corren las 3 horas.

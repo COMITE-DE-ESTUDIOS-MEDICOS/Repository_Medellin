@@ -51,6 +51,12 @@ class DerivacionPolicy
         return (bool) $usuario->es_superadmin;
     }
 
+    /** DOC-34: completa evidencias vacías Edición en adelante, solo con el caso Solucionado. No es cerrar. */
+    public function cargarEvidencia(User $usuario, Derivacion $derivacion): bool
+    {
+        return $this->view($usuario, $derivacion) && ! $derivacion->estaPendiente();
+    }
+
     public function update(User $usuario, Derivacion $derivacion): bool
     {
         return $this->view($usuario, $derivacion);
