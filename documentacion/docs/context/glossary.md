@@ -6,7 +6,7 @@
 |---|---|
 | **Dependencia** | Unidad del Comité que usa Documenta con sus propios datos (Inclusión Social; Salud Mental, inactiva). Nada se ve entre dependencias |
 | **Componente** | Programa dentro de una dependencia: Calle, Básica, Estabilización. Tiene sus reglas de turno, cargos y catálogo, y desde DOC-25 **sus módulos**: cada usuario pertenece a uno y ve solo sus módulos y sus datos (`componentes`, RN-01, RN-49) |
-| **Módulo** | Parte de Documenta que un componente usa o no: Documentos, Turnos, Derivaciones, Supervisión. Calle tiene los cuatro; Básica y Estabilización, ninguno por ahora. Los decide solo el superadministrador (`componentes.modulos`, `Componente::MODULOS`, RN-49, DOC-25) |
+| **Módulo** | Parte de Documenta que un componente usa o no: Documentos, Turnos, Derivaciones, Supervisión, Seguridad CCTV. Calle tiene los cinco; Básica y Estabilización, ninguno por ahora. Los decide solo el superadministrador (`componentes.modulos`, `Componente::MODULOS`, RN-49, DOC-25) |
 | **Nodo** | Equipo o zona de un componente (Nodo 1…). Puede tener centro y radio para saber si una marca quedó lejos (`nodos`) |
 | **Punto crítico** | Lugar de la calle que se cubre en un turno (Parque Bolívar, Terminal del Norte…), con enlace al mapa (`puntos_criticos`) |
 | **Persona de campo** | Quien trabaja en la calle y se identifica solo con su cédula; no tiene cuenta (`colaboradores`) |
@@ -20,7 +20,7 @@
 | **Custodia** | Restricción de una carpeta a un grupo: solo sus miembros la ven y la trabajan (`grupos_custodia`) |
 | **Enlace de carga** | Enlace temporal para que alguien de fuera envíe documentos sin cuenta (`enlaces_carga`) |
 | **Recepción** | Lo que llega por un enlace de carga, con su cadena de custodia (`recepciones`) |
-| **Enlace por cédula** | Enlace o QR de un componente donde las personas de campo se identifican con la cédula. Sirve para **turnos** (`/t/…`) o **derivaciones** (`/d/…`) (`enlaces_turno`, columna `tipo`) |
+| **Enlace por cédula** | Enlace o QR de un componente donde las personas de campo se identifican con la cédula. Sirve para **turnos** (`/t/…`), **derivaciones** (`/d/…`) o **Seguridad CCTV** (`enlaces_turno`, columna `tipo`) |
 | **Marcación** | Una entrada o una salida. Inmutable: corregir la anula y crea otra (`marcaciones`) |
 | **Turno** (de una persona) | Una entrada con su salida |
 | **Tipo de turno** | Código de la malla con horario y horas de nómina: N1, N1., T3, N7, T4, C13, AP… (`tipos_turno`, `es_turno = true`) |
@@ -36,6 +36,8 @@
 | **Derivación** | Caso que una persona de campo escala (lo pide una entidad: Policía, Línea 123…) y que se debe responder en máximo 3 h. En el Excel heredado se llama «novedad» («quien escala la novedad») (`derivaciones`) |
 | **Solucionada** | Derivación que un líder ya respondió; su tiempo quedó detenido |
 | **Vencida** | Derivación pendiente que ya pasó la meta de 3 h |
+| **Caso CCTV** | Requerimiento de seguridad (cámaras, 123 Telegram, Policía, Espacio público) que la oficina registra con su número CCTV-001 y una persona de campo atiende por su enlace. Sin meta de tiempo (`casos_cctv`, RN-67, RN-68) |
+| **Responsable de Seguridad CCTV** | Casilla del usuario (rol Edición o mayor) que le permite registrar, compartir el enlace y cerrar casos de Seguridad CCTV; solo sirve en ese módulo. La marcan Coordinación o Administración (RN-67) |
 | **Supervisión** | Visita del Apoyo al control territorial a una dupla de dinamizadores en un punto crítico, calificada de 1 a 5 (`supervisiones`) |
 | **Dinamizador** | Persona de campo que atiende un punto crítico, normalmente en dupla; es a quien se supervisa |
 | **EPP** | Elementos de protección personal. Al marcar entrada se responde si se recibieron |

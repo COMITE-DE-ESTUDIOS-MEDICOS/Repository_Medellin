@@ -77,8 +77,9 @@ class MenuPorGruposTest extends TestCase
 
     public function test_el_grupo_de_la_pagina_actual_viene_abierto_y_las_pantallas_hijas_marcan_su_enlace(): void
     {
-        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia);
-        $persona = Colaborador::factory()->en(Componente::factory()->create(['dependencia_id' => $this->dependencia->id]))->create();
+        $componente = Componente::factory()->create(['dependencia_id' => $this->dependencia->id]);
+        $coordinador = $this->usuarioCon(RolDependencia::Coordinacion, $this->dependencia, $componente);
+        $persona = Colaborador::factory()->en($componente)->create();
 
         $html = $this->actingAs($coordinador)
             ->get(route('admin.turnos.colaboradores.show', $persona))

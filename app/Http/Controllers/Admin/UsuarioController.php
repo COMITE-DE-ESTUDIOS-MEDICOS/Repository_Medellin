@@ -6,7 +6,9 @@ use App\Enums\AccionAuditoria;
 use App\Enums\RolDependencia;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GuardarUsuarioRequest;
+use App\Models\CasoCctv;
 use App\Models\Componente;
+use App\Models\GrupoCustodia;
 use App\Models\Scopes\ComponenteScope;
 use App\Models\User;
 use App\Services\Auditor;
@@ -23,8 +25,7 @@ class UsuarioController extends Controller
         protected ContextoDependencia $contexto,
         protected Auditor $auditor,
         protected AuthentikProvisioner $authentik,
-    ) {
-    }
+    ) {}
 
     /** La lista es una tabla de Filament (App\Livewire\Usuarios): búsqueda, filtros y revocar. */
     public function index(): View
@@ -77,9 +78,11 @@ class UsuarioController extends Controller
             $dependencia->id => [
                 'rol' => $rol->value,
                 'aprueba_novedades' => $request->boolean('aprueba_novedades'),
+                'responsable_cctv' => $request->boolean('responsable_cctv'),
                 'componente_id' => $componente?->id,
             ],
         ]);
+        $this->sincronizarCustodiaCctv($usuario, $request->boolean('responsable_cctv'));
 
         $en = $componente ? " en {$componente->nombre}" : '';
 
@@ -89,7 +92,7 @@ class UsuarioController extends Controller
             $esCuentaNueva
                 ? "Creó la cuenta de {$usuario->name} con rol {$rol->etiqueta()}{$en}"
                 : "Dio acceso a {$usuario->name}, que ya tenía cuenta, con rol {$rol->etiqueta()}{$en}",
-            ['componente' => $componente?->nombre],
+            ['componente' => $componente?->nombre, 'responsable_cctv' => $request->boolean('responsable_cctv')],
         );
 
         // Nueva o ya existente: si está activa, queda en el grupo de
@@ -124,6 +127,7 @@ class UsuarioController extends Controller
                 ? [$usuario->rolEn($this->contexto->id())]
                 : $this->rolesAsignables($request),
             'componentes' => $request->user()->componentesAsignablesEn($this->contexto->requerida()),
+            'responsableCctv' => (bool) $usuario->dependencias()->whereKey($this->contexto->id())->first()?->pivot->responsable_cctv,
             'componenteActualUsuario' => $usuario->componenteEn($this->contexto->id()),
         ]);
     }
@@ -153,19 +157,33 @@ class UsuarioController extends Controller
         $componente = $this->componenteElegido($request, $rol);
         $antes = $this->componenteDeId($usuario->componenteEn($this->contexto->id()));
 
+        $cctvAntes = (bool) $usuario->dependencias()->whereKey($this->contexto->id())->first()?->pivot->responsable_cctv;
+        $cctvDespues = $request->boolean('responsable_cctv');
+
         $usuario->dependencias()->updateExistingPivot(
             $this->contexto->id(),
-            ['rol' => $rol->value, 'aprueba_novedades' => $request->boolean('aprueba_novedades'), 'componente_id' => $componente?->id],
+            [
+                'rol' => $rol->value,
+                'aprueba_novedades' => $request->boolean('aprueba_novedades'),
+                'responsable_cctv' => $cctvDespues,
+                'componente_id' => $componente?->id,
+            ],
         );
+        $this->sincronizarCustodiaCctv($usuario, $cctvDespues);
 
         $cambio = $antes?->id !== $componente?->id;
+        $cambioCctv = $cctvAntes !== $cctvDespues;
 
         $this->auditor->registrar(
             AccionAuditoria::UsuarioActualizado,
             $usuario,
             "Actualizó el acceso de {$usuario->name}"
-                .($cambio ? ": pasó de {$this->nombreDe($antes)} a {$this->nombreDe($componente)}" : ''),
-            $cambio ? ['componente' => ['antes' => $antes?->nombre, 'despues' => $componente?->nombre]] : [],
+                .($cambio ? ": pasó de {$this->nombreDe($antes)} a {$this->nombreDe($componente)}" : '')
+                .($cambioCctv ? ($cctvDespues ? ': quedó como responsable de Seguridad CCTV' : ': dejó de ser responsable de Seguridad CCTV') : ''),
+            [
+                ...($cambio ? ['componente' => ['antes' => $antes?->nombre, 'despues' => $componente?->nombre]] : []),
+                ...($cambioCctv ? ['responsable_cctv' => ['antes' => $cctvAntes, 'despues' => $cctvDespues]] : []),
+            ],
         );
 
         // Nada de la ficha viaja a Authentik (DOC-22): ni nombre, ni correo,
@@ -200,6 +218,7 @@ class UsuarioController extends Controller
         abort_if($usuario->id === $request->user()->id, 403, 'No puedes revocar tu propio acceso.');
 
         $usuario->dependencias()->detach($this->contexto->id());
+        $this->sincronizarCustodiaCctv($usuario, false);
 
         $this->auditor->registrar(
             AccionAuditoria::UsuarioDesactivado,
@@ -232,6 +251,23 @@ class UsuarioController extends Controller
 
         return 'No se pudo dar acceso en Authentik. Mira el detalle en la auditoría'
             .' y vuelve a guardar esta ficha para reintentarlo.';
+    }
+
+    /** La casilla «Responsable de Seguridad CCTV» manda; el grupo de custodia solo protege el repositorio (D5). */
+    protected function sincronizarCustodiaCctv(User $usuario, bool $marcada): void
+    {
+        $datos = ['dependencia_id' => $this->contexto->id(), 'nombre' => CasoCctv::GRUPO_CUSTODIA];
+        $grupo = $marcada
+            ? GrupoCustodia::withoutGlobalScopes()->firstOrCreate($datos)
+            : GrupoCustodia::withoutGlobalScopes()->where($datos)->first();
+
+        if ($grupo === null) {
+            return;
+        }
+
+        $marcada
+            ? $grupo->usuarios()->syncWithoutDetaching([$usuario->id])
+            : $grupo->usuarios()->detach($usuario->id);
     }
 
     protected function autorizar(): void

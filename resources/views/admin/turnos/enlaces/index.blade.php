@@ -42,7 +42,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-[var(--text)]">{{ $enlace->etiquetaTipo() }}</td>
-                    <td class="px-4 py-3 text-[var(--muted)]">{{ $enlace->esDerivacion() ? $enlace->derivaciones_count : ($enlace->esSupervision() ? $enlace->supervisiones_count : $enlace->marcaciones_count) }}</td>
+                    <td class="px-4 py-3 text-[var(--muted)]">{{ $enlace->cantidadRegistros() }}</td>
                     <td class="px-4 py-3 text-[var(--muted)]">
                         {{ $enlace->created_at->format('d/m/Y') }}
                         <span class="block text-xs">{{ $enlace->creador?->name }}</span>

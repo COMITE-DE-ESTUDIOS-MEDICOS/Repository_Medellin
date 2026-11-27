@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin\Turnos;
 use App\Enums\AccionAuditoria;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GuardarEnlaceTurnoRequest;
+use App\Models\CasoCctv;
 use App\Models\Componente;
 use App\Models\EnlaceTurno;
 use App\Services\Auditor;
 use App\Services\ContextoDependencia;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -27,8 +27,7 @@ class EnlaceTurnoController extends Controller
     public function __construct(
         protected ContextoDependencia $contexto,
         protected Auditor $auditor,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -36,7 +35,7 @@ class EnlaceTurnoController extends Controller
 
         return view('admin.turnos.enlaces.index', [
             'enlaces' => EnlaceTurno::with(['componente', 'nodo', 'creador'])
-                ->withCount(['marcaciones', 'derivaciones', 'supervisiones'])
+                ->withCount(['marcaciones', 'derivaciones', 'supervisiones', 'casosCctv'])
                 ->latest()
                 ->paginate(config('repositorio.por_pagina')),
         ]);
@@ -57,6 +56,11 @@ class EnlaceTurnoController extends Controller
     public function store(GuardarEnlaceTurnoRequest $request): RedirectResponse
     {
         $this->authorize('create', EnlaceTurno::class);
+
+        // El enlace CCTV lo comparte quien puede registrar casos, no cualquier editor.
+        if ($request->input('tipo') === 'seguridad_cctv') {
+            $this->authorize('compartirEnlace', CasoCctv::class);
+        }
 
         $token = EnlaceTurno::generarToken();
 
@@ -110,6 +114,10 @@ class EnlaceTurnoController extends Controller
     public function revocar(EnlaceTurno $enlace): RedirectResponse
     {
         $this->authorize('revocar', $enlace);
+
+        if ($enlace->esSeguridadCctv()) {
+            $this->authorize('compartirEnlace', CasoCctv::class);
+        }
 
         $enlace->revocar();
 

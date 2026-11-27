@@ -96,7 +96,7 @@ class ReactivacionTest extends TestCase
 
         $this->actingAs($this->admin)
             ->patch(route('carpetas.reactivar', $ajena))
-            ->assertForbidden();
+            ->assertNotFound();
 
         $this->assertDatabaseHas('carpetas', ['id' => $ajena->id, 'activa' => false]);
     }

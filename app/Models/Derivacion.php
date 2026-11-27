@@ -136,6 +136,16 @@ class Derivacion extends Model
         return (int) $desde->diffInMinutes($hasta);
     }
 
+    /** Carpeta «Derivaciones · <componente>» (sin custodia) donde caen soporte y evidencias. */
+    public static function carpetaPara(Componente $componente): Carpeta
+    {
+        return Carpeta::withoutGlobalScopes()->firstOrCreate([
+            'dependencia_id' => $componente->dependencia_id,
+            'carpeta_id' => null,
+            'nombre' => 'Derivaciones · '.$componente->nombre,
+        ]);
+    }
+
     /** DOC-23: «3 · Manrique»; sin comuna (los anteriores), «—». */
     public function nombreComuna(): string
     {

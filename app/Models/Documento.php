@@ -51,6 +51,17 @@ class Documento extends Model
         });
     }
 
+    /**
+     * Lo que pinta x-tarjeta-evidencia de cada documento (quién lo cargó y su
+     * versión vigente), para cargarlo con with()/load() sin consultas por tarjeta.
+     *
+     * @return list<string>
+     */
+    public static function conAutoria(string ...$relaciones): array
+    {
+        return collect($relaciones)->flatMap(fn (string $r): array => ["{$r}.versionActual.autor", "{$r}.creador"])->all();
+    }
+
     /** El uuid es la llave visible en URLs: los ids no se pueden enumerar. */
     public function getRouteKeyName(): string
     {

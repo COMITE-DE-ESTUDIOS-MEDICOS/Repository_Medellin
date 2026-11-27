@@ -32,7 +32,7 @@ class AccesoPorComponenteMenuTest extends TestCase
     private const ENLACES_DE_MODULO = [
         'Documentos', 'Enlaces de carga',
         'Enlaces por cédula', 'Personas de campo', 'En turno ahora', 'Novedades', 'Marcaciones y reporte',
-        'Derivaciones', 'Supervisión',
+        'Derivaciones', 'Seguridad CCTV', 'Supervisión',
         'Tipos de documento', 'Grupos de custodia',
     ];
 
@@ -151,6 +151,18 @@ class AccesoPorComponenteMenuTest extends TestCase
         $this->basica->forceFill(['modulos' => []])->save();
 
         $this->menu($editor)->assertDontSee($this->enlace('Derivaciones'), false);
+    }
+
+    public function test_cctv08_ca01_el_menu_muestra_seguridad_cctv_solo_con_modulo_y_rol_de_edicion(): void
+    {
+        $editor = $this->usuarioCon(RolDependencia::Edicion, $this->dependencia, $this->calle);
+        $this->menu($editor)->assertSee($this->enlace('Seguridad CCTV'), false);
+
+        $lector = $this->usuarioCon(RolDependencia::Lectura, $this->dependencia, $this->calle);
+        $this->menu($lector)->assertDontSee($this->enlace('Seguridad CCTV'), false);
+
+        $this->calle->forceFill(['modulos' => ['derivaciones']])->save();
+        $this->menu($editor)->assertDontSee($this->enlace('Seguridad CCTV'), false);
     }
 
     public function test_doc25_ca04_administracion_con_dos_componentes_ve_el_selector_de_componente(): void

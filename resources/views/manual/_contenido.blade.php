@@ -18,6 +18,7 @@
         'personas' => 'Personas de campo, turnos y ausencias',
         'seguimiento' => 'Seguimiento: en turno, novedades y reportes',
         'derivaciones' => 'Atención territorial: derivaciones',
+        'seguridad-cctv' => 'Atención territorial: Seguridad CCTV',
         'administracion' => 'Administración',
         'notificaciones' => 'Notificaciones y avisos',
         'preguntas' => 'Preguntas frecuentes',
@@ -344,6 +345,7 @@
         <li><strong>Avisos:</strong> si un caso pasa 3 horas sin atención, Edición y Coordinación reciben un solo aviso de vencido. Cuando lo atienden, quien lo creó recibe el suyo y el de vencido desaparece.</li>
         <li><strong>Corregir:</strong> Edición y Coordinación corrigen solo los textos. Las horas, el «¿Se cumplió?» y el <strong>cierre a mano</strong> de un caso que se atendió y no se pudo enviar (plan de contingencia) los hace solo el superadministrador, con un motivo que queda en la auditoría.</li>
         <li><strong>Eliminar:</strong> solo Coordinación; las fotos se conservan.</li>
+        <li><strong>Completar una evidencia que falta:</strong> en la ficha de un caso <strong>Solucionado</strong>, Edición, Coordinación y Administración pueden llenar las tarjetas que dicen «Sin archivo» con <strong>Cargar evidencia</strong>. Completar no es cerrar: no cambia horas ni el estado, y el cierre a mano sigue siendo solo del superadministrador. Las tarjetas que ya tienen archivo no se reemplazan desde ahí: para cambiar una, ábrela en el repositorio y sube una <strong>nueva versión</strong>; la anterior queda en el historial, que ve Coordinación en adelante.</li>
         <li><strong>Cargar casos ya atendidos (solo Coordinación, hasta el 30/11/2026):</strong> para los casos que se atendieron y no se habían subido. Descarga el <strong>Formato de casos atendidos</strong>, llena una fila por caso con su fecha y hora de inicio y de cierre, la cédula de quien atendió y las imágenes <strong>dentro de las celdas</strong> (Insertar → Imágenes → Colocar en la celda): las tres evidencias son obligatorias y el soporte, si lo hay. Súbelo con <strong>Cargar casos atendidos</strong>. El código lo pone Documenta. Si una fila tiene un error no se carga ninguna y se dice cuál corregir. Los casos quedan atendidos, marcados «Carga masiva», y cuentan para la meta de 3 horas con sus horas reales. Máximo 50 casos por archivo.</li>
         <li><strong>Descargar Excel:</strong> encabezado negro, las fotos dentro de sus celdas y el soporte en PDF como enlace que abre sin cuenta durante 30 días. Al final van el código, quién lo creó, las horas de creación y de atención, el «¿Se cumplió?», la observación, la comuna y la gestión realizada.</li>
         <li><strong>Excel + fotos (ZIP):</strong> el Excel y una carpeta por caso con las fotos en tamaño original.</li>
@@ -365,6 +367,63 @@
         <li>Quién puede supervisar se define en <span class="ruta">Componentes y nodos → Cargos que supervisan</span>.</li>
         <li><strong>Hay que estar en turno:</strong> quien supervisa y los dinamizadores tienen que haber marcado entrada. Lo mismo para atender un caso de derivación o enviar evidencias con la cédula.</li>
         <li>Las supervisiones con incidencia relevante o crítica, casos escalados o calificación global de 1 o 2 llegan por la campana (pestaña <strong>Supervisión</strong>) a líderes y Coordinación.</li>
+    </ul>
+</section>
+
+{{-- ============================================================ --}}
+<section class="capitulo" id="seguridad-cctv">
+    {!! $cap('seguridad-cctv') !!}
+    <div class="roles">{!! $roles('Edición', 'Coordinación', 'Administración') !!}</div>
+    <p class="entrada">Aquí se llevan los requerimientos de seguridad que llegan de las cámaras, el 123 por Telegram, la Policía o Espacio público. La oficina registra el caso (CCTV-001) y la persona de campo lo atiende desde su enlace. Es solo para el componente Calle. No hay meta de tiempo: el tiempo de respuesta queda solo como registro.</p>
+
+    <h3>Quién hace qué</h3>
+    <ul>
+        <li><strong>Ver</strong> la lista, la ficha y el reporte: Edición, Coordinación y Administración. Lectura no entra a este módulo.</li>
+        <li><strong>Registrar, corregir, compartir el enlace y cerrar:</strong> quien tenga la casilla <strong>Responsable de Seguridad CCTV</strong>, y Coordinación y Administración.</li>
+        <li><strong>Anular</strong> (con motivo): solo Coordinación y Administración.</li>
+        <li><strong>La casilla «Responsable de Seguridad CCTV»</strong> está en la ficha del usuario, junto a «Aprueba novedades de turno». La marcan Coordinación o Administración. Sirve con rol Edición o mayor, y solo dentro de este módulo: no da ningún otro permiso. Si la casilla no está marcada, Edición solo consulta.</li>
+        <li>Las <strong>imágenes</strong> (soporte y evidencias) dentro de Documenta las abren solo los responsables, Coordinación y Administración. Edición sin la casilla ve la ficha, pero no abre las imágenes.</li>
+    </ul>
+
+    <h3>1. Registrar el caso (oficina)</h3>
+    <ol class="pasos">
+        <li><span class="ruta">Atención territorial → Seguridad CCTV → Nuevo caso</span> (funciona bien desde el celular).</li>
+        <li>Elige la <strong>entidad que solicita</strong> (Cámaras, 123 Telegram, Policía, Espacio público u Otras; con «Otras» escribe cuál) y la <strong>fecha y hora del requerimiento</strong>: cuándo llegó; no puede ser una fecha futura.</li>
+        <li>Si quieres, escribe la <strong>cédula de la persona de campo</strong> a quien se le pasa la novedad: al salir del campo aparece su nombre. Si la dejas vacía, la atiende cualquiera del componente que esté en turno. El <strong>nodo</strong> también es opcional: si no lo eliges, queda el nodo de quien atienda.</li>
+        <li>Escribe la <strong>descripción del caso</strong>, la <strong>ubicación</strong> y elige la <strong>comuna</strong>. El <strong>soporte</strong> es opcional: una foto con la cámara o una imagen del celular.</li>
+        <li><strong>Guardar.</strong> Aparece el número en grande (CCTV-001, CCTV-002…): díctaselo a la persona de campo. Tocar dos veces el botón no crea dos casos.</li>
+    </ol>
+
+    <h3>2. Compartir el enlace</h3>
+    <p>En <span class="ruta">Seguridad CCTV</span> se crea el <strong>enlace de Seguridad CCTV</strong>, con su QR, igual que el de derivaciones. Se comparte con las personas de campo y se puede revocar cuando ya no haga falta. Lo crean y lo revocan quienes registran casos.</p>
+
+    <h3>3. Atender el caso (persona de campo, desde el celular)</h3>
+    <ol class="pasos">
+        <li>Abre el enlace y escribe tu <strong>cédula</strong>: tiene que estar registrada y <strong>en turno</strong>, con tu entrada marcada. Solo verás tu saludo recortado («Hola, Jos…»).</li>
+        <li>Escribe el <strong>número del caso</strong>: solo los dígitos, porque el «CCTV-» ya está puesto.</li>
+        <li>Aparece el caso que vas a atender: la descripción, la ubicación, la comuna y el soporte, si lo hay. No se muestra nada más.</li>
+        <li>Sube las <strong>evidencias</strong>: la <strong>1 es obligatoria</strong>; la 2 y la 3 son opcionales. Cada una es una foto con la cámara, que lleva el sello de fecha, hora y ubicación, o una imagen del celular.</li>
+        <li>Si quieres, escribe la <strong>justificación en caso de no cumplir</strong> (es opcional).</li>
+        <li><strong>Enviar atención.</strong> La hora de respuesta es la del servidor: nadie la escribe.</li>
+    </ol>
+    <p>Si el caso tiene persona asignada, solo ella lo atiende por el enlace: con otra cédula sale «Este caso está asignado a otra persona». Si no tiene, lo atiende cualquier persona de campo del componente que esté en turno; la ficha muestra a quién se le pasó («Sin asignar», si a nadie) y quién lo atendió. Un caso se atiende <strong>una sola vez</strong>: si ya lo atendieron, sale «Este caso ya fue atendido». Si el número no existe o el caso ya no está abierto, sale «No hay un caso abierto con ese número». Por seguridad se permiten pocas consultas seguidas y cada una queda registrada.</p>
+
+    <h3>4. Seguimiento, cierre y anulación (oficina)</h3>
+    <ul>
+        <li><span class="ruta">Atención territorial → Seguridad CCTV</span>: lista con número, estado, entidad, fecha del requerimiento, comuna, nodo, a quién se le pasó y tiempo de respuesta («Sin asignar» y «Sin nodo» si no hay). Se filtra por estado, entidad, comuna, nodo y fechas. Abajo se cambia de página y arriba se elige ver 25, 50 o 100.</li>
+        <li><strong>Estados:</strong> Abierto (espera la atención), Atendido (ya llegó la atención) y Cerrado (revisado y terminado). Un caso se puede Anular en cualquier momento, menos si ya está anulado.</li>
+        <li><strong>Ficha:</strong> trae todos los datos, quién lo registró, quién lo atendió y cuándo, el tiempo de respuesta en horas y minutos («1 h 25 min»), el soporte y las evidencias.</li>
+        <li><strong>Cerrar:</strong> solo un caso Atendido, después de revisar las evidencias. Lo cierran los responsables, Coordinación y Administración; queda quién y cuándo.</li>
+        <li><strong>Corregir:</strong> mientras no esté cerrado ni anulado se pueden corregir los datos del registro y la justificación. Cambiar la fecha y hora del requerimiento pide un <strong>motivo</strong>, no puede ser futura ni posterior a la respuesta, y recalcula el tiempo. La hora de respuesta y las evidencias no se cambian. Cada corrección queda en la auditoría.</li>
+        <li><strong>Anular:</strong> Coordinación y Administración, con un <strong>motivo obligatorio</strong>. El caso no se borra: queda «Anulado», con quién, cuándo y por qué, y deja de contar en el reporte.</li>
+        <li><strong>Completar una evidencia que falta:</strong> en la ficha de un caso <strong>Atendido</strong> o <strong>Cerrado</strong>, quienes pueden cerrar (los responsables, Coordinación y Administración) pueden llenar las tarjetas que dicen «Sin archivo» con <strong>Cargar evidencia</strong>. No cambia el caso. Las tarjetas que ya tienen archivo no se reemplazan desde ahí: para cambiar una, ábrela en el repositorio y sube una <strong>nueva versión</strong>; la anterior queda en el historial, que ve Coordinación en adelante.</li>
+    </ul>
+
+    <h3>5. Reporte</h3>
+    <ul>
+        <li><span class="ruta">Atención territorial → Seguridad CCTV → Reporte</span>: se elige el rango de fechas del requerimiento (por defecto, el mes en curso). Los casos anulados no cuentan.</li>
+        <li>Muestra los casos abiertos, atendidos y cerrados con su total; el tiempo de respuesta (promedio, mediana, mínimo y máximo); y la cantidad de casos y el tiempo promedio por entidad y por comuna.</li>
+        <li><strong>Descargar Excel:</strong> encabezado negro y las fotos dentro de sus celdas. La hoja «Casos» trae una fila por caso y la hoja «Resumen», las cifras de la pantalla.</li>
     </ul>
 </section>
 

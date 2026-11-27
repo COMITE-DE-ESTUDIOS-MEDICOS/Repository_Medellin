@@ -108,7 +108,7 @@ class User extends Authenticatable
     public function dependencias(): BelongsToMany
     {
         return $this->belongsToMany(Dependencia::class, 'dependencia_usuario')
-            ->withPivot('rol', 'aprueba_novedades', 'componente_id')
+            ->withPivot('rol', 'aprueba_novedades', 'responsable_cctv', 'componente_id')
             ->withTimestamps();
     }
 
@@ -220,6 +220,21 @@ class User extends Authenticatable
         $id = $dependencia instanceof Dependencia ? $dependencia->id : $dependencia;
 
         return $id !== null && $this->puedeEditarEn($id) && (bool) $this->membresia($id)?->pivot->aprueba_novedades;
+    }
+
+    /**
+     * Seguridad CCTV (DOC-33): registrar, compartir el enlace y ver las imágenes.
+     * Coordinación y Administración siempre; de Edición, solo con «Responsable de Seguridad CCTV».
+     */
+    public function puedeGestionarCctvEn(Dependencia|int|null $dependencia): bool
+    {
+        if ($this->puedeGestionarEn($dependencia)) {
+            return true;
+        }
+
+        $id = $dependencia instanceof Dependencia ? $dependencia->id : $dependencia;
+
+        return $id !== null && $this->puedeEditarEn($id) && (bool) $this->membresia($id)?->pivot->responsable_cctv;
     }
 
     public function perteneceA(Dependencia|int|null $dependencia): bool

@@ -170,6 +170,19 @@
                     </span>
                 </span>
             </label>
+
+            <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-lg bg-[var(--card-soft)] p-4 ring-1 ring-[var(--border)]">
+                <input type="hidden" name="responsable_cctv" value="0">
+                <input type="checkbox" name="responsable_cctv" value="1" class="mt-0.5 size-4 accent-[var(--primary)]"
+                       @checked(old('responsable_cctv', $responsableCctv ?? false))>
+                <span>
+                    <span class="block text-sm font-medium text-[var(--text)]">Responsable de Seguridad CCTV</span>
+                    <span class="block text-xs text-[var(--muted)]">
+                        Para Edición: registra y corrige casos, comparte el enlace, cierra y abre las imágenes.
+                        Coordinación y Administración siempre pueden.
+                    </span>
+                </span>
+            </label>
         </x-seccion-ficha>
 
         {{-- 3. Contraseña: la gestiona Authentik; Documenta no la toca (DOC-22). --}}

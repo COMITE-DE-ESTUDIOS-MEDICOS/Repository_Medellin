@@ -5,6 +5,7 @@ use App\Http\Middleware\VerificarUsuarioActivo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -39,6 +40,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'dependencia' => EstablecerDependencia::class,
             'usuario.activo' => VerificarUsuarioActivo::class,
         ]);
+
+        // La dependencia y el componente se ponen ANTES de resolver el modelo de la
+        // ruta: si no, sus filtros (DependenciaScope, ComponenteScope) no actúan ahí
+        // y un registro de otro componente se abre por su dirección.
+        $middleware->prependToPriorityList(SubstituteBindings::class, EstablecerDependencia::class);
 
         $middleware->redirectGuestsTo(fn () => route('login'));
 

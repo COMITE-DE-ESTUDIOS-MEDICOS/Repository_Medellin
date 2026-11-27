@@ -15,6 +15,7 @@
 
 use App\Http\Controllers\Admin\Turnos\DerivacionController as AdminDerivacionController;
 use App\Http\Controllers\Publico\DerivacionController;
+use App\Http\Controllers\Publico\SeguridadCctvController;
 use App\Http\Controllers\Publico\SupervisionController;
 use App\Http\Controllers\Publico\TurnoController;
 use Illuminate\Support\Facades\Route;
@@ -54,6 +55,27 @@ Route::get('d/{token}/soporte/{derivacion}', [DerivacionController::class, 'sopo
 Route::post('d/{token}', [DerivacionController::class, 'atender'])
     ->middleware(['throttle:turno-marca', 'throttle:caso-consulta'])
     ->name('derivacion.atender');
+
+// Seguridad CCTV (DOC-33): el mismo enlace por cédula, su propio formulario. {caso} es el id, sin binding (vía sin sesión).
+Route::get('c/{token}', [SeguridadCctvController::class, 'mostrar'])
+    ->middleware('throttle:envio-formulario')
+    ->name('cctv.enlace');
+
+Route::post('c/{token}/cedula', [SeguridadCctvController::class, 'cedula'])
+    ->middleware('throttle:cedula-consulta')
+    ->name('cctv.cedula');
+
+Route::post('c/{token}/caso', [SeguridadCctvController::class, 'caso'])
+    ->middleware('throttle:caso-consulta')
+    ->name('cctv.caso');
+
+Route::get('c/{token}/soporte/{caso}', [SeguridadCctvController::class, 'soporte'])
+    ->middleware(['signed', 'throttle:envio-formulario'])
+    ->name('cctv.soporte');
+
+Route::post('c/{token}', [SeguridadCctvController::class, 'atender'])
+    ->middleware(['throttle:turno-marca', 'throttle:caso-consulta'])
+    ->name('cctv.atender');
 
 // Supervisión territorial (DOC-11): el mismo enlace por cédula, su propio formulario.
 Route::get('s/{token}', [SupervisionController::class, 'mostrar'])
