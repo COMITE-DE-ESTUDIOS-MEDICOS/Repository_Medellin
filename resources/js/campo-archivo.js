@@ -232,7 +232,21 @@ function iniciar(campo) {
     };
 
     const agregar = (nuevos, deCamara = false) => {
-        const entrantes = Array.from(nuevos).map((archivo) => ({
+        // Una carpeta arrastrada llega como un «archivo» de 0 bytes que el navegador
+        // no puede leer: al enviarla, la carga falla como si se cayera la conexión.
+        const todos = Array.from(nuevos);
+        const conContenido = todos.filter((archivo) => archivo.size > 0);
+        const vacios = todos.length - conContenido.length;
+        const avisoVacios = vacios === 0 ? '' : (vacios === 1
+            ? '1 elemento es una carpeta o está vacío y no se agregó.'
+            : vacios + ' elementos son carpetas o están vacíos y no se agregaron.')
+            + ' Las carpetas no se pueden arrastrar: ábrelas y elige los archivos de adentro.';
+
+        if (avisoVacios) {
+            window.mostrarToast?.('error', avisoVacios);
+        }
+
+        const entrantes = conContenido.map((archivo) => ({
             archivo,
             nombre: sinExtension(archivo.name),
             // Lo estampado se creó con lastModified en el instante del sello,
@@ -243,13 +257,15 @@ function iniciar(campo) {
         }));
 
         if (entrantes.length === 0) {
+            avisar(avisoVacios);
+
             return;
         }
 
         if (!varios) {
             seleccion = [entrantes[0]];
             sincronizarEntrada();
-            avisar('');
+            avisar(avisoVacios);
             pintar();
             autocompletar(campo, seleccion);
 
@@ -274,7 +290,7 @@ function iniciar(campo) {
                 + ' cárgalos en otro envío.'
             : '';
 
-        avisar(excedido);
+        avisar([avisoVacios, excedido].filter(Boolean).join(' '));
 
         // Además del aviso junto al campo, un toast: con cientos de tarjetas
         // en pantalla, el aviso puede quedar lejos de donde se está mirando.
