@@ -98,8 +98,8 @@ class CasosComentariosTest extends TestCase
         $html = $this->actingAs($this->creador)->get(route('admin.turnos.derivaciones.show', $vacio))->assertSee('Comentarios')->getContent();
         $this->assertDoesNotMatchRegularExpression('/<details id="comentarios"[^>]*\sopen/', $html);
 
-        // De otra dependencia, tampoco (al final: cambia la dependencia de la sesión).
-        $this->comentar($this->usuarioCon(RolDependencia::Administracion), $caso)->assertForbidden();
+        // De otra dependencia, tampoco: no lo encuentra (al final: cambia la dependencia de la sesión).
+        $this->comentar($this->usuarioCon(RolDependencia::Administracion), $caso)->assertNotFound();
         $this->assertSame(3, $caso->comentarios()->count());
     }
 
