@@ -167,10 +167,16 @@ llega con ACC-09 (pendiente).
 **RN-67. Seguridad CCTV: quién registra y quién cierra.** Registran, corrigen y cierran
 quienes tienen «Responsable de Seguridad CCTV» (con rol Edición o mayor), Coordinación y
 Administración del componente; anulan, con motivo, Coordinación y Administración. La casilla
-la marcan Coordinación o Administración y no da poder fuera del módulo. Atiende cualquier
-persona de campo del componente en turno, por el enlace. Las imágenes del caso las ven solo
-los responsables, Coordinación y Administración.
-*Origen:* DOC-33 · *Código:* `CasoCctvPolicy`, `users.responsable_cctv`.
+la marcan Coordinación o Administración y no da poder fuera del módulo. Atiende, por el
+enlace y en turno, la persona de campo asignada al caso; si no hay asignada, cualquier
+persona de campo del componente. La asignación es opcional, se hace por cédula y la oficina
+la quita o la cambia con «Corregir»; con otra cédula, el enlace responde «Este caso está
+asignado a otra persona» sin decir a quién. El nodo también es opcional: un caso sin nodo
+toma, al atenderse, el nodo de quien lo atiende (DOC-33 v1.1). Las imágenes del caso las ven solo
+los responsables, Coordinación y Administración. Los mismos que cierran completan, desde la
+ficha, las evidencias vacías de un caso Atendido o Cerrado, sin reemplazar ninguna y sin
+cambiar el caso (DOC-34).
+*Origen:* DOC-33 (v1.1: asignación opcional, 2026-11-27), DOC-34 · *Código:* `CasoCctvPolicy`, `users.responsable_cctv`.
 
 **RN-68. Seguridad CCTV: tiempo sin meta.** La fecha y hora del requerimiento la escribe
 quien registra (no futura); la hora de respuesta es la del servidor al enviar la atención.
@@ -348,11 +354,13 @@ y de cierre; quedan marcados «Carga masiva» y auditados. La carga se cierra so
 
 **RN-32. Enviar la atención detiene el tiempo.** El envío de la persona de campo es la
 marca de cierre, con la hora del servidor. Edición y Coordinación solo corrigen textos.
-Las horas, el «¿Se cumplió?» y el cierre a mano (plan de contingencia) son solo del
+Edición en adelante (Edición, Coordinación, Administración y el superadministrador)
+completan, desde la ficha, las evidencias vacías de un caso Solucionado; nunca reemplazan una
+que ya existe y no cambian horas ni el estado (DOC-34). Las horas, el «¿Se cumplió?» y el cierre a mano (plan de contingencia) son solo del
 superadministrador de la plataforma, con motivo y auditoría. Lo mismo vale para la hora
 de cierre de los registros anteriores. Los casos de la carga única (DOC-24, ver RN-30)
 nacen con las horas del archivo; corregirlas después sigue siendo del superadministrador.
-*Origen:* D-19, DOC-20, DOC-24 · *Código:* `DerivacionPolicy::corregirHoras`.
+*Origen:* D-19, DOC-20, DOC-24, DOC-34 · *Código:* `DerivacionPolicy::corregirHoras`, `cargarEvidencia`.
 
 **RN-33. Avisos de derivaciones.** Un solo aviso cuando el caso pasa 3 h sin atención,
 para Edición y Coordinación de la dependencia. Al atenderse, quien lo creó recibe el suyo

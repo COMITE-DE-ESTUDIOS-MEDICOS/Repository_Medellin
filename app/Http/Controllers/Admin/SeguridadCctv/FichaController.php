@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SeguridadCctv;
 
 use App\Enums\AccionAuditoria;
 use App\Models\CasoCctv;
+use App\Models\Documento;
 use App\Services\AlmacenamientoDocumentos;
 use App\Services\Auditor;
 use Illuminate\Http\RedirectResponse;
@@ -26,8 +27,9 @@ class FichaController
         Gate::authorize('view', $caso);
 
         return view('admin.seguridad-cctv.show', [
-            'caso' => $caso->load(['asignado', 'colaborador', 'nodo', 'creador', 'cerrador', 'anulador']),
-            'archivos' => array_filter($caso->archivos()),
+            'caso' => $caso->load(['asignado', 'colaborador', 'nodo', 'creador', 'cerrador', 'anulador',
+                ...Documento::conAutoria('soporte', 'evidencia1', 'evidencia2', 'evidencia3')]),
+            'archivos' => $caso->archivos(),
         ]);
     }
 

@@ -43,6 +43,13 @@ class CasoCctvPolicy
         return $usuario->puedeGestionarCctvEn($caso->dependencia_id);
     }
 
+    /** DOC-34: quien ve las imágenes completa evidencias vacías de un caso Atendido o Cerrado. */
+    public function cargarEvidencia(User $usuario, CasoCctv $caso): bool
+    {
+        return $this->verImagenes($usuario, $caso)
+            && in_array($caso->estado, [CasoCctv::ATENDIDO, CasoCctv::CERRADO], true);
+    }
+
     public function update(User $usuario, CasoCctv $caso): bool
     {
         return $usuario->puedeGestionarCctvEn($caso->dependencia_id)

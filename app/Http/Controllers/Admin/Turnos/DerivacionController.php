@@ -124,7 +124,7 @@ class DerivacionController extends Controller
         $contingencia = $derivacion->estaPendiente() && request()->user()->can('corregirHoras', $derivacion);
 
         return view('admin.turnos.derivaciones.show', [
-            'derivacion' => $derivacion->load(['nodo', 'componente', 'creador', 'respondedor', 'soporte', 'evidencia1', 'evidencia2', 'evidencia3']),
+            'derivacion' => $derivacion->load(['nodo', 'componente', 'creador', 'respondedor', ...Documento::conAutoria('soporte', 'evidencia1', 'evidencia2', 'evidencia3')]),
             'contingencia' => $contingencia,
             'colaboradores' => $contingencia ? Colaborador::activos()->where('componente_id', $derivacion->componente_id)->orderBy('nombre')->get() : collect(),
             'nodosActivos' => $contingencia ? $derivacion->componente->nodos()->activos()->orderBy('nombre')->get() : collect(),

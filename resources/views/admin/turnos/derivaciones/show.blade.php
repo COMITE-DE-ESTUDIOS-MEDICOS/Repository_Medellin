@@ -157,17 +157,10 @@
             </details>
         @endif
 
-        @foreach($derivacion->archivos() as $nombre => $documento)
-            <div class="rounded-lg bg-[var(--card)] p-3 ring-1 ring-[var(--border)]">
-                <p class="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{{ $nombre }}</p>
-                @if($documento)
-                    <a href="{{ route('documentos.show', $documento) }}" class="mt-1 block text-sm text-[var(--primary)] hover:underline">
-                        {{ $documento->nombre }}
-                    </a>
-                @else
-                    <p class="mt-1 text-sm text-[var(--muted)]">Sin archivo</p>
-                @endif
-            </div>
+        @foreach(array_values($derivacion->archivos()) as $i => $documento)
+            <x-tarjeta-evidencia :nombre="$i === 0 ? 'Soporte' : 'Evidencia '.$i" :documento="$documento" :n="$i ?: null"
+                :accion="$i && ! $documento && auth()->user()->can('cargarEvidencia', $derivacion) ? route('admin.turnos.derivaciones.evidencia', [$derivacion, $i]) : null"
+                sello="Derivación" />
         @endforeach
     </div>
 </div>

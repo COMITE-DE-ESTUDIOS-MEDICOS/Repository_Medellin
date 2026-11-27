@@ -72,6 +72,7 @@ enum AccionAuditoria: string
     case CasoCctvCerrado = 'caso_cctv.cerrado';
     case CasoCctvAnulado = 'caso_cctv.anulado';
     case CasoCctvArchivoAbierto = 'caso_cctv.archivo_abierto';
+    case EvidenciaCargadaDesdeFicha = 'caso.evidencia_ficha';
 
     public function etiqueta(): string
     {
@@ -142,6 +143,7 @@ enum AccionAuditoria: string
             self::CasoCctvCerrado => 'Cerró un caso de Seguridad CCTV',
             self::CasoCctvAnulado => 'Anuló un caso de Seguridad CCTV',
             self::CasoCctvArchivoAbierto => 'Abrió una imagen de un caso de Seguridad CCTV',
+            self::EvidenciaCargadaDesdeFicha => 'Cargó una evidencia desde la ficha',
         };
     }
 }

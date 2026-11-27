@@ -11,6 +11,7 @@
 | Aquí solo van las rutas, sin repetir nada de eso.
 */
 
+use App\Http\Controllers\Admin\EvidenciaFichaController;
 use App\Http\Controllers\Admin\SeguridadCctv\CasoController as CasoCctvController;
 use App\Http\Controllers\Admin\SeguridadCctv\FichaController as FichaCctvController;
 use App\Http\Controllers\Admin\SeguridadCctv\ReporteController as ReporteCctvController;
@@ -110,6 +111,9 @@ Route::middleware("can:modulo,'derivaciones'")->group(function () {
         ->middleware('throttle:30,1')->name('derivaciones.comentarios.store');
     Route::delete('derivaciones/{derivacion}/comentarios/{comentario}', [ComentarioDerivacionController::class, 'destroy'])
         ->name('derivaciones.comentarios.destroy');
+    // DOC-34: completar una evidencia vacía desde la ficha.
+    Route::post('derivaciones/{derivacion}/evidencias/{n}', [EvidenciaFichaController::class, 'derivacion'])
+        ->whereIn('n', ['1', '2', '3'])->middleware('throttle:30,1')->name('derivaciones.evidencia');
     Route::get('derivaciones/fotos', [DerivacionController::class, 'fotos'])->name('derivaciones.fotos');
     Route::resource('derivaciones', DerivacionController::class)
         ->only(['index', 'show', 'edit', 'update', 'destroy'])
@@ -128,6 +132,8 @@ Route::middleware("can:modulo,'seguridad_cctv'")->prefix('cctv')->name('cctv.')-
     Route::put('{caso}', [CasoCctvController::class, 'update'])->name('update');
     Route::patch('{caso}/cerrar', [FichaCctvController::class, 'cerrar'])->name('cerrar');
     Route::patch('{caso}/anular', [FichaCctvController::class, 'anular'])->name('anular');
+    Route::post('{caso}/evidencias/{n}', [EvidenciaFichaController::class, 'cctv'])
+        ->whereIn('n', ['1', '2', '3'])->middleware('throttle:30,1')->name('evidencia');
     Route::get('{caso}/archivo/{campo}', [FichaCctvController::class, 'archivo'])->name('archivo');
 });
 

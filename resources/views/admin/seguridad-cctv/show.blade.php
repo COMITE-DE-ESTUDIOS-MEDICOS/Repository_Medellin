@@ -43,7 +43,8 @@
         <div class="{{ $fila }}"><dt class="{{ $dt }}">Descripción</dt><dd class="{{ $dd }}">{{ $caso->descripcion }}</dd></div>
         <div class="{{ $fila }}"><dt class="{{ $dt }}">Ubicación</dt><dd class="{{ $dd }}">{{ $caso->ubicacion }}</dd></div>
         <div class="{{ $fila }}"><dt class="{{ $dt }}">Comuna</dt><dd class="{{ $dd }}">{{ $caso->nombreComuna() }}</dd></div>
-        <div class="{{ $fila }}"><dt class="{{ $dt }}">Se le pasó a</dt><dd class="{{ $dd }}">{{ $caso->asignado?->nombre ?? '—' }}</dd></div>
+        <div class="{{ $fila }}"><dt class="{{ $dt }}">Se le pasó a</dt><dd class="{{ $dd }}">{{ $caso->asignado?->nombre ?? 'Sin asignar' }}</dd></div>
+        <div class="{{ $fila }}"><dt class="{{ $dt }}">Nodo</dt><dd class="{{ $dd }}">{{ $caso->nodo?->nombre ?? 'Sin nodo' }}</dd></div>
         <div class="{{ $fila }}">
             <dt class="{{ $dt }}">Quién lo atendió</dt>
             <dd class="{{ $dd }}">
@@ -79,14 +80,15 @@
 
     <div class="space-y-4">
         @can('verImagenes', $caso)
-            <section class="rounded-lg bg-[var(--card)] p-4 ring-1 ring-[var(--border)]">
+            <section class="space-y-3">
                 <h2 class="text-sm font-semibold text-[var(--text)]">Imágenes</h2>
-                @forelse($archivos as $campo => $documento)
-                    <a href="{{ route('admin.turnos.cctv.archivo', [$caso, $campo]) }}" target="_blank" rel="noopener"
-                       class="mt-2 block text-sm text-[var(--primary)] hover:underline">{{ $nombres[$campo] }}</a>
-                @empty
-                    <p class="mt-2 text-xs text-[var(--muted)]">Este caso no tiene imágenes.</p>
-                @endforelse
+                @foreach($archivos as $campo => $documento)
+                    @php($n = $campo === 'soporte' ? null : (int) substr($campo, -1))
+                    <x-tarjeta-evidencia :nombre="$nombres[$campo]" :documento="$documento" :n="$n"
+                        :ver="$documento ? route('admin.turnos.cctv.archivo', [$caso, $campo]) : null"
+                        :accion="$n && ! $documento && auth()->user()->can('cargarEvidencia', $caso) ? route('admin.turnos.cctv.evidencia', [$caso, $n]) : null"
+                        sello="Seguridad CCTV" />
+                @endforeach
             </section>
         @endcan
 
